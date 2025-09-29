@@ -1,0 +1,14 @@
+{
+  "name": "crown-oak-sms",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "push": "clasp push",
+    "pull": "clasp pull",
+    "open": "clasp open",
+    "deploy": "clasp push && clasp deploy --description \"auto\""
+  },
+  "devDependencies": {
+    "@google/clasp": "^2.4.2"
+  }
+}
