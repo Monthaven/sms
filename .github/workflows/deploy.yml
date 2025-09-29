@@ -1,0 +1,29 @@
+name: Push to Apps Script
+on:
+  workflow_dispatch:
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Write clasprc
+        run: |
+          mkdir -p ~/.clasprc
+          echo '${{ secrets.CLASPRC_JSON }}' > ~/.clasprc.json
+
+      - name: Create .clasp.json
+        run: |
+          echo '{ "scriptId":"'"${{ secrets.GAS_SCRIPT_ID }}"'", "rootDir":"src" }' > .clasp.json
+
+      - name: Push
+        run: npx clasp push
