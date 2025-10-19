@@ -1,5 +1,50 @@
 # Crown & Oak SMS – Apps Script (EZ Texting + Notion + Google Sheets)
 
+## DealMachine CSV → Notion + EZ Texting pipeline
+
+This repository now includes a GitHub Action driven workflow that ingests DealMachine CSV exports and orchestrates the full send pipeline (Notion upserts, EZ Texting delivery, and optional Google Sheet logging).
+
+### How it works
+
+1. Commit a DealMachine CSV into `campaigns/inputs/`.
+2. Trigger **Actions → DealMachine CSV → Run workflow**. Pick the CSV path and whether to run as a dry run.
+3. The action runs `ops/pipeline.js`, which:
+   - parses, normalizes, and dedupes leads (phone → E.164),
+   - creates/updates a batch + leads in Notion,
+   - optionally creates a per-campaign Google Sheet log (if Google credentials are provided),
+   - sends (or previews) SMS messages via EZ Texting,
+   - polls delivery and writes the results back to Notion and the log.
+
+Preview-only runs create a JSON artifact under `campaigns/reports/` that the workflow surfaces for download.
+
+### Required GitHub secrets
+
+Add the following repository secrets before running the workflow:
+
+| Secret | Purpose |
+| --- | --- |
+| `NOTION_TOKEN` | Notion API token |
+| `NOTION_DB_LEADS` | Target Notion database for leads |
+| `NOTION_DB_BATCHES` | (Optional) Notion database for batch records |
+| `EZTEXTING_API_BASE` | EZ Texting API base URL |
+| `EZTEXTING_API_KEY` | EZ Texting API key/token |
+| `GOOGLE_SA_JSON` | (Optional) Google service-account JSON for Sheets logging |
+| `GSHEETS_PARENT_FOLDER_ID` | (Optional) Drive folder to store per-campaign logs |
+| `MESSAGE_TEMPLATE` | SMS template (supports `${FirstName}` and `${StreetAddress}`) |
+
+Dry-run submissions still require Notion access to create/update staging rows. Skip Google secrets to disable Sheet creation.
+
+### Local testing
+
+```bash
+npm install
+node ops/pipeline.js --csv campaigns/inputs/sample.csv --dry-run true
+```
+
+Provide env vars (e.g., via a `.env` loader or inline) when testing real sends.
+
+---
+
 Production-ready Google Apps Script that:
 - Pulls/filters leads from Sheets (or Notion) and sends SMS via EZ Texting
 - Updates Notion "Lead Staging" + "Campaign Batches"
