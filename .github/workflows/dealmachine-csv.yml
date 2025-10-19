@@ -19,6 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -27,10 +29,26 @@ jobs:
       - name: Install deps
         run: npm ci
 
+      - name: Resolve CSV inputs
+        id: resolve
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "CSV_PATH=${{ github.event.inputs.csv_path }}" >> "$GITHUB_ENV"
+            echo "DRY_RUN=${{ github.event.inputs.dry_run }}" >> "$GITHUB_ENV"
+          else
+            csv=$(git diff --name-only "${{ github.event.before }}" "${{ github.sha }}" | grep -E '^campaigns/inputs/[^/]+\.csv$' | head -n1)
+            if [ -z "$csv" ]; then
+              echo "::error::No DealMachine CSV found in commit."
+              exit 1
+            fi
+            echo "CSV_PATH=$csv" >> "$GITHUB_ENV"
+            echo "DRY_RUN=true" >> "$GITHUB_ENV"
+          fi
+
       - name: Execute pipeline
         env:
-          CSV_PATH: ${{ github.event.inputs.csv_path || 'campaigns/inputs/auto.csv' }}
-          DRY_RUN: ${{ github.event.inputs.dry_run }}
+          CSV_PATH: ${{ env.CSV_PATH }}
+          DRY_RUN: ${{ env.DRY_RUN }}
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           NOTION_DB_LEADS: ${{ secrets.NOTION_DB_LEADS }}
           NOTION_DB_BATCHES: ${{ secrets.NOTION_DB_BATCHES }}
