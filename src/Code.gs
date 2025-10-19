@@ -65,10 +65,18 @@ const CONFIG = {
  * ======================= */
 function normalizePhone(phone) {
   if (!phone) return '';
-  const d = String(phone).replace(/\D+/g, '');
-  if (d.length === 10) return '+1' + d;
-  if (d.length === 11 && d.startsWith('1')) return '+' + d;
-  return d.length >= 10 ? '+1' + d.slice(-10) : '';
+  const raw = String(phone).trim();
+  if (raw.startsWith('+')) {
+    const digits = '+' + raw.slice(1).replace(/\D+/g, '');
+    return digits.length > 1 ? digits : '';
+  }
+  const digits = raw.replace(/\D+/g, '');
+  if (!digits) return '';
+  if (CONFIG.REGION_DEFAULT === 'US') {
+    if (digits.length === 10) return '+1' + digits;
+    if (digits.length === 11 && digits.startsWith('1')) return '+' + digits;
+  }
+  return '';
 }
 function isQuietHours() {
   const h = new Date().getHours();
@@ -83,6 +91,14 @@ function ensureSheet_(ss, name, header) {
   if (!sh) sh = ss.insertSheet(name);
   if (header && header.length) sh.getRange(1, 1, 1, header.length).setValues([header]);
   return sh;
+}
+function logDebugEvent_(event, details) {
+  try {
+    const sh = ensureSheet_(holderSS_(), CONFIG.SHEETS.DEBUG_EVENTS, ['Timestamp','Event','Details']);
+    sh.appendRow([new Date(), event, typeof details === 'string' ? details : JSON.stringify(details || {})]);
+  } catch (err) {
+    console.error('Failed to log debug event', event, err);
+  }
 }
 function logCampaignSend(campaignId, phone, message, status, externalId) {
   const sh = ensureSheet_(holderSS_(), 'Campaign_Log', ['Timestamp','CampaignID','E164','Message','Status','ProviderID']);
@@ -117,7 +133,20 @@ function notionRequest_(method, endpoint, body) {
 }
 function queryNotionDatabase(dbKeyOrId, query) {
   const dbId = SP.getProperty(dbKeyOrId) || dbKeyOrId;
-  return (notionRequest_('post', `/v1/databases/${dbId}/query`, query || {}) || {}).results || [];
+  const baseQuery = Object.assign({}, query || {});
+  const wanted = typeof baseQuery.page_size === 'number' ? baseQuery.page_size : null;
+  const results = [];
+  let cursor;
+  do {
+    const body = Object.assign({}, baseQuery);
+    if (cursor) body.start_cursor = cursor;
+    const res = notionRequest_('post', `/v1/databases/${dbId}/query`, body) || {};
+    if (!res.results) break;
+    Array.prototype.push.apply(results, res.results);
+    cursor = res.has_more ? res.next_cursor : null;
+    if (wanted && results.length >= wanted) break;
+  } while (cursor);
+  return wanted && results.length > wanted ? results.slice(0, wanted) : results;
 }
 function updateNotionPage(pageId, properties, dbForSchema) {
   return !!notionRequest_('patch', `/v1/pages/${pageId}`, { properties: properties || {} });
@@ -152,9 +181,52 @@ function getRichText_(lead, name) {
 /** =======================
  * EZ TEXTING (OAuth + Send)
  * ======================= */
-function ezGetAccessToken_() {
-  const cached = SP.getProperty('EZ_ACCESS_TOKEN');
+function ezSaveTokenData_(data) {
+  if (data.accessToken) {
+    SP.setProperty('EZ_ACCESS_TOKEN', data.accessToken);
+  } else {
+    SP.deleteProperty('EZ_ACCESS_TOKEN');
+  }
+  if (data.refreshToken) {
+    SP.setProperty('EZ_REFRESH_TOKEN', data.refreshToken);
+  } else {
+    SP.deleteProperty('EZ_REFRESH_TOKEN');
+  }
+  return data.accessToken || null;
+}
+function ezRefreshAccessToken_() {
+  const refresh = SP.getProperty('EZ_REFRESH_TOKEN');
+  if (!refresh) return null;
+  try {
+    const resp = UrlFetchApp.fetch(CONFIG.EZ.REFRESH_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      muteHttpExceptions: true,
+      payload: JSON.stringify({ refreshToken: refresh })
+    });
+    const code = resp.getResponseCode();
+    if (code < 200 || code >= 300) {
+      console.error('EZ token refresh failed:', code, resp.getContentText());
+      SP.deleteProperty('EZ_ACCESS_TOKEN');
+      SP.deleteProperty('EZ_REFRESH_TOKEN');
+      return null;
+    }
+    const data = JSON.parse(resp.getContentText() || '{}');
+    return ezSaveTokenData_(data);
+  } catch (err) {
+    console.error('EZ token refresh exception', err);
+    SP.deleteProperty('EZ_ACCESS_TOKEN');
+    SP.deleteProperty('EZ_REFRESH_TOKEN');
+    return null;
+  }
+}
+function ezGetAccessToken_(forceNew) {
+  const cached = !forceNew ? SP.getProperty('EZ_ACCESS_TOKEN') : null;
   if (cached) return cached;
+  if (!forceNew) {
+    const refreshed = ezRefreshAccessToken_();
+    if (refreshed) return refreshed;
+  }
   if (!CONFIG.EZ.USER || !CONFIG.EZ.PASS) {
     console.error('Missing EZ_USER/EZ_PASS app credentials (Script Properties).');
     return null;
@@ -172,12 +244,7 @@ function ezGetAccessToken_() {
     return null;
   }
   const data = JSON.parse(txt);
-  if (data.accessToken) {
-    SP.setProperty('EZ_ACCESS_TOKEN', data.accessToken);
-    if (data.refreshToken) SP.setProperty('EZ_REFRESH_TOKEN', data.refreshToken);
-    return data.accessToken;
-  }
-  return null;
+  return data.accessToken ? ezSaveTokenData_(data) : null;
 }
 function ezAuthorizedFetch_(url, opts) {
   let token = ezGetAccessToken_();
@@ -191,8 +258,9 @@ function ezAuthorizedFetch_(url, opts) {
     });
   let res = doFetch();
   if (res.getResponseCode() === 401) {
-    try { SP.deleteProperty('EZ_ACCESS_TOKEN'); } catch(_) {}
-    token = ezGetAccessToken_();
+    token = ezRefreshAccessToken_();
+    if (!token) token = ezGetAccessToken_(true);
+    if (!token) return { ok: false, code: 401, text: 'unauthorized' };
     res = doFetch();
   }
   const code = res.getResponseCode();
@@ -208,7 +276,7 @@ function sendSMSToLead(lead, template, campaignId) {
   phone = normalizePhone(phone);
   if (!phone) {
     console.error('No valid phone for lead:', lead && lead.id);
-    return false;
+    return { ok: false, error: 'invalid phone' };
   }
   const streetAddress = lead.properties ? getRichText_(lead, 'Property Address') : '';
   const ownerName = lead.properties ? (getRichText_(lead, 'Owner Name') || getRichText_(lead, 'Company')) : '';
@@ -223,11 +291,12 @@ function sendSMSToLead(lead, template, campaignId) {
 
   if (resp.ok) {
     logCampaignSend(campaignId, phone, message, 'Sent', resp.data.id || 'success');
-    return true;
+    return { ok: true };
   }
-  console.error('EZ send error', resp.code, resp.text);
-  logCampaignSend(campaignId, phone, message, 'Failed', resp.text || resp.code);
-  return false;
+  const errorMsg = resp.data?.message || resp.text || `HTTP ${resp.code}`;
+  console.error('EZ send error', resp.code, errorMsg);
+  logCampaignSend(campaignId, phone, message, 'Failed', errorMsg || resp.code);
+  return { ok: false, error: errorMsg };
 }
 
 /** =======================
@@ -263,11 +332,12 @@ function readSendReadyFromHolder_(limit) {
     const row = values[r];
     const phone = idx.phone >= 0 ? String(row[idx.phone] || '') : '';
     const lineType = idx.lineType >= 0 ? String(row[idx.lineType] || '') : '';
-    if (!phone) continue;
+    const normalized = normalizePhone(phone);
+    if (!normalized) continue;
     if (lineType && lineType.toLowerCase() !== 'wireless') continue;
     out.push({
       properties: {
-        'Phone E164': { rich_text: [{ plain_text: normalizePhone(phone) }] },
+        'Phone E164': { rich_text: [{ plain_text: normalized }] },
         'Property Address': { rich_text: [{ plain_text: idx.address >= 0 ? String(row[idx.address] || '') : '' }] },
         'Owner Name': { rich_text: [{ plain_text: idx.ownerName >= 0 ? String(row[idx.ownerName] || '') : '' }] }
       }
@@ -316,11 +386,16 @@ function processCampaign(campaign) {
       });
 
   console.log(`Sending ${leads.length} leads for campaign ${campaignId}`);
-  updateNotionPage(campaign.id, { 'Status': { select: { name: 'Sending' } } }, 'CAMPAIGN_BATCHES_DB');
+  if (campaign.properties?.Status) {
+    updateNotionPage(campaign.id, { 'Status': { select: { name: 'Sending' } } }, 'CAMPAIGN_BATCHES_DB');
+  }
 
   let okCount = 0;
+  let failCount = 0;
+  const failureSummaries = [];
   leads.forEach(lead => {
-    const ok = sendSMSToLead(lead, template, campaignId);
+    const result = sendSMSToLead(lead, template, campaignId);
+    const ok = !!result.ok;
     if (ok && !CONFIG.FLAGS.USE_SHEETS_SOURCE && lead.id) {
       updateNotionPage(lead.id, {
         [CONFIG.NOTION.PROPS.sendStatus]: { select: { name: 'Sent' } },
@@ -330,7 +405,17 @@ function processCampaign(campaign) {
       const phoneStub = lead.properties?.['Phone E164']?.rich_text?.[0]?.plain_text || '';
       if (phoneStub) markHolderRowSent_(phoneStub);
     } else if (!ok) {
-      // count failure below
+      failCount++;
+      if (!CONFIG.FLAGS.USE_SHEETS_SOURCE && lead.id && lead.properties?.[CONFIG.NOTION.PROPS.sendStatus]) {
+        updateNotionPage(lead.id, {
+          [CONFIG.NOTION.PROPS.sendStatus]: { select: { name: 'Failed' } }
+        }, 'LEAD_STAGING_DB');
+      }
+      if (result.error) {
+        if (!failureSummaries.includes(result.error) && failureSummaries.length < 5) {
+          failureSummaries.push(result.error);
+        }
+      }
     }
     if (ok) {
       okCount++;
@@ -338,12 +423,35 @@ function processCampaign(campaign) {
     Utilities.sleep(200);
   });
 
-  updateNotionPage(campaign.id, {
-    'Status': { select: { name: 'Completed' } },
-    'Sent Count': { number: okCount }
-  }, 'CAMPAIGN_BATCHES_DB');
+  const total = leads.length;
+  let statusName = 'Completed';
+  if (total && okCount === 0) {
+    statusName = 'Failed';
+  } else if (failCount > 0) {
+    statusName = 'Partial';
+  }
 
-  console.log(`Campaign ${campaignId} complete: ${okCount} sent`);
+  const props = {};
+  if (campaign.properties?.Status) props['Status'] = { select: { name: statusName } };
+  if (campaign.properties?.['Sent Count']) props['Sent Count'] = { number: okCount };
+  if (failCount > 0 && campaign.properties?.['Failure Count']) props['Failure Count'] = { number: failCount };
+  if (failCount > 0 && campaign.properties?.['Error Summary']) {
+    const summary = failureSummaries.join('; ').slice(0, 1900);
+    props['Error Summary'] = { rich_text: [{ text: { content: summary } }] };
+  }
+  if (Object.keys(props).length) {
+    const updated = updateNotionPage(campaign.id, props, 'CAMPAIGN_BATCHES_DB');
+    if (!updated && statusName !== 'Completed' && props.Status) {
+      props.Status = { select: { name: 'Completed' } };
+      updateNotionPage(campaign.id, props, 'CAMPAIGN_BATCHES_DB');
+    }
+  }
+
+  if (failCount > 0) {
+    logDebugEvent_('Campaign Send Failures', { campaignId, okCount, failCount, errors: failureSummaries });
+  }
+
+  console.log(`Campaign ${campaignId} complete: ${okCount} sent, ${failCount} failed`);
 }
 function dryRunCampaignQueued() {
   const campaigns = queryNotionDatabase('CAMPAIGN_BATCHES_DB', {
@@ -392,20 +500,28 @@ function processDeliveryConfirmations() {
   const col = Object.fromEntries(head.map((h,i)=>[h,i]));
   let processedCol = head.indexOf('Processed');
   if (processedCol === -1) { processedCol = head.length; sh.getRange(1, processedCol+1).setValue('Processed'); }
+  if (col['Status'] === undefined || col['E164'] === undefined) return;
 
-  const phonesSent = [], phonesDelivered = [];
+  const phonesSent = new Set();
+  const phonesDelivered = new Set();
+  const processedFlags = values.slice(1).map(row => row[processedCol] === true);
   for (let r = 1; r < values.length; r++) {
     const row = values[r];
-    if (row[processedCol] === true) continue;
+    if (processedFlags[r-1]) continue;
     const status = String(row[col['Status']] || '').toUpperCase();
     const e164 = String(row[col['E164']] || '').trim();
     if (!e164) continue;
-    if (status === 'SENT' || status === 'QUEUED' || status === 'SUBMITTED') phonesSent.push(e164);
-    if (status === 'DELIVERED') phonesDelivered.push(e164);
-    sh.getRange(r+1, processedCol+1).setValue(true);
+    if (status === 'SENT' || status === 'QUEUED' || status === 'SUBMITTED') phonesSent.add(e164);
+    if (status === 'DELIVERED') phonesDelivered.add(e164);
+    processedFlags[r-1] = true;
   }
-  if (phonesSent.length) updateLeadsByPhones(phonesSent, 'Sent');
-  if (phonesDelivered.length) updateLeadsByPhones(phonesDelivered, 'Delivered');
+  if (processedFlags.length) {
+    sh.getRange(2, processedCol+1, processedFlags.length, 1).setValues(processedFlags.map(v => [v]));
+  }
+  const sentList = Array.from(phonesSent);
+  const deliveredList = Array.from(phonesDelivered);
+  if (sentList.length) updateLeadsByPhones(sentList, 'Sent');
+  if (deliveredList.length) updateLeadsByPhones(deliveredList, 'Delivered');
 }
 function updateLeadsByPhones(phones, newStatus) {
   phones.forEach(raw => {
@@ -415,10 +531,18 @@ function updateLeadsByPhones(phones, newStatus) {
       filter: { property: CONFIG.NOTION.PROPS.phoneE164, phone_number: { equals: phone } }
     });
     if (!res || !res.results || !res.results.length) return;
-    const pageId = res.results[0].id;
-    const props = { [CONFIG.NOTION.PROPS.sendStatus]: { select: { name: newStatus } } };
-    if (newStatus === 'Delivered') props[CONFIG.NOTION.PROPS.lastDeliveryAt] = { date: { start: new Date().toISOString() } };
-    notionRequest_('patch', `/v1/pages/${pageId}`, { properties: props });
+    const page = res.results[0];
+    const pageId = page.id;
+    const props = {};
+    if (page.properties?.[CONFIG.NOTION.PROPS.sendStatus]) {
+      props[CONFIG.NOTION.PROPS.sendStatus] = { select: { name: newStatus } };
+    }
+    if (newStatus === 'Delivered' && page.properties?.[CONFIG.NOTION.PROPS.lastDeliveryAt]) {
+      props[CONFIG.NOTION.PROPS.lastDeliveryAt] = { date: { start: new Date().toISOString() } };
+    }
+    if (Object.keys(props).length) {
+      notionRequest_('patch', `/v1/pages/${pageId}`, { properties: props });
+    }
   });
 }
 
@@ -435,7 +559,12 @@ function handleWebhook_(e) {
   if (!body) return ContentService.createTextOutput('OK');
 
   let payload = {};
-  try { payload = JSON.parse(body); } catch(_) {}
+  try {
+    payload = JSON.parse(body);
+  } catch (err) {
+    logDebugEvent_('Webhook JSON Parse Failed', { error: String(err), body: body.slice(0, 5000) });
+    return ContentService.createTextOutput('OK');
+  }
 
   // detect inbound vs delivery
   const isInbound =
@@ -445,19 +574,32 @@ function handleWebhook_(e) {
   if (isInbound) {
     const phone = normalizePhone(payload.phone || payload.from || payload.msisdn || payload.contactPhone);
     const text  = String(payload.messageBody || payload.body || payload.message || '');
-    recordInbound_(phone, text);
+    recordInbound_(phone, text, payload);
   } else {
     // delivery
     const phone = normalizePhone(payload.to || payload.phone || payload.recipient || payload.msisdn);
     const status = String(payload.deliveryStatus || payload.messageStatus || payload.status || '');
-    recordDelivery_(phone, status);
+    recordDelivery_(phone, status, payload);
   }
   return ContentService.createTextOutput('OK');
 }
-function recordInbound_(phone, text) {
-  const sh = ensureSheet_(holderSS_(), CONFIG.SHEETS.INBOUND_MESSAGES, ['Timestamp','E164','Body','Classification']);
+function recordInbound_(phone, text, payload) {
+  const sh = ensureSheet_(holderSS_(), CONFIG.SHEETS.INBOUND_MESSAGES, ['Timestamp','E164','Body','Classification','ProviderMessageId','Carrier','Quiet Hours']);
   const cls = classifyInbound_(text);
-  sh.appendRow([new Date(), phone, text, cls]);
+  const quiet = isQuietHours();
+  const providerId = payload?.messageId || payload?.id || payload?.message_id || payload?.messageID || '';
+  const carrier = payload?.carrier || payload?.carrierName || payload?.carrier_id || '';
+  sh.appendRow([new Date(), phone, text, cls, providerId, carrier, quiet ? 'Yes' : 'No']);
+
+  if (quiet) {
+    logDebugEvent_('Inbound During Quiet Hours', { phone, preview: text.slice(0, 120) });
+  }
+
+  if (cls === 'STOP' && phone) {
+    addSuppressionEntry_(phone, 'Inbound STOP keyword');
+  }
+
+  if (!phone) return;
 
   // update Notion status
   const res = notionRequest_('post', `/v1/databases/${SP.getProperty('LEAD_STAGING_DB')}/query`, {
@@ -475,9 +617,16 @@ function recordInbound_(phone, text) {
     notionRequest_('patch', `/v1/pages/${pid}`, { properties: props });
   }
 }
-function recordDelivery_(phone, status) {
-  const sh = ensureSheet_(holderSS_(), CONFIG.SHEETS.DELIVERY_STATUS, ['Timestamp','E164','Message','Status']);
-  sh.appendRow([new Date(), phone, '', status || '']);
+function recordDelivery_(phone, status, payload) {
+  const sh = ensureSheet_(holderSS_(), CONFIG.SHEETS.DELIVERY_STATUS, ['Timestamp','E164','Message','Status','ProviderMessageId','Payload']);
+  const providerId = payload?.messageId || payload?.id || payload?.message_id || payload?.messageID || '';
+  const raw = JSON.stringify(payload || {}).slice(0, 4000);
+  sh.appendRow([new Date(), phone, payload?.message || '', status || '', providerId, raw]);
+}
+function addSuppressionEntry_(phone, reason) {
+  if (!phone) return;
+  const sh = ensureSheet_(holderSS_(), CONFIG.SHEETS.SUPPRESSION, ['Timestamp','E164','Reason']);
+  sh.appendRow([new Date(), phone, reason || '']);
 }
 function classifyInbound_(text) {
   const t = String(text || '').toLowerCase();
@@ -514,6 +663,40 @@ function setupDeliveryProcessingTriggers() {
  * PLACEHOLDER STUBS FOR OPTIONAL SHEETS OPS
  * ======================= */
 function markHolderRowSent_(phone) {
-  // Stub: replace with sheet lookup if you need to mark holder rows as sent.
-  console.log('Mark row sent for', phone);
+  const sh = holderSS_().getSheetByName(CONFIG.SHEETS.FILTER_SENDREADY);
+  if (!sh) return;
+  const normalized = normalizePhone(phone);
+  if (!normalized) return;
+  const digits = normalized.replace(/\D+/g, '');
+  const target = digits.slice(-10);
+  if (!target) return;
+
+  const range = sh.getDataRange();
+  const values = range.getValues();
+  if (values.length <= 1) return;
+  const headers = values[0].map(String);
+  const idx = buildHeaderIndex_(headers);
+  const phoneCol = idx.phone;
+  if (phoneCol < 0) return;
+
+  let sentCol = headers.indexOf('Sent At');
+  if (sentCol === -1) {
+    sentCol = headers.length;
+    sh.getRange(1, sentCol + 1).setValue('Sent At');
+  }
+
+  const columnValues = values.slice(1).map(row => row[sentCol] || '');
+  const stamp = new Date();
+  let updated = false;
+  for (let r = 1; r < values.length; r++) {
+    const rowPhone = normalizePhone(values[r][phoneCol]);
+    const rowDigits = rowPhone.replace(/\D+/g, '').slice(-10);
+    if (rowDigits && rowDigits === target) {
+      columnValues[r - 1] = stamp;
+      updated = true;
+    }
+  }
+  if (updated) {
+    sh.getRange(2, sentCol + 1, columnValues.length, 1).setValues(columnValues.map(v => [v]));
+  }
 }
