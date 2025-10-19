@@ -1,0 +1,44 @@
+name: DealMachine CSV → Notion + EZTexting (w/ optional Sheet)
+
+on:
+  workflow_dispatch:
+    inputs:
+      csv_path:
+        description: "Path to DealMachine CSV in repo (e.g., campaigns/inputs/myfile.csv)"
+        required: true
+      dry_run:
+        description: "Don't send texts; just stage + preview"
+        type: boolean
+        default: true
+  push:
+    paths:
+      - "campaigns/inputs/*.csv"
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Execute pipeline
+        env:
+          CSV_PATH: ${{ github.event.inputs.csv_path || 'campaigns/inputs/auto.csv' }}
+          DRY_RUN: ${{ github.event.inputs.dry_run }}
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_DB_LEADS: ${{ secrets.NOTION_DB_LEADS }}
+          NOTION_DB_BATCHES: ${{ secrets.NOTION_DB_BATCHES }}
+          EZTEXTING_API_BASE: ${{ secrets.EZTEXTING_API_BASE }}
+          EZTEXTING_API_KEY: ${{ secrets.EZTEXTING_API_KEY }}
+          GOOGLE_SA_JSON: ${{ secrets.GOOGLE_SA_JSON }}
+          GSHEETS_PARENT_FOLDER_ID: ${{ secrets.GSHEETS_PARENT_FOLDER_ID }}
+          MESSAGE_TEMPLATE: ${{ secrets.MESSAGE_TEMPLATE }}
+          QUIET_HOURS: "20-08"
+          BATCH_SIZE: "150"
+        run: node ops/pipeline.js --csv "$CSV_PATH" --dry-run "$DRY_RUN"
