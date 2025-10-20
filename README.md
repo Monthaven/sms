@@ -1,4 +1,4 @@
-# Crown & Oak SMS – Apps Script (EZ Texting + Notion + Google Sheets)
+# Monthaven Capital – Apps Script (EZ Texting + Notion + Google Sheets)
 
 ## DealMachine CSV → Notion + EZ Texting pipeline
 
