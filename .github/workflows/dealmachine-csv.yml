@@ -52,8 +52,8 @@ jobs:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           NOTION_DB_LEADS: ${{ secrets.NOTION_DB_LEADS }}
           NOTION_DB_BATCHES: ${{ secrets.NOTION_DB_BATCHES }}
-          EZTEXTING_API_BASE: ${{ secrets.EZTEXTING_API_BASE }}
-          EZTEXTING_API_KEY: ${{ secrets.EZTEXTING_API_KEY }}
+          EZTEXTING_USER: ${{ secrets.EZTEXTING_USER }}
+          EZTEXTING_PASSWORD: ${{ secrets.EZTEXTING_PASSWORD }}
           GOOGLE_SA_JSON: ${{ secrets.GOOGLE_SA_JSON }}
           GSHEETS_PARENT_FOLDER_ID: ${{ secrets.GSHEETS_PARENT_FOLDER_ID }}
           MESSAGE_TEMPLATE: ${{ secrets.MESSAGE_TEMPLATE }}
