@@ -26,8 +26,8 @@ Add the following repository secrets before running the workflow:
 | `NOTION_TOKEN` | Notion API token |
 | `NOTION_DB_LEADS` | Target Notion database for leads |
 | `NOTION_DB_BATCHES` | (Optional) Notion database for batch records |
-| `EZTEXTING_API_BASE` | EZ Texting API base URL |
-| `EZTEXTING_API_KEY` | EZ Texting API key/token |
+| `EZTEXTING_USER` | EZ Texting account username |
+| `EZTEXTING_PASSWORD` | EZ Texting account password |
 | `GOOGLE_SA_JSON` | (Optional) Google service-account JSON for Sheets logging |
 | `GSHEETS_PARENT_FOLDER_ID` | (Optional) Drive folder to store per-campaign logs |
 | `MESSAGE_TEMPLATE` | SMS template (supports `${FirstName}` and `${StreetAddress}`) |
