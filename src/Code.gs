@@ -28,7 +28,7 @@ const CONFIG = {
 
   NOTION: {
     TOKEN: SP.getProperty('NOTION_TOKEN') || '',
-    VERSION: '2022-06-28',
+    VERSION: '2025-09-03',
     LEAD_STAGING_DB: SP.getProperty('LEAD_STAGING_DB') || '',
     CAMPAIGN_BATCHES_DB: SP.getProperty('CAMPAIGN_BATCHES_DB') || '',
     THREAD_TRACKING_DB: SP.getProperty('THREAD_TRACKING_DB') || '',
@@ -59,6 +59,8 @@ const CONFIG = {
     USE_SHEETS_SOURCE: (SP.getProperty('USE_SHEETS_SOURCE') || 'false').toLowerCase() === 'true'
   }
 };
+
+const NOTION_DS_CACHE = {};
 
 /** =======================
  * GENERIC HELPERS
@@ -115,6 +117,26 @@ function notionHeaders_() {
     'Notion-Version': CONFIG.NOTION.VERSION
   };
 }
+function resolveNotionDataSourceId_(dbId) {
+  if (!dbId) return '';
+  const cacheKey = `NOTION_DS_${dbId}`;
+  if (NOTION_DS_CACHE[cacheKey]) return NOTION_DS_CACHE[cacheKey];
+  const cached = SP.getProperty(cacheKey);
+  if (cached) {
+    NOTION_DS_CACHE[cacheKey] = cached;
+    return cached;
+  }
+  const res = notionRequest_('get', `/v1/databases/${dbId}`) || {};
+  const ds = res.data_sources && res.data_sources[0] && res.data_sources[0].id;
+  if (!ds) throw new Error(`Notion database ${dbId} missing data_sources[0].id`);
+  NOTION_DS_CACHE[cacheKey] = ds;
+  SP.setProperty(cacheKey, ds);
+  return ds;
+}
+function notionQueryDataSource_(dbId, body) {
+  const dsId = resolveNotionDataSourceId_(dbId);
+  return notionRequest_('post', `/v1/data_sources/${dsId}/query`, body || {});
+}
 function notionRequest_(method, endpoint, body) {
   const url = 'https://api.notion.com' + endpoint;
   const res = UrlFetchApp.fetch(url, {
@@ -140,7 +162,7 @@ function queryNotionDatabase(dbKeyOrId, query) {
   do {
     const body = Object.assign({}, baseQuery);
     if (cursor) body.start_cursor = cursor;
-    const res = notionRequest_('post', `/v1/databases/${dbId}/query`, body) || {};
+    const res = notionQueryDataSource_(dbId, body) || {};
     if (!res.results) break;
     Array.prototype.push.apply(results, res.results);
     cursor = res.has_more ? res.next_cursor : null;
@@ -176,6 +198,19 @@ function getRichText_(lead, name) {
   if (p.type === 'rich_text' && p.rich_text?.length) return p.rich_text.map(x => x.plain_text || '').join('');
   if (p.type === 'title' && p.title?.length) return p.title.map(x => x.plain_text || '').join('');
   return '';
+}
+function findLeadPageByPhone_(phone) {
+  const dbId = SP.getProperty('LEAD_STAGING_DB');
+  if (!dbId || !phone) return null;
+  const filter = { property: CONFIG.NOTION.PROPS.phoneE164, phone_number: { equals: phone } };
+  let res = notionQueryDataSource_(dbId, { filter }) || {};
+  if (res.results && res.results.length) return res.results[0];
+  const digits = phone.replace(/\D+/g, '');
+  if (digits && digits !== phone) {
+    res = notionQueryDataSource_(dbId, { filter: { property: CONFIG.NOTION.PROPS.phoneE164, phone_number: { equals: digits } } }) || {};
+    if (res.results && res.results.length) return res.results[0];
+  }
+  return null;
 }
 
 /** =======================
@@ -527,11 +562,8 @@ function updateLeadsByPhones(phones, newStatus) {
   phones.forEach(raw => {
     const phone = normalizePhone(raw);
     if (!phone) return;
-    const res = notionRequest_('post', `/v1/databases/${SP.getProperty('LEAD_STAGING_DB')}/query`, {
-      filter: { property: CONFIG.NOTION.PROPS.phoneE164, phone_number: { equals: phone } }
-    });
-    if (!res || !res.results || !res.results.length) return;
-    const page = res.results[0];
+    const page = findLeadPageByPhone_(phone);
+    if (!page) return;
     const pageId = page.id;
     const props = {};
     if (page.properties?.[CONFIG.NOTION.PROPS.sendStatus]) {
@@ -552,10 +584,26 @@ function doGet(e)  { return handleWebhook_(e); }
 function handleWebhook_(e) {
   const ss = holderSS_();
   const raw = ensureSheet_(ss, CONFIG.SHEETS.WEBHOOK_RAW, ['Timestamp','Raw','Source']);
+  const method = String(e?.method || '').toUpperCase() || (e?.postData ? 'POST' : 'GET');
+  const params = e?.parameter || {};
   const body = e?.postData?.contents || '';
   const type = e?.postData?.type || '';
 
-  raw.appendRow([new Date(), body, type || '(none)']);
+  const rawPayload = (body || Object.keys(params).length)
+    ? JSON.stringify({ body, params })
+    : '';
+  raw.appendRow([new Date(), rawPayload, method || type || '(none)']);
+
+  const inboundPhoneParam = params.from || params.From || params.phone || params.PhoneNumber || params.msisdn || params.contactPhone;
+  const inboundMessageParam = params.message || params.Message || params.body || params.Body;
+
+  if (inboundPhoneParam || inboundMessageParam) {
+    const phone = normalizePhone(inboundPhoneParam || '');
+    const text = String(inboundMessageParam || '');
+    recordInbound_(phone, text, params);
+    return ContentService.createTextOutput('OK');
+  }
+
   if (!body) return ContentService.createTextOutput('OK');
 
   let payload = {};
@@ -602,11 +650,9 @@ function recordInbound_(phone, text, payload) {
   if (!phone) return;
 
   // update Notion status
-  const res = notionRequest_('post', `/v1/databases/${SP.getProperty('LEAD_STAGING_DB')}/query`, {
-    filter: { property: CONFIG.NOTION.PROPS.phoneE164, phone_number: { equals: phone } }
-  });
-  if (res?.results?.length) {
-    const pid = res.results[0].id;
+  const page = findLeadPageByPhone_(phone);
+  if (page) {
+    const pid = page.id;
     const statusMap = { 'STOP': 'DNC', 'Interested': 'Active', 'Not Interested': 'Closed', 'Follow Up Later': 'Follow Up Later', 'Responded': 'Responded', 'Unknown': 'Responded' };
     const status = statusMap[cls] || 'Responded';
     const props = {
