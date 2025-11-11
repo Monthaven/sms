@@ -1,0 +1,6 @@
+FirstName,LastName,Phone,PropertyAddress,City,State,Zip,PropertyType,SquareFootage,AskingPrice,AnnualRent,Expenses,OwnershipType,YearsOwned,OutOfState,Zoning,DelinquentTaxes,VacancyIssues
+John,Smith,5551234567,123 Main St Office Building,Dallas,TX,75201,office,25000,3500000,450000,180000,llc,8,false,C-2,false,false
+Sarah,Johnson,5552345678,456 Industrial Dr,Houston,TX,77001,industrial,75000,8900000,890000,220000,corporation,12,true,M-1,false,false  
+Mike,Davis,5553456789,789 Retail Plaza,Austin,TX,78701,retail,15000,2200000,285000,95000,individual,5,false,C-1,false,true
+Lisa,Wilson,5554567890,321 Apartment Complex,San Antonio,TX,78201,multifamily,45000,6700000,720000,290000,llc,15,false,R-4,true,false
+Robert,Brown,5555678901,654 Mixed Use Building,Fort Worth,TX,76101,mixed-use,35000,4200000,520000,210000,trust,6,true,C-3,false,false

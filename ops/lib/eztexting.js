@@ -3,10 +3,26 @@ import { shouldRespectQuietHours } from "./normalize.js";
 const API_BASE = "https://app.eztexting.com";
 
 function renderTemplate(template, lead) {
-  return template
+  // Use custom template if available, otherwise use provided template
+  const templateToUse = lead.customTemplate || template;
+  
+  return templateToUse
     .replace(/\$\{FirstName\}/g, lead.FirstName ?? "")
     .replace(/\$\{LastName\}/g, lead.LastName ?? "")
-    .replace(/\$\{StreetAddress\}/g, lead.StreetAddress ?? "");
+    .replace(/\$\{StreetAddress\}/g, lead.StreetAddress ?? "")
+    .replace(/\$\{PropertyType\}/g, lead.propertyType ?? "")
+    .replace(/\$\{SquareFootage\}/g, lead.SquareFootage || lead.squareFootage || "")
+    .replace(/\$\{EstimatedValue\}/g, lead.commercialMetrics?.estimatedValue ? 
+      `$${(lead.commercialMetrics.estimatedValue / 1000000).toFixed(1)}M` : "")
+    .replace(/\$\{CapRate\}/g, lead.commercialMetrics?.capRate ? 
+      `${lead.commercialMetrics.capRate.toFixed(1)}%` : "")
+    .replace(/\$\{CapitalOffer\}/g, lead.capitalStackOffer?.recommendedOffer ?
+      `$${(lead.capitalStackOffer.recommendedOffer / 1000000).toFixed(1)}M` : "")
+    .replace(/\$\{OfferRange\}/g, lead.capitalStackOffer?.offerRange ?
+      `$${(lead.capitalStackOffer.offerRange.low / 1000000).toFixed(1)}M-${(lead.capitalStackOffer.offerRange.high / 1000000).toFixed(1)}M` : "")
+    .replace(/\$\{DebtToValue\}/g, lead.capitalStackOffer?.capitalStack?.debtToValue ?
+      `${lead.capitalStackOffer.capitalStack.debtToValue}%` : "")
+    .replace(/\$\{MotivationLevel\}/g, lead.motivationAnalysis?.motivationLevel ?? "");
 }
 
 function resolveBatchSize() {

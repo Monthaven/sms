@@ -5,10 +5,12 @@
   "type": "module",
   "scripts": {
     "push": "clasp push",
-    "pull": "clasp pull",
+    "pull": "clasp pull", 
     "open": "clasp open",
     "deploy": "clasp push && clasp deploy --description \"auto\"",
-    "pipeline": "node ops/pipeline.js"
+    "pipeline": "node ops/pipeline.js",
+    "commercial-test": "node ops/pipeline.js --csv campaigns/inputs/sample-commercial.csv --dry-run true",
+    "commercial-live": "node ops/pipeline.js --csv campaigns/inputs/sample-commercial.csv --dry-run false"
   },
   "dependencies": {
     "csv-parse": "^5.5.6",

@@ -653,8 +653,14 @@ function recordInbound_(phone, text, payload) {
   const page = findLeadPageByPhone_(phone);
   if (page) {
     const pid = page.id;
-    const statusMap = { 'STOP': 'DNC', 'Interested': 'Active', 'Not Interested': 'Closed', 'Follow Up Later': 'Follow Up Later', 'Responded': 'Responded', 'Unknown': 'Responded' };
-    const status = statusMap[cls] || 'Responded';
+    const statusMap = { 
+      'OPT_OUT': 'DNC',
+      'HOT': 'Hot Lead',
+      'WARM': 'Warm Lead', 
+      'COLD': 'Follow Up',
+      'Unknown': 'Needs Review'
+    };
+    const status = statusMap[cls] || 'Needs Review';
     const props = {
       [CONFIG.NOTION.PROPS.lastInbound]: { rich_text: [{ text: { content: text.slice(0, 200) } }] },
       [CONFIG.NOTION.PROPS.sendStatus]: { select: { name: status } }
@@ -677,11 +683,13 @@ function addSuppressionEntry_(phone, reason) {
 function classifyInbound_(text) {
   const t = String(text || '').toLowerCase();
   if (!t) return 'Unknown';
-  if (/\b(stop|unsubscribe|quit|end|cancel)\b/.test(t)) return 'STOP';
-  if (/\b(yes|interested|call me|sure|okay|ok|yep)\b/.test(t)) return 'Interested';
-  if (/\b(not interested|no thanks|remove me)\b/.test(t)) return 'Not Interested';
-  if (/\b(later|next (week|month|year)|follow up)\b/.test(t)) return 'Follow Up Later';
-  return 'Responded';
+  
+  // Simple human classification - no over-engineering
+  if (/\b(stop|unsubscribe|quit|end|cancel|remove|no|not interested)\b/.test(t)) return 'OPT_OUT';
+  if (/\b(yes|yeah|yep|interested|call|tell me more|what.*offer|how much|sure|sounds good)\b/.test(t)) return 'HOT';
+  if (/\b(maybe|might|depends|thinking|considering|possibly|potentially)\b/.test(t)) return 'WARM';
+  
+  return 'COLD';
 }
 
 /** =======================
