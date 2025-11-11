@@ -1,4 +1,4 @@
-# 🎯 Real-World SMS Foundation - Human-First Approach
+# 🎯 MONTHAVEN CAPITAL - Human-First SMS Foundation
 
 ## 💡 **Your Core Philosophy (PERFECT)**
 

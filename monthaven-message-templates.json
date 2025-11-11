@@ -1,0 +1,14 @@
+{
+  "Devin": {
+    "opener": "Hi, reaching out about {StreetAddress}. Still open to offers, or has that ship sailed? - Devin, Monthaven Capital",
+    "followUp": "Just checking in on {StreetAddress} - worth a quick chat this week, or pass for now? - Devin"
+  },
+  "Alec": {
+    "opener": "Hi, reaching out about {StreetAddress}. Still open to offers, or has that ship sailed? - Alec, Monthaven Capital",
+    "followUp": "Just checking in on {StreetAddress} - worth a quick chat this week, or pass for now? - Alec"
+  },
+  "Team Member": {
+    "opener": "Hi, reaching out about {StreetAddress}. Still open to offers, or has that ship sailed? - {caller_name}, Monthaven Capital",
+    "followUp": "Just checking in on {StreetAddress} - worth a quick chat this week, or pass for now? - {caller_name}"
+  }
+}
