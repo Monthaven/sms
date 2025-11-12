@@ -1,0 +1,155 @@
+{
+  "timestamp": "2025-11-12T03:34:38.214Z",
+  "summary": {
+    "classificationAccuracy": 91.16666666666667,
+    "phoneDeliveryRate": 89.3,
+    "newPatternsLearned": 9,
+    "recommendationsGenerated": 2
+  },
+  "fullAnalysis": {
+    "timestamp": "2025-11-12T03:34:38.214Z",
+    "classificationAccuracy": {
+      "hotAccuracy": 94.5,
+      "warmAccuracy": 87.2,
+      "coldAccuracy": 91.8,
+      "overallAccuracy": 91.16666666666667,
+      "improvementOpportunities": []
+    },
+    "phoneValidationRate": {
+      "validatedPhones": 4915,
+      "deliveryRate": 89.3,
+      "responseRate": 8.6,
+      "optOutRate": 2.5,
+      "recommendations": []
+    },
+    "deliveryOptimization": {
+      "currentDeliveryRate": 89.3,
+      "industryAverage": 70,
+      "improvement": 19.3,
+      "optimizationOpportunities": [
+        {
+          "area": "TIME_OPTIMIZATION",
+          "description": "Send messages during peak engagement hours",
+          "potentialImprovement": "2-3% delivery increase"
+        },
+        {
+          "area": "CONTENT_OPTIMIZATION",
+          "description": "Use learned patterns to avoid spam triggers",
+          "potentialImprovement": "1-2% delivery increase"
+        },
+        {
+          "area": "FREQUENCY_OPTIMIZATION",
+          "description": "Optimize message timing to prevent carrier blocking",
+          "potentialImprovement": "1-2% delivery increase"
+        }
+      ]
+    },
+    "responsePatterns": {
+      "newPatternsDiscovered": 9,
+      "patternConfidenceUpdates": 30,
+      "misclassificationLearning": 5,
+      "emergingTrends": [
+        "Increased use of \"cash offer\" terminology",
+        "More family consultation mentions",
+        "Growing interest in quick transactions"
+      ]
+    },
+    "systemPerformance": {
+      "campaignGenerationSpeed": 3081,
+      "classificationSpeed": 49,
+      "databaseQuerySpeed": 78,
+      "memoryUsage": 347,
+      "optimizationRecommendations": []
+    },
+    "learningRecommendations": [
+      {
+        "priority": "MEDIUM",
+        "type": "PHONE_VALIDATION_ENHANCEMENT",
+        "description": "Refine phone validation algorithms",
+        "implementation": "Add carrier-specific validation rules",
+        "expectedImprovement": "2-5% delivery increase"
+      },
+      {
+        "priority": "MEDIUM",
+        "type": "PERFORMANCE_OPTIMIZATION",
+        "description": "Optimize campaign generation for speed",
+        "implementation": "Implement advanced caching and indexing",
+        "expectedImprovement": "50% speed increase"
+      }
+    ]
+  },
+  "improvementHistory": [
+    {
+      "timestamp": "2025-11-12T03:34:38.214Z",
+      "classificationAccuracy": {
+        "hotAccuracy": 94.5,
+        "warmAccuracy": 87.2,
+        "coldAccuracy": 91.8,
+        "overallAccuracy": 91.16666666666667,
+        "improvementOpportunities": []
+      },
+      "phoneValidationRate": {
+        "validatedPhones": 4915,
+        "deliveryRate": 89.3,
+        "responseRate": 8.6,
+        "optOutRate": 2.5,
+        "recommendations": []
+      },
+      "deliveryOptimization": {
+        "currentDeliveryRate": 89.3,
+        "industryAverage": 70,
+        "improvement": 19.3,
+        "optimizationOpportunities": [
+          {
+            "area": "TIME_OPTIMIZATION",
+            "description": "Send messages during peak engagement hours",
+            "potentialImprovement": "2-3% delivery increase"
+          },
+          {
+            "area": "CONTENT_OPTIMIZATION",
+            "description": "Use learned patterns to avoid spam triggers",
+            "potentialImprovement": "1-2% delivery increase"
+          },
+          {
+            "area": "FREQUENCY_OPTIMIZATION",
+            "description": "Optimize message timing to prevent carrier blocking",
+            "potentialImprovement": "1-2% delivery increase"
+          }
+        ]
+      },
+      "responsePatterns": {
+        "newPatternsDiscovered": 9,
+        "patternConfidenceUpdates": 30,
+        "misclassificationLearning": 5,
+        "emergingTrends": [
+          "Increased use of \"cash offer\" terminology",
+          "More family consultation mentions",
+          "Growing interest in quick transactions"
+        ]
+      },
+      "systemPerformance": {
+        "campaignGenerationSpeed": 3081,
+        "classificationSpeed": 49,
+        "databaseQuerySpeed": 78,
+        "memoryUsage": 347,
+        "optimizationRecommendations": []
+      },
+      "learningRecommendations": [
+        {
+          "priority": "MEDIUM",
+          "type": "PHONE_VALIDATION_ENHANCEMENT",
+          "description": "Refine phone validation algorithms",
+          "implementation": "Add carrier-specific validation rules",
+          "expectedImprovement": "2-5% delivery increase"
+        },
+        {
+          "priority": "MEDIUM",
+          "type": "PERFORMANCE_OPTIMIZATION",
+          "description": "Optimize campaign generation for speed",
+          "implementation": "Implement advanced caching and indexing",
+          "expectedImprovement": "50% speed increase"
+        }
+      ]
+    }
+  ]
+}
