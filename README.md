@@ -1,152 +1,89 @@
-# Monthaven Capital – Apps Script (EZ Texting + Notion + Google Sheets)
 
-## DealMachine CSV → Notion + EZ Texting pipeline
+# SMS Lead Management & Address Verification System
 
-This repository now includes a GitHub Action driven workflow that ingests DealMachine CSV exports and orchestrates the full send pipeline (Notion upserts, EZ Texting delivery, and optional Google Sheet logging).
+## Overview
+This system automates the process of ingesting, classifying, verifying, and syncing SMS-based leads for real estate or similar workflows. It is designed for security, scalability, and integration with Notion and other CRMs.
 
-### How it works
+## Features
+- **Automated Address Verification:**
+  - Batch processing of leads (50 at a time) using configurable providers (Google, USPS, Smarty, Lob).
+  - Dry-run and provider modes for safe, cost-effective verification.
+  - Outputs verified addresses in CSV/JSON, with audit logs and retry queues.
 
-1. Commit a DealMachine CSV into `campaigns/inputs/`.
-2. Trigger **Actions → DealMachine CSV → Run workflow**. Pick the CSV path and whether to run as a dry run.
-3. The action runs `ops/pipeline.js`, which:
-   - parses, normalizes, and dedupes leads (phone → E.164),
-   - creates/updates a batch + leads in Notion,
-   - optionally creates a per-campaign Google Sheet log (if Google credentials are provided),
-   - sends (or previews) SMS messages via EZ Texting,
-   - polls delivery and writes the results back to Notion and the log.
+- **Lead Classification:**
+  - Regex and ML-based classification (HOT/WARM/COLD, Commercial/SFH).
+  - Confidence scoring and edge-case handling.
 
-Preview-only runs create a JSON artifact under `campaigns/reports/` that the workflow surfaces for download.
+- **Data Enrichment & Sync:**
+  - Fuzzy matching to expand property data sources.
+  - Syncs enriched data to Notion/CRM with idempotency and error handling.
 
-### Required GitHub secrets
+- **Automation & Reporting:**
+  - Automated outreach workflows (campaigns, follow-ups, opt-outs).
+  - Dashboard/reporting for pipeline and verification progress.
 
-Add the following repository secrets before running the workflow:
+- **Security & Compliance:**
+  - All secrets managed via environment variables (never committed).
+  - .gitignore includes all sensitive and build files.
+  - Git history is scrubbed of secrets.
 
-| Secret | Purpose |
-| --- | --- |
-| `NOTION_TOKEN` | Notion API token |
-| `NOTION_DB_LEADS` | Target Notion database for leads |
-| `NOTION_DB_BATCHES` | (Optional) Notion database for batch records |
-| `EZTEXTING_USER` | EZ Texting account username |
-| `EZTEXTING_PASSWORD` | EZ Texting account password |
-| `GOOGLE_SA_JSON` | (Optional) Google service-account JSON for Sheets logging |
-| `GSHEETS_PARENT_FOLDER_ID` | (Optional) Drive folder to store per-campaign logs |
-| `MESSAGE_TEMPLATE` | SMS template (supports `${FirstName}` and `${StreetAddress}`) |
-
-Dry-run submissions still require Notion access to create/update staging rows. Skip Google secrets to disable Sheet creation.
-
-### Local testing
-
-```bash
-npm install
-node ops/pipeline.js --csv campaigns/inputs/sample.csv --dry-run true
+## Folder Structure
+```
+├── address-verifier-runner.cjs
+├── providers/
+│   ├── google-geocode.cjs
+│   └── smarty.cjs
+├── data-quality-analyzer.cjs
+├── ... (other scripts)
+├── .env, local.env (ignored)
+├── .gitignore
+└── README.md
 ```
 
-Provide env vars (e.g., via a `.env` loader or inline) when testing real sends.
+## Setup
+1. **Clone the repository:**
+   ```sh
+   git clone https://github.com/Monthaven/sms.git
+   cd sms
+   ```
+2. **Install dependencies:**
+   ```sh
+   npm install
+   ```
+3. **Configure environment variables:**
+   - Copy `.env.example` to `.env` and fill in API keys and config.
+   - Never commit secrets.
+4. **Run address verification:**
+   ```sh
+   node address-verifier-runner.cjs --mode=provider --batch=50
+   ```
+5. **Import/export data as needed:**
+   - Use CSV/JSON outputs for Notion or CRM import.
+
+## Debugging & Development
+- Use dry-run mode for safe testing.
+- Check audit logs and retry queues for failed lookups.
+- Add unit tests for new scripts and logic.
+- Use `npm test` (when tests are implemented).
+
+## Roadmap
+- [ ] Refine HOT/WARM/COLD classifier (add ML, confidence, tests)
+- [ ] Expand property data sources & fuzzy matching
+- [ ] Sync enriched data to Notion/CRM
+- [ ] Automated outreach workflows
+- [ ] Dashboard & reporting
+- [ ] CI, testing, and validation
+- [ ] Deployment & scale plan
+
+## Security
+- All secrets must be in `.env` or `local.env` (never in code or git history).
+- Rotate API keys if exposed.
+- Use git-filter-repo for future history rewrites if needed.
 
 ---
 
-Production-ready Google Apps Script that:
-- Pulls/filters leads from Sheets (or Notion) and sends SMS via EZ Texting
-- Updates Notion "Lead Staging" + "Campaign Batches"
-- Tracks delivery + inbound via webhook and delivery polling
-- Handles suppression/DNC and bulk status updates
+## Legacy: Apps Script (EZ Texting + Notion + Google Sheets)
 
-## Prereqs
+This repository previously included a GitHub Action driven workflow that ingests DealMachine CSV exports and orchestrates the full send pipeline (Notion upserts, EZ Texting delivery, and optional Google Sheet logging). See below for legacy instructions and Apps Script/Google Sheets integration details.
 
-- Node 18+ and `npm`
-- `clasp` globally: `npm i -g @google/clasp`
-- A Google Apps Script project (we'll create via clasp)
-- A Google Sheet (holder): **HOLDER_SPREADSHEET_ID**
-- (Optional) Bulk CSV spreadsheet: **BULK_DATA_SPREADSHEET_ID**
-- Notion internal integration token + DBs
-  - **LEAD_STAGING_DB**, **CAMPAIGN_BATCHES_DB** (and optionally **THREAD_TRACKING_DB**, **PROCESSING_QUEUE_DB**)
-- EZ Texting app key/secret (OAuth) and account
-
-## Install
-
-```bash
-git clone <your-repo-url>
-cd crown-oak-sms
-npm install
-```
-
-Create the Apps Script project (or link an existing one):
-
-```bash
-# login interactive
-clasp login
-# create a standalone script
-clasp create --title "Crown & Oak SMS" --type standalone
-# or if you already have a scriptId, set it in .clasp.json
-```
-
-Push:
-
-```bash
-npm run push
-npm run open
-```
-
-## Script Properties (required)
-
-In the Apps Script editor: Project Settings → Script Properties and add:
-
-- `HOLDER_SPREADSHEET_ID` – your holder sheet id
-- `BULK_DATA_SPREADSHEET_ID` – (optional) bulk/DealMachine sheet id
-- `NOTION_TOKEN` – `secret_<...>` Notion internal integration token
-- `LEAD_STAGING_DB` – Notion DB id (32 hex, with/without dashes)
-- `CAMPAIGN_BATCHES_DB` – Notion DB id
-- `THREAD_TRACKING_DB` – (optional)
-- `PROCESSING_QUEUE_DB` – (optional)
-- `EZ_USER` – EZ Texting app key
-- `EZ_PASS` – EZ Texting app secret
-- (optional) `GLOBAL_PAUSE_SMS` – set to `true` to pause all sends
-- (optional) `USE_SHEETS_SOURCE` – set to `true` to source leads from your holder sheet tab
-
-> ⚠️ Do **not** put secrets into code or Git!
-
-## First run / setup
-
-1. Open the script → Run → `onOpen` once to install the Sheets menu.
-2. In the menu **DM Tools**:
-   - (optional) Build EZ contacts: “Build EZ Contacts (from DM CSV)”
-   - Enable “Auto Send” if desired (every 15 minutes).
-3. In Notion Campaign Batches, create a campaign and set:
-   - `Status = Queued`
-   - `Message Template` = your SMS template (supports `${FirstName}` and `${StreetAddress}`)
-   - `Target Count` = max recipients
-4. (Optional) Publish a web app for inbound/delivery webhooks:
-   - Deploy → Manage deployments → New deployment → Web app
-   - Execute as: Me; Who has access: Anyone
-   - Copy the URL and put it in your EZ Texting webhook settings.
-
-## Handy functions
-
-- `executeCampaignSend()` – runs the next queued campaign (respects quiet hours)
-- `dryRunCampaignQueued()` – prints who/what would be messaged
-- `setupDeliveryProcessingTriggers()` – installs a 5-min poll of delivery sheet
-- `processCurrentResponses()` – maps inbound classifications → Notion statuses
-
-## CI (optional)
-
-Use the workflow in `.github/workflows/deploy.yml`. Add secrets:
-
-- `CLASPRC_JSON` – contents of your local `~/.clasprc.json`
-- `GAS_SCRIPT_ID` – your Apps Script id
-
-Trigger manually (`workflow_dispatch`) to push from GitHub.
-
-## Notes
-
-- Never commit access tokens. Use Script Properties (or GitHub Secrets in CI).
-- If Notion property names differ, adjust `CONFIG.NOTION.PROPS` or change the filter keys.
-- Quiet hours default to 9pm–8am; set in `CONFIG`.
-
-## Sanity-check workflow
-
-1. In Notion Campaign Batches, set a campaign to `Status = Queued`, fill `Message Template` and `Target Count`.
-2. In Apps Script, run `dryRunCampaignQueued()` — verify phones and messages look right.
-3. Run `executeCampaignSend()` — watch `Campaign_Log` and `Delivery_Status` start filling.
-4. Optionally keep `USE_SHEETS_SOURCE = true` to pull from your `Filter_SendReady` tab instead of Notion leads; the dry-run respects that too.
-
-If anything else feels off, tell me which DB property names differ in your Notion, and I’ll tailor the exact keys to your schema.
+---
