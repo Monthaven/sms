@@ -1,0 +1,450 @@
+[
+  {
+    "index": 1,
+    "phone": "17063730127",
+    "name": "Donald WThompson",
+    "responseType": "HOT",
+    "priority": "4",
+    "message": "How much?...",
+    "keywords": [
+      "how",
+      "much"
+    ],
+    "inferred_property_type": "COMMERCIAL",
+    "inferred_confidence": 70,
+    "suggested_action": "Call immediately; prioritize for offer; run address lookup now",
+    "notes": "Dry-run enriched: keywords=how|much reason=Selling language suggests commercial or high-value asset"
+  },
+  {
+    "index": 2,
+    "phone": "12106025844",
+    "name": "Kevin HBerry",
+    "responseType": "HOT",
+    "priority": "4",
+    "message": "Make an offer...",
+    "keywords": [
+      "make",
+      "offer"
+    ],
+    "inferred_property_type": "COMMERCIAL",
+    "inferred_confidence": 90,
+    "suggested_action": "Call immediately; prioritize for offer; run address lookup now",
+    "notes": "Dry-run enriched: keywords=make|offer reason=Commercial keywords present"
+  },
+  {
+    "index": 3,
+    "phone": "19196698729",
+    "name": "Kyle ATurlington",
+    "responseType": "HOT",
+    "priority": "4",
+    "message": "Make me an offer...",
+    "keywords": [
+      "make",
+      "me",
+      "offer"
+    ],
+    "inferred_property_type": "COMMERCIAL",
+    "inferred_confidence": 90,
+    "suggested_action": "Call immediately; prioritize for offer; run address lookup now",
+    "notes": "Dry-run enriched: keywords=make|me|offer reason=Commercial keywords present"
+  },
+  {
+    "index": 4,
+    "phone": "12103259897",
+    "name": "James RDaniell",
+    "responseType": "HOT",
+    "priority": "4",
+    "message": "Always interested in an opinion of value but I am more interested in finding a tenant for my 1400 SF...",
+    "keywords": [
+      "interested",
+      "1400",
+      "always",
+      "opinion",
+      "value",
+      "but"
+    ],
+    "inferred_property_type": "COMMERCIAL",
+    "inferred_confidence": 90,
+    "suggested_action": "Call immediately; prioritize for offer; run address lookup now",
+    "notes": "Dry-run enriched: keywords=interested|1400|always|opinion|value|but reason=Commercial keywords present"
+  },
+  {
+    "index": 5,
+    "phone": "18635171986",
+    "name": "Walter WFletcher",
+    "responseType": "HOT",
+    "priority": "4",
+    "message": "Hello,  Do you have any original paintings of Florida landscapes or Florida wildlife that you might ...",
+    "keywords": [
+      "florida",
+      "hello",
+      "do",
+      "have",
+      "any",
+      "original"
+    ],
+    "inferred_property_type": "COMMERCIAL",
+    "inferred_confidence": 90,
+    "suggested_action": "Call immediately; prioritize for offer; run address lookup now",
+    "notes": "Dry-run enriched: keywords=florida|hello|do|have|any|original reason=Commercial keywords present"
+  },
+  {
+    "index": 6,
+    "phone": "14077654037",
+    "name": "Austin Hammonds",
+    "responseType": "HOT",
+    "priority": "4",
+    "message": "Good afternoon. Thanks for the follow up. I got your voicemail and checked out the website. Seems li...",
+    "keywords": [
+      "good",
+      "afternoon",
+      "thanks",
+      "follow",
+      "up",
+      "got"
+    ],
+    "inferred_property_type": "UNKNOWN",
+    "inferred_confidence": 40,
+    "suggested_action": "Call immediately; prioritize for offer; run address lookup now",
+    "notes": "Dry-run enriched: keywords=good|afternoon|thanks|follow|up|got reason=No clear indicators"
+  },
+  {
+    "index": 7,
+    "phone": "14692316328",
+    "name": "Seema Agarwal",
+    "responseType": "HOT",
+    "priority": "4",
+    "message": "How much you want to pay...",
+    "keywords": [
+      "how",
+      "much",
+      "want",
+      "pay"
+    ],
+    "inferred_property_type": "COMMERCIAL",
+    "inferred_confidence": 70,
+    "suggested_action": "Call immediately; prioritize for offer; run address lookup now",
+    "notes": "Dry-run enriched: keywords=how|much|want|pay reason=Selling language suggests commercial or high-value asset"
+  },
+  {
+    "index": 8,
+    "phone": "14089219667",
+    "name": "Mohammed AHameed",
+    "responseType": "HOT",
+    "priority": "4",
+    "message": "Hi! I appreciate you firstly for identifying yourself. We are not ready to sell this asset yet. We c...",
+    "keywords": [
+      "hi",
+      "appreciate",
+      "firstly",
+      "identifying",
+      "yourself",
+      "not"
+    ],
+    "inferred_property_type": "UNKNOWN",
+    "inferred_confidence": 40,
+    "suggested_action": "Call immediately; prioritize for offer; run address lookup now",
+    "notes": "Dry-run enriched: keywords=hi|appreciate|firstly|identifying|yourself|not reason=No clear indicators"
+  },
+  {
+    "index": 9,
+    "phone": "19194555949",
+    "name": "Jayshri APatel",
+    "responseType": "HOT",
+    "priority": "4",
+    "message": "Sure, make an offer...",
+    "keywords": [
+      "sure",
+      "make",
+      "offer"
+    ],
+    "inferred_property_type": "COMMERCIAL",
+    "inferred_confidence": 90,
+    "suggested_action": "Call immediately; prioritize for offer; run address lookup now",
+    "notes": "Dry-run enriched: keywords=sure|make|offer reason=Commercial keywords present"
+  },
+  {
+    "index": 10,
+    "phone": "15616132795",
+    "name": "Lawrence BSchechter",
+    "responseType": "HOT",
+    "priority": "4",
+    "message": "I'm old school.  I do not do business via text.  If you want to make an offer you will meet me in pe...",
+    "keywords": [
+      "do",
+      "m",
+      "old",
+      "school",
+      "not",
+      "business"
+    ],
+    "inferred_property_type": "COMMERCIAL",
+    "inferred_confidence": 90,
+    "suggested_action": "Call immediately; prioritize for offer; run address lookup now",
+    "notes": "Dry-run enriched: keywords=do|m|old|school|not|business reason=Commercial keywords present"
+  },
+  {
+    "index": 11,
+    "phone": "13363109065",
+    "name": "",
+    "responseType": "HOT",
+    "priority": "4",
+    "message": "yes, tell me more...",
+    "keywords": [
+      "yes",
+      "tell",
+      "me",
+      "more"
+    ],
+    "inferred_property_type": "UNKNOWN",
+    "inferred_confidence": 40,
+    "suggested_action": "Call immediately; prioritize for offer; run address lookup now",
+    "notes": "Dry-run enriched: keywords=yes|tell|me|more reason=No clear indicators"
+  },
+  {
+    "index": 12,
+    "phone": "15165575686",
+    "name": "Christopher Pesce",
+    "responseType": "HOT",
+    "priority": "4",
+    "message": "Are you interested in shopping centers in long island?...",
+    "keywords": [
+      "interested",
+      "shopping",
+      "centers",
+      "long",
+      "island"
+    ],
+    "inferred_property_type": "COMMERCIAL",
+    "inferred_confidence": 90,
+    "suggested_action": "Call immediately; prioritize for offer; run address lookup now",
+    "notes": "Dry-run enriched: keywords=interested|shopping|centers|long|island reason=Commercial keywords present"
+  },
+  {
+    "index": 13,
+    "phone": "17045601876",
+    "name": "Elizabeth MDonlon",
+    "responseType": "WARM",
+    "priority": "3",
+    "message": "What do you like about the property?...",
+    "keywords": [
+      "what",
+      "do",
+      "like",
+      "about",
+      "property"
+    ],
+    "inferred_property_type": "COMMERCIAL",
+    "inferred_confidence": 75,
+    "suggested_action": "Follow-up via text/call; run address lookup and research",
+    "notes": "Dry-run enriched: keywords=what|do|like|about|property reason=Instruction indicates commercial focus"
+  },
+  {
+    "index": 14,
+    "phone": "12108630505",
+    "name": "Michael RGoldstein",
+    "responseType": "WARM",
+    "priority": "3",
+    "message": "How did you notice my property? What do you know about it?...",
+    "keywords": [
+      "how",
+      "did",
+      "notice",
+      "my",
+      "property",
+      "what"
+    ],
+    "inferred_property_type": "COMMERCIAL",
+    "inferred_confidence": 75,
+    "suggested_action": "Follow-up via text/call; run address lookup and research",
+    "notes": "Dry-run enriched: keywords=how|did|notice|my|property|what reason=Instruction indicates commercial focus"
+  },
+  {
+    "index": 15,
+    "phone": "19047035922",
+    "name": "Mark GSablow",
+    "responseType": "WARM",
+    "priority": "3",
+    "message": "No one ever makes any offers. They talk about offers. They constantly ask me about offers and repeat...",
+    "keywords": [
+      "offers",
+      "they",
+      "about",
+      "no",
+      "one",
+      "ever"
+    ],
+    "inferred_property_type": "COMMERCIAL",
+    "inferred_confidence": 90,
+    "suggested_action": "Follow-up via text/call; run address lookup and research",
+    "notes": "Dry-run enriched: keywords=offers|they|about|no|one|ever reason=Commercial keywords present"
+  },
+  {
+    "index": 16,
+    "phone": "16179627050",
+    "name": "Marc RCutler",
+    "responseType": "WARM",
+    "priority": "3",
+    "message": "Crazy market I get a offer a month 2 in the last 2 days and it's not even on the market maybe people...",
+    "keywords": [
+      "2",
+      "market",
+      "crazy",
+      "get",
+      "offer",
+      "month"
+    ],
+    "inferred_property_type": "COMMERCIAL",
+    "inferred_confidence": 90,
+    "suggested_action": "Follow-up via text/call; run address lookup and research",
+    "notes": "Dry-run enriched: keywords=2|market|crazy|get|offer|month reason=Commercial keywords present"
+  },
+  {
+    "index": 17,
+    "phone": "12064577807",
+    "name": "Eric CLai",
+    "responseType": "WARM",
+    "priority": "3",
+    "message": "Always open to offers, what do you have...",
+    "keywords": [
+      "always",
+      "open",
+      "offers",
+      "what",
+      "do",
+      "have"
+    ],
+    "inferred_property_type": "COMMERCIAL",
+    "inferred_confidence": 90,
+    "suggested_action": "Follow-up via text/call; run address lookup and research",
+    "notes": "Dry-run enriched: keywords=always|open|offers|what|do|have reason=Commercial keywords present"
+  },
+  {
+    "index": 18,
+    "phone": "19047045444",
+    "name": "Richard PFertitta",
+    "responseType": "WARM",
+    "priority": "3",
+    "message": "Send me a cash number...",
+    "keywords": [
+      "send",
+      "me",
+      "cash",
+      "number"
+    ],
+    "inferred_property_type": "COMMERCIAL",
+    "inferred_confidence": 75,
+    "suggested_action": "Follow-up via text/call; run address lookup and research",
+    "notes": "Dry-run enriched: keywords=send|me|cash|number reason=Instruction indicates commercial focus"
+  },
+  {
+    "index": 19,
+    "phone": "12105593961",
+    "name": "Walter JMartinez",
+    "responseType": "WARM",
+    "priority": "3",
+    "message": "Send me your contacts, background on similar projects.   wmnhmc@aol.com....",
+    "keywords": [
+      "send",
+      "me",
+      "your",
+      "contacts",
+      "background",
+      "similar"
+    ],
+    "inferred_property_type": "COMMERCIAL",
+    "inferred_confidence": 75,
+    "suggested_action": "Follow-up via text/call; run address lookup and research",
+    "notes": "Dry-run enriched: keywords=send|me|your|contacts|background|similar reason=Instruction indicates commercial focus"
+  },
+  {
+    "index": 20,
+    "phone": "14075297001",
+    "name": "Mary LOwens",
+    "responseType": "WARM",
+    "priority": "3",
+    "message": "Maybe 2026...",
+    "keywords": [
+      "2026",
+      "maybe"
+    ],
+    "inferred_property_type": "COMMERCIAL",
+    "inferred_confidence": 75,
+    "suggested_action": "Follow-up via text/call; run address lookup and research",
+    "notes": "Dry-run enriched: keywords=2026|maybe reason=Instruction indicates commercial focus"
+  },
+  {
+    "index": 21,
+    "phone": "14074605839",
+    "name": "Dalicia FWelch",
+    "responseType": "WARM",
+    "priority": "3",
+    "message": "That property has a tenant that is renovating the building, if anything changes there I can contact ...",
+    "keywords": [
+      "that",
+      "property",
+      "has",
+      "tenant",
+      "renovating",
+      "building"
+    ],
+    "inferred_property_type": "COMMERCIAL",
+    "inferred_confidence": 90,
+    "suggested_action": "Follow-up via text/call; run address lookup and research",
+    "notes": "Dry-run enriched: keywords=that|property|has|tenant|renovating|building reason=Commercial keywords present"
+  },
+  {
+    "index": 22,
+    "phone": "14047290107",
+    "name": "Jen LNgo",
+    "responseType": "WARM",
+    "priority": "3",
+    "message": "What do you mean ?...",
+    "keywords": [
+      "what",
+      "do",
+      "mean"
+    ],
+    "inferred_property_type": "COMMERCIAL",
+    "inferred_confidence": 75,
+    "suggested_action": "Follow-up via text/call; run address lookup and research",
+    "notes": "Dry-run enriched: keywords=what|do|mean reason=Instruction indicates commercial focus"
+  },
+  {
+    "index": 23,
+    "phone": "12016575229",
+    "name": "Dominic Padula",
+    "responseType": "WARM",
+    "priority": "3",
+    "message": "Hello Kyle  Would you please email me at  dspadula@gmail.com  any and all information about you and ...",
+    "keywords": [
+      "hello",
+      "kyle",
+      "would",
+      "please",
+      "email",
+      "me"
+    ],
+    "inferred_property_type": "COMMERCIAL",
+    "inferred_confidence": 75,
+    "suggested_action": "Follow-up via text/call; run address lookup and research",
+    "notes": "Dry-run enriched: keywords=hello|kyle|would|please|email|me reason=Instruction indicates commercial focus"
+  },
+  {
+    "index": 24,
+    "phone": "15162797198",
+    "name": "Jonathan Rothstein",
+    "responseType": "WARM",
+    "priority": "3",
+    "message": "What do you look for...",
+    "keywords": [
+      "what",
+      "do",
+      "look"
+    ],
+    "inferred_property_type": "COMMERCIAL",
+    "inferred_confidence": 75,
+    "suggested_action": "Follow-up via text/call; run address lookup and research",
+    "notes": "Dry-run enriched: keywords=what|do|look reason=Instruction indicates commercial focus"
+  }
+]

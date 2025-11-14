@@ -8,6 +8,8 @@
     "pull": "clasp pull",
     "open": "clasp open",
     "deploy": "clasp push && clasp deploy --description \"auto\"",
+    "verify:dry": "node address-verifier-runner.cjs",
+    "verify:real": "DRY_RUN=false node address-verifier-runner.cjs",
     "pipeline": "node ops/pipeline.js",
     "commercial-test": "node ops/pipeline.js --csv campaigns/inputs/sample-commercial.csv --dry-run true",
     "commercial-live": "node ops/pipeline.js --csv campaigns/inputs/sample-commercial.csv --dry-run false"
@@ -19,6 +21,8 @@
     "express": "^5.1.0",
     "googleapis": "^140.0.0",
     "libphonenumber-js": "^1.11.7"
+    ,
+    "node-fetch": "^2.6.7"
   },
   "devDependencies": {
     "@google/clasp": "^2.4.2"

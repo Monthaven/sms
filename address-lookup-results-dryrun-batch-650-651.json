@@ -1,0 +1,32 @@
+[
+  {
+    "phone": "13109909992",
+    "name": "Shana RRosengarten",
+    "index": 651,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 40,
+    "address_candidates": [
+      {
+        "address": "No likely match (manual review)",
+        "confidence": 20,
+        "reason": "No clear indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "16175956028",
+    "name": "Courtney ZMccarthy",
+    "index": 652,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 40,
+    "address_candidates": [
+      {
+        "address": "No likely match (manual review)",
+        "confidence": 20,
+        "reason": "No clear indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  }
+]

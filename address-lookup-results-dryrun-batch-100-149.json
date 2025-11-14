@@ -1,0 +1,752 @@
+[
+  {
+    "phone": "15125657509",
+    "name": "James WYoung",
+    "index": 101,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 40,
+    "address_candidates": [
+      {
+        "address": "No likely match (manual review)",
+        "confidence": 20,
+        "reason": "No clear indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "18175018495",
+    "name": "Melissa WHoskins",
+    "index": 102,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 40,
+    "address_candidates": [
+      {
+        "address": "No likely match (manual review)",
+        "confidence": 20,
+        "reason": "No clear indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "17044581555",
+    "name": "James HPlyler",
+    "index": 103,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 40,
+    "address_candidates": [
+      {
+        "address": "No likely match (manual review)",
+        "confidence": 20,
+        "reason": "No clear indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "19177698014",
+    "name": "Prem SKalidindi",
+    "index": 104,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 40,
+    "address_candidates": [
+      {
+        "address": "No likely match (manual review)",
+        "confidence": 20,
+        "reason": "No clear indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "19177698014",
+    "name": "Prem SKalidindi",
+    "index": 105,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 40,
+    "address_candidates": [
+      {
+        "address": "No likely match (manual review)",
+        "confidence": 20,
+        "reason": "No clear indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "19177698014",
+    "name": "Prem SKalidindi",
+    "index": 106,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 40,
+    "address_candidates": [
+      {
+        "address": "No likely match (manual review)",
+        "confidence": 20,
+        "reason": "No clear indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "12816302149",
+    "name": "Don JBeebe",
+    "index": 107,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 40,
+    "address_candidates": [
+      {
+        "address": "No likely match (manual review)",
+        "confidence": 20,
+        "reason": "No clear indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "15127865342",
+    "name": "Trevor WTitman",
+    "index": 108,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 40,
+    "address_candidates": [
+      {
+        "address": "No likely match (manual review)",
+        "confidence": 20,
+        "reason": "No clear indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "19037361540",
+    "name": "William LHutchinson",
+    "index": 109,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 40,
+    "address_candidates": [
+      {
+        "address": "No likely match (manual review)",
+        "confidence": 20,
+        "reason": "No clear indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "18016780500",
+    "name": "John EGalindo",
+    "index": 110,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 40,
+    "address_candidates": [
+      {
+        "address": "No likely match (manual review)",
+        "confidence": 20,
+        "reason": "No clear indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "18016780500",
+    "name": "John EGalindo",
+    "index": 111,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 40,
+    "address_candidates": [
+      {
+        "address": "No likely match (manual review)",
+        "confidence": 20,
+        "reason": "No clear indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "14096799224",
+    "name": "Sarah EBates",
+    "index": 112,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 40,
+    "address_candidates": [
+      {
+        "address": "No likely match (manual review)",
+        "confidence": 20,
+        "reason": "No clear indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "17046348538",
+    "name": "Ralph CClontzIII",
+    "index": 113,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 40,
+    "address_candidates": [
+      {
+        "address": "No likely match (manual review)",
+        "confidence": 20,
+        "reason": "No clear indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "18188222425",
+    "name": "Wael FTarazi",
+    "index": 114,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 40,
+    "address_candidates": [
+      {
+        "address": "No likely match (manual review)",
+        "confidence": 20,
+        "reason": "No clear indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "17042315678",
+    "name": "Randall DForsythe",
+    "index": 115,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 75,
+    "address_candidates": [
+      {
+        "address": "Address-like text found in message (needs parsing)",
+        "confidence": 75,
+        "reason": "Address-like text without clear type keywords"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "18646406860",
+    "name": "Emmanuel USarmiento",
+    "index": 116,
+    "final_classification": "SFH",
+    "confidence_score": 85,
+    "address_candidates": [
+      {
+        "address": "Unknown residential property (needs lookup)",
+        "confidence": 85,
+        "reason": "Message contains single-family indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "15734240068",
+    "name": "Deepak Kaushik",
+    "index": 117,
+    "final_classification": "COMMERCIAL",
+    "confidence_score": 70,
+    "address_candidates": [
+      {
+        "address": "Potential commercial or high-value property (uncertain)",
+        "confidence": 70,
+        "reason": "Strong selling language"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "12625019339",
+    "name": "Paul RSeifert",
+    "index": 118,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 40,
+    "address_candidates": [
+      {
+        "address": "No likely match (manual review)",
+        "confidence": 20,
+        "reason": "No clear indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "17045912961",
+    "name": "Jay BLevy",
+    "index": 119,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 40,
+    "address_candidates": [
+      {
+        "address": "No likely match (manual review)",
+        "confidence": 20,
+        "reason": "No clear indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "17045169719",
+    "name": "Nancy LKlish",
+    "index": 120,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 40,
+    "address_candidates": [
+      {
+        "address": "No likely match (manual review)",
+        "confidence": 20,
+        "reason": "No clear indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "19125721300",
+    "name": "Alan HDasher",
+    "index": 121,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 40,
+    "address_candidates": [
+      {
+        "address": "No likely match (manual review)",
+        "confidence": 20,
+        "reason": "No clear indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "18645051277",
+    "name": "Ronald EPhillips",
+    "index": 122,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 40,
+    "address_candidates": [
+      {
+        "address": "No likely match (manual review)",
+        "confidence": 20,
+        "reason": "No clear indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "19723652031",
+    "name": "Robert BAppleby",
+    "index": 123,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 40,
+    "address_candidates": [
+      {
+        "address": "No likely match (manual review)",
+        "confidence": 20,
+        "reason": "No clear indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "19723652031",
+    "name": "Robert BAppleby",
+    "index": 124,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 40,
+    "address_candidates": [
+      {
+        "address": "No likely match (manual review)",
+        "confidence": 20,
+        "reason": "No clear indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "12104104271",
+    "name": "Roy DJones",
+    "index": 125,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 40,
+    "address_candidates": [
+      {
+        "address": "No likely match (manual review)",
+        "confidence": 20,
+        "reason": "No clear indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "18032292264",
+    "name": "Maxine BCollins",
+    "index": 126,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 40,
+    "address_candidates": [
+      {
+        "address": "No likely match (manual review)",
+        "confidence": 20,
+        "reason": "No clear indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "18177095986",
+    "name": "Mukesh VPatel",
+    "index": 127,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 40,
+    "address_candidates": [
+      {
+        "address": "No likely match (manual review)",
+        "confidence": 20,
+        "reason": "No clear indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "12148307749",
+    "name": "Evan BGerstein",
+    "index": 128,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 40,
+    "address_candidates": [
+      {
+        "address": "No likely match (manual review)",
+        "confidence": 20,
+        "reason": "No clear indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "18033091506",
+    "name": "Augustus MMallios",
+    "index": 129,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 40,
+    "address_candidates": [
+      {
+        "address": "No likely match (manual review)",
+        "confidence": 20,
+        "reason": "No clear indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "18179131121",
+    "name": "William DRatliffIV",
+    "index": 130,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 40,
+    "address_candidates": [
+      {
+        "address": "No likely match (manual review)",
+        "confidence": 20,
+        "reason": "No clear indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "18039206237",
+    "name": "William AStubbs",
+    "index": 131,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 40,
+    "address_candidates": [
+      {
+        "address": "No likely match (manual review)",
+        "confidence": 20,
+        "reason": "No clear indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "13104540706",
+    "name": "Patricia SNettleship",
+    "index": 132,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 40,
+    "address_candidates": [
+      {
+        "address": "No likely match (manual review)",
+        "confidence": 20,
+        "reason": "No clear indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "12145377242",
+    "name": "Meredith AClampitt",
+    "index": 133,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 40,
+    "address_candidates": [
+      {
+        "address": "No likely match (manual review)",
+        "confidence": 20,
+        "reason": "No clear indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "17068314827",
+    "name": "Ashby RKrouseIII",
+    "index": 134,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 40,
+    "address_candidates": [
+      {
+        "address": "No likely match (manual review)",
+        "confidence": 20,
+        "reason": "No clear indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "18323090613",
+    "name": "Marc ESeymour",
+    "index": 135,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 40,
+    "address_candidates": [
+      {
+        "address": "No likely match (manual review)",
+        "confidence": 20,
+        "reason": "No clear indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "12107105947",
+    "name": "Jeffrey NOttmers",
+    "index": 136,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 40,
+    "address_candidates": [
+      {
+        "address": "No likely match (manual review)",
+        "confidence": 20,
+        "reason": "No clear indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "12107105947",
+    "name": "Jeffrey NOttmers",
+    "index": 137,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 40,
+    "address_candidates": [
+      {
+        "address": "No likely match (manual review)",
+        "confidence": 20,
+        "reason": "No clear indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "18642700125",
+    "name": "Van HSwafford",
+    "index": 138,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 40,
+    "address_candidates": [
+      {
+        "address": "No likely match (manual review)",
+        "confidence": 20,
+        "reason": "No clear indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "16786376396",
+    "name": "John DWheeler",
+    "index": 139,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 40,
+    "address_candidates": [
+      {
+        "address": "No likely match (manual review)",
+        "confidence": 20,
+        "reason": "No clear indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "12108371974",
+    "name": "Katherine MCox",
+    "index": 140,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 40,
+    "address_candidates": [
+      {
+        "address": "No likely match (manual review)",
+        "confidence": 20,
+        "reason": "No clear indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "13375528168",
+    "name": "Lee MBoyer",
+    "index": 141,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 40,
+    "address_candidates": [
+      {
+        "address": "No likely match (manual review)",
+        "confidence": 20,
+        "reason": "No clear indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "16036619015",
+    "name": "Arthur HBruno",
+    "index": 142,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 40,
+    "address_candidates": [
+      {
+        "address": "No likely match (manual review)",
+        "confidence": 20,
+        "reason": "No clear indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "14407241330",
+    "name": "James AGraganella",
+    "index": 143,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 40,
+    "address_candidates": [
+      {
+        "address": "No likely match (manual review)",
+        "confidence": 20,
+        "reason": "No clear indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "12406206325",
+    "name": "Christopher ALinger",
+    "index": 144,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 40,
+    "address_candidates": [
+      {
+        "address": "No likely match (manual review)",
+        "confidence": 20,
+        "reason": "No clear indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "12406206325",
+    "name": "Christopher ALinger",
+    "index": 145,
+    "final_classification": "COMMERCIAL",
+    "confidence_score": 70,
+    "address_candidates": [
+      {
+        "address": "Potential commercial or high-value property (uncertain)",
+        "confidence": 70,
+        "reason": "Strong selling language"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "14196030496",
+    "name": "Suleiman KBeseiso",
+    "index": 146,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 40,
+    "address_candidates": [
+      {
+        "address": "No likely match (manual review)",
+        "confidence": 20,
+        "reason": "No clear indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "15617621985",
+    "name": "Richard BBaer",
+    "index": 147,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 40,
+    "address_candidates": [
+      {
+        "address": "No likely match (manual review)",
+        "confidence": 20,
+        "reason": "No clear indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "19545472620",
+    "name": "Richard BAbramowitz",
+    "index": 148,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 40,
+    "address_candidates": [
+      {
+        "address": "No likely match (manual review)",
+        "confidence": 20,
+        "reason": "No clear indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "19047044305",
+    "name": "Daniel JMatyi",
+    "index": 149,
+    "final_classification": "UNKNOWN",
+    "confidence_score": 40,
+    "address_candidates": [
+      {
+        "address": "No likely match (manual review)",
+        "confidence": 20,
+        "reason": "No clear indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  },
+  {
+    "phone": "17072355734",
+    "name": "Kevin Gross",
+    "index": 150,
+    "final_classification": "COMMERCIAL",
+    "confidence_score": 85,
+    "address_candidates": [
+      {
+        "address": "Unknown commercial property (needs lookup)",
+        "confidence": 85,
+        "reason": "Message mentions commercial indicators"
+      }
+    ],
+    "notes": "DRY_RUN sample result - replace with provider output for production"
+  }
+]

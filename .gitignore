@@ -1,4 +1,11 @@
-node_modules
+node_modules/
+*.log
+local.env
+.env
+.env.local
+coverage/
+dist/
+/.vscode/node_modules
 .clasp-dev.json
 .clasprc.json
 .env

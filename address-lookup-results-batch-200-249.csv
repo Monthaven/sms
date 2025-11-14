@@ -1,0 +1,51 @@
+Phone,Full_Name,Final_Classification,Confidence,Top_Address,Notes
+12104131616,Terri KCastillo,UNKNOWN,40,No likely match (manual review),DRY_RUN sample result - replace with provider output for production
+12143009614,Jennifer LSmith,COMMERCIAL,70,Potential commercial or high-value property (uncertain),DRY_RUN sample result - replace with provider output for production
+19082421601,Mordeclai Dombroff,UNKNOWN,40,No likely match (manual review),DRY_RUN sample result - replace with provider output for production
+17817104984,John JSnyder,UNKNOWN,40,No likely match (manual review),DRY_RUN sample result - replace with provider output for production
+12145292952,Rajasekhar RGuntnur,UNKNOWN,75,Address-like text found in message (needs parsing),DRY_RUN sample result - replace with provider output for production
+12145292952,Rajasekhar RGuntnur,COMMERCIAL,90,Address text found in message (commercial),DRY_RUN sample result - replace with provider output for production
+12108751456,Venkata SYeluru,UNKNOWN,40,No likely match (manual review),DRY_RUN sample result - replace with provider output for production
+12108751456,Venkata SYeluru,UNKNOWN,40,No likely match (manual review),DRY_RUN sample result - replace with provider output for production
+15614528318,David FFurman,COMMERCIAL,70,Potential commercial or high-value property (uncertain),DRY_RUN sample result - replace with provider output for production
+17864234694,Nohra AGagliardi,UNKNOWN,40,No likely match (manual review),DRY_RUN sample result - replace with provider output for production
+18064336086,Kristen MRangel,UNKNOWN,40,No likely match (manual review),DRY_RUN sample result - replace with provider output for production
+18062257517,Stephen ASchilling,UNKNOWN,40,No likely match (manual review),DRY_RUN sample result - replace with provider output for production
+18062257517,Stephen ASchilling,UNKNOWN,40,No likely match (manual review),DRY_RUN sample result - replace with provider output for production
+17084219335,Patrick WBiernacki,UNKNOWN,40,No likely match (manual review),DRY_RUN sample result - replace with provider output for production
+17084219335,Patrick WBiernacki,UNKNOWN,40,No likely match (manual review),DRY_RUN sample result - replace with provider output for production
+19543043877,Paul JKarram,COMMERCIAL,70,Potential commercial or high-value property (uncertain),DRY_RUN sample result - replace with provider output for production
+19543043877,Paul JKarram,UNKNOWN,40,No likely match (manual review),DRY_RUN sample result - replace with provider output for production
+17133858401,Larry SDavis,UNKNOWN,40,No likely match (manual review),DRY_RUN sample result - replace with provider output for production
+14694383480,Tonya DRiddle,UNKNOWN,40,No likely match (manual review),DRY_RUN sample result - replace with provider output for production
+13198302184,Roger LWooden,UNKNOWN,40,No likely match (manual review),DRY_RUN sample result - replace with provider output for production
+14842019683,Sean AFogelman,UNKNOWN,40,No likely match (manual review),DRY_RUN sample result - replace with provider output for production
+12398980416,James ABryan,UNKNOWN,40,No likely match (manual review),DRY_RUN sample result - replace with provider output for production
+17132983804,Michael SMorgan,UNKNOWN,40,No likely match (manual review),DRY_RUN sample result - replace with provider output for production
+19049944280,Scott RBoatright,UNKNOWN,40,No likely match (manual review),DRY_RUN sample result - replace with provider output for production
+19044953374,Sabina JGeraci,UNKNOWN,40,No likely match (manual review),DRY_RUN sample result - replace with provider output for production
+19802976325,Tzvi SNussbaum,UNKNOWN,40,No likely match (manual review),DRY_RUN sample result - replace with provider output for production
+17043901038,Michael CAdrian,UNKNOWN,40,No likely match (manual review),DRY_RUN sample result - replace with provider output for production
+17035818674,Walter ADyer,UNKNOWN,40,No likely match (manual review),DRY_RUN sample result - replace with provider output for production
+19047074373,Sally ASuslak,UNKNOWN,40,No likely match (manual review),DRY_RUN sample result - replace with provider output for production
+19043163963,Pankaj Balasaria,SFH,85,Unknown residential property (needs lookup),DRY_RUN sample result - replace with provider output for production
+13053430819,Abraham CCherem,COMMERCIAL,70,Potential commercial or high-value property (uncertain),DRY_RUN sample result - replace with provider output for production
+13214003735,Darren JLoblaw,UNKNOWN,40,No likely match (manual review),DRY_RUN sample result - replace with provider output for production
+14079249154,Neela Hooda,UNKNOWN,40,No likely match (manual review),DRY_RUN sample result - replace with provider output for production
+18139564532,Michael DRugh,UNKNOWN,40,No likely match (manual review),DRY_RUN sample result - replace with provider output for production
+13053333955,Ronen JBazak,UNKNOWN,40,No likely match (manual review),DRY_RUN sample result - replace with provider output for production
+13212879913,Amy MShumway,UNKNOWN,40,No likely match (manual review),DRY_RUN sample result - replace with provider output for production
+18502280463,Marl CWardJr.,UNKNOWN,40,No likely match (manual review),DRY_RUN sample result - replace with provider output for production
+17043016071,Mark EOxendine,UNKNOWN,40,No likely match (manual review),DRY_RUN sample result - replace with provider output for production
+14073506221,Mohindra PDoobay,UNKNOWN,40,No likely match (manual review),DRY_RUN sample result - replace with provider output for production
+17039196368,Jimella ATriebwasser,UNKNOWN,40,No likely match (manual review),DRY_RUN sample result - replace with provider output for production
+18133626952,Dharma TMalempati,UNKNOWN,40,No likely match (manual review),DRY_RUN sample result - replace with provider output for production
+18133626952,Dharma TMalempati,UNKNOWN,40,No likely match (manual review),DRY_RUN sample result - replace with provider output for production
+18133626952,Dharma TMalempati,UNKNOWN,40,No likely match (manual review),DRY_RUN sample result - replace with provider output for production
+19042081168,Kayla MBalch,UNKNOWN,75,Address-like text found in message (needs parsing),DRY_RUN sample result - replace with provider output for production
+13522622399,Richard SBlaser,UNKNOWN,40,No likely match (manual review),DRY_RUN sample result - replace with provider output for production
+19547326201,Keith TKoenig,UNKNOWN,40,No likely match (manual review),DRY_RUN sample result - replace with provider output for production
+13523166161,Steven ABagen,UNKNOWN,40,No likely match (manual review),DRY_RUN sample result - replace with provider output for production
+19703432687,Mark JFreitag,UNKNOWN,40,No likely match (manual review),DRY_RUN sample result - replace with provider output for production
+14079704688,Chau HNguyen,UNKNOWN,40,No likely match (manual review),DRY_RUN sample result - replace with provider output for production
+17862011455,Richard Waserstein,UNKNOWN,40,No likely match (manual review),DRY_RUN sample result - replace with provider output for production
