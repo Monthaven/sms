@@ -71,7 +71,8 @@ jobs:
             echo "prisma migrate deploy failed — falling back to prisma db push"
             npx prisma db push --schema=prisma/schema_postgres.prisma
           fi
-          npx prisma migrate status --schema=prisma/schema_postgres.prisma > backend/migrate-status-${{ matrix.node-version }}.txt || true
+          # Write the migrate status file into the `backend/` directory (working dir is `backend`).
+          npx prisma migrate status --schema=prisma/schema_postgres.prisma > migrate-status-${{ matrix.node-version }}.txt || true
         working-directory: backend
 
       - name: Upload migration artifacts
@@ -85,3 +86,10 @@ jobs:
       - name: Run tests
         run: npm test --silent
         working-directory: backend
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+          DIRECT_URL: ${{ env.DIRECT_URL }}
+          NODE_ENV: ${{ env.NODE_ENV }}
+          EZTEXTING_API_KEY: ${{ env.EZTEXTING_API_KEY }}
+          EZTEXTING_API_BASE: ${{ env.EZTEXTING_API_BASE }}
+          IMPORT_API_KEY: ${{ env.IMPORT_API_KEY }}
