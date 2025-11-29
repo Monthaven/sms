@@ -28,6 +28,10 @@ jobs:
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/monthaven?schema=public
       NODE_ENV: test
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/monthaven
+      EZTEXTING_API_KEY: test-eztexting-key
+      EZTEXTING_API_BASE: https://api.eztexting.com
+      IMPORT_API_KEY: test-key
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -59,7 +63,14 @@ jobs:
 
       - name: Deploy migrations (Postgres schema)
         run: |
-          npx prisma migrate deploy --schema=prisma/schema_postgres.prisma || true
+          # Try to deploy migrations. If migrate deploy fails (e.g., provider mismatch),
+          # fall back to `prisma db push` to ensure the schema is applied for CI/dry-run.
+          if npx prisma migrate deploy --schema=prisma/schema_postgres.prisma; then
+            echo "prisma migrate deploy succeeded"
+          else
+            echo "prisma migrate deploy failed — falling back to prisma db push"
+            npx prisma db push --schema=prisma/schema_postgres.prisma
+          fi
           npx prisma migrate status --schema=prisma/schema_postgres.prisma > backend/migrate-status-${{ matrix.node-version }}.txt || true
         working-directory: backend
 

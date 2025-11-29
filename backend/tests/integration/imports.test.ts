@@ -75,9 +75,11 @@ describe('Imports API idempotency', () => {
     expect(createRes.status).toBe(201);
     const campaignId = createRes.body.id as string;
 
+    // Do not attach the file here to avoid streaming large multipart payload
+    // when the request should be rejected early by API key middleware.
     const res = await request(app)
       .post(`/api/imports/dealmachine?campaignId=${campaignId}`)
-      .attach('file', sampleCsv);
+      .set('Accept', 'application/json');
 
     expect(res.status).toBe(401);
   });
