@@ -1,0 +1,2 @@
+// schema_local.prisma cleared to avoid duplicate datasource/generator definitions
+// Models are defined in schema.prisma (single source of truth for development)

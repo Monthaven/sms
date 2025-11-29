@@ -1,0 +1,76 @@
+name: CI (Postgres)
+
+on:
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch: {}
+
+jobs:
+  test-postgres:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20]
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: monthaven
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d monthaven"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/monthaven?schema=public
+      NODE_ENV: test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Wait for Postgres to be ready
+        run: |
+          echo "Waiting for Postgres to become available..."
+          for i in {1..30}; do
+            # try a TCP connect
+            if timeout 1 bash -c "</dev/tcp/localhost/5432" 2>/dev/null; then
+              echo "Postgres is accepting connections" && break
+            fi
+            echo "Waiting... ($i)"
+            sleep 2
+          done
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: backend
+
+      - name: Generate Prisma client (Postgres schema)
+        run: npx prisma generate --schema=prisma/schema_postgres.prisma
+        working-directory: backend
+
+      - name: Deploy migrations (Postgres schema)
+        run: |
+          npx prisma migrate deploy --schema=prisma/schema_postgres.prisma || true
+          npx prisma migrate status --schema=prisma/schema_postgres.prisma > backend/migrate-status-${{ matrix.node-version }}.txt || true
+        working-directory: backend
+
+      - name: Upload migration artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: prisma-migrations-${{ matrix.node-version }}
+          path: |
+            backend/prisma/migrations
+            backend/migrate-status-${{ matrix.node-version }}.txt
+
+      - name: Run tests
+        run: npm test --silent
+        working-directory: backend

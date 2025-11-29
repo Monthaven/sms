@@ -1,0 +1,445 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Contact {
+  id          String   @id @default(cuid())
+  phoneE164   String   @unique
+  firstName   String?
+  lastName    String?
+  email       String?
+  source      String   @default("DEALMACHINE_CSV")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  properties  Property[]
+  targets     CampaignTarget[]
+  messages    Message[]
+}
+
+model Property {
+  id             String   @id @default(cuid())
+  owner          Contact  @relation(fields: [ownerId], references: [id])
+  ownerId        String
+
+  addressLine1   String
+  city           String
+  state          String
+  postalCode     String
+  externalSource String?
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  targets        CampaignTarget[]
+}
+
+model DncEntry {
+  id         String   @id @default(cuid())
+  phoneE164  String   @unique
+  reason     String?
+  createdAt  DateTime @default(now())
+}
+
+model Campaign {
+  id               String   @id @default(cuid())
+  name             String
+  description      String?
+  channel          String   @default("EZTEXTING_BULK")
+  eztextingListId  String?
+  eztextingCampId  String?
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  targets          CampaignTarget[]
+  messages         Message[]
+}
+
+model CampaignTarget {
+  id                String   @id @default(cuid())
+  campaign          Campaign @relation(fields: [campaignId], references: [id])
+  campaignId        String
+
+  contact           Contact  @relation(fields: [contactId], references: [id])
+  contactId         String
+
+  property          Property? @relation(fields: [propertyId], references: [id])
+  propertyId        String?
+
+  status            String   @default("PENDING_SEND")
+  relationshipStage String   @default("AUTOMATED")
+
+  lastInboundAt     DateTime?
+  lastOutboundAt    DateTime?
+  lastMessageId     String?
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  messages          Message[]
+}
+
+model Message {
+  id                String  @id @default(cuid())
+  provider          String
+  direction         String
+
+  contact           Contact?         @relation(fields: [contactId], references: [id])
+  contactId         String?
+
+  campaign          Campaign?        @relation(fields: [campaignId], references: [id])
+  campaignId        String?
+
+  campaignTarget    CampaignTarget?  @relation(fields: [campaignTargetId], references: [id])
+  campaignTargetId  String?
+
+  fromNumber        String
+  toNumber          String
+  body              String
+
+  createdAt         DateTime @default(now())
+}
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Contact {
+  id          String   @id @default(cuid())
+  phoneE164   String   @unique
+  firstName   String?
+  lastName    String?
+  email       String?
+  source      String   @default("DEALMACHINE_CSV")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  properties  Property[]
+  targets     CampaignTarget[]
+  messages    Message[]
+}
+
+model Property {
+  id             String   @id @default(cuid())
+  owner          Contact  @relation(fields: [ownerId], references: [id])
+  ownerId        String
+
+  addressLine1   String
+  city           String
+  state          String
+  postalCode     String
+  externalSource String?
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  targets        CampaignTarget[]
+}
+
+model DncEntry {
+  id         String   @id @default(cuid())
+  phoneE164  String   @unique
+  reason     String?
+  createdAt  DateTime @default(now())
+}
+
+model Campaign {
+  id               String   @id @default(cuid())
+  name             String
+  description      String?
+  channel          String   @default("EZTEXTING_BULK")
+  eztextingListId  String?
+  eztextingCampId  String?
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  targets          CampaignTarget[]
+  messages         Message[]
+}
+
+model CampaignTarget {
+  id                String   @id @default(cuid())
+  campaign          Campaign @relation(fields: [campaignId], references: [id])
+  campaignId        String
+
+  contact           Contact  @relation(fields: [contactId], references: [id])
+  contactId         String
+
+  property          Property? @relation(fields: [propertyId], references: [id])
+  propertyId        String?
+
+  status            String   @default("PENDING_SEND")
+  relationshipStage String   @default("AUTOMATED")
+
+  lastInboundAt     DateTime?
+  lastOutboundAt    DateTime?
+  lastMessageId     String?
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  messages          Message[]
+}
+
+model Message {
+  id                String  @id @default(cuid())
+  provider          String
+  direction         String
+
+  contact           Contact?         @relation(fields: [contactId], references: [id])
+  contactId         String?
+
+  campaign          Campaign?        @relation(fields: [campaignId], references: [id])
+  campaignId        String?
+
+  campaignTarget    CampaignTarget?  @relation(fields: [campaignTargetId], references: [id])
+  campaignTargetId  String?
+
+  fromNumber        String
+  toNumber          String
+  body              String
+
+  createdAt         DateTime @default(now())
+}
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Contact {
+  id          String   @id @default(cuid())
+  phoneE164   String   @unique
+  firstName   String?
+  lastName    String?
+  email       String?
+  source      String   @default("DEALMACHINE_CSV")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  properties  Property[]
+  targets     CampaignTarget[]
+  messages    Message[]
+}
+
+model Property {
+  id             String   @id @default(cuid())
+  owner          Contact  @relation(fields: [ownerId], references: [id])
+  ownerId        String
+
+  addressLine1   String
+  city           String
+  state          String
+  postalCode     String
+  externalSource String?
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  targets        CampaignTarget[]
+}
+
+model DncEntry {
+  id         String   @id @default(cuid())
+  phoneE164  String   @unique
+  reason     String?
+  createdAt  DateTime @default(now())
+}
+
+model Campaign {
+  id               String   @id @default(cuid())
+  name             String
+  description      String?
+  channel          String   @default("EZTEXTING_BULK")
+  eztextingListId  String?
+  eztextingCampId  String?
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  targets          CampaignTarget[]
+  messages         Message[]
+}
+
+model CampaignTarget {
+  id                String   @id @default(cuid())
+  campaign          Campaign @relation(fields: [campaignId], references: [id])
+  campaignId        String
+
+  contact           Contact  @relation(fields: [contactId], references: [id])
+  contactId         String
+
+  property          Property? @relation(fields: [propertyId], references: [id])
+  propertyId        String?
+
+  status            String   @default("PENDING_SEND")
+  relationshipStage String   @default("AUTOMATED")
+
+  lastInboundAt     DateTime?
+  lastOutboundAt    DateTime?
+  lastMessageId     String?
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  messages          Message[]
+}
+
+model Message {
+  id                String  @id @default(cuid())
+  provider          String
+  direction         String
+
+  contact           Contact?         @relation(fields: [contactId], references: [id])
+  contactId         String?
+
+  campaign          Campaign?        @relation(fields: [campaignId], references: [id])
+  campaignId        String?
+
+  campaignTarget    CampaignTarget?  @relation(fields: [campaignTargetId], references: [id])
+  campaignTargetId  String?
+
+  fromNumber        String
+  toNumber          String
+  body              String
+
+  createdAt         DateTime @default(now())
+}
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Contact {
+  id          String         @id @default(cuid())
+  phoneE164   String         @unique
+  firstName   String?
+  lastName    String?
+  email       String?
+  source      String         @default("DEALMACHINE_CSV")
+  datasource db {
+    provider = "sqlite"
+    url      = env("DATABASE_URL")
+  }
+
+  generator client {
+    provider = "prisma-client-js"
+  }
+
+  model Contact {
+    id          String   @id @default(cuid())
+    phoneE164   String   @unique
+    firstName   String?
+    lastName    String?
+    email       String?
+    source      String   @default("DEALMACHINE_CSV")
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+
+    properties  Property[]
+    targets     CampaignTarget[]
+    messages    Message[]
+  }
+
+  model Property {
+    id             String   @id @default(cuid())
+    owner          Contact  @relation(fields: [ownerId], references: [id])
+    ownerId        String
+
+    addressLine1   String
+    city           String
+    state          String
+    postalCode     String
+    externalSource String?
+
+    createdAt      DateTime @default(now())
+    updatedAt      DateTime @updatedAt
+
+    targets        CampaignTarget[]
+  }
+
+  model DncEntry {
+    id         String   @id @default(cuid())
+    phoneE164  String   @unique
+    reason     String?
+    createdAt  DateTime @default(now())
+  }
+
+  model Campaign {
+    id               String   @id @default(cuid())
+    name             String
+    description      String?
+    channel          String   @default("EZTEXTING_BULK")
+    eztextingListId  String?
+    eztextingCampId  String?
+
+    createdAt        DateTime @default(now())
+    updatedAt        DateTime @updatedAt
+
+    targets          CampaignTarget[]
+    messages         Message[]
+  }
+
+  model CampaignTarget {
+    id                String   @id @default(cuid())
+    campaign          Campaign @relation(fields: [campaignId], references: [id])
+    campaignId        String
+
+    contact           Contact  @relation(fields: [contactId], references: [id])
+    contactId         String
+
+    property          Property? @relation(fields: [propertyId], references: [id])
+    propertyId        String?
+
+    status            String   @default("PENDING_SEND")
+    relationshipStage String   @default("AUTOMATED")
+
+    lastInboundAt     DateTime?
+    lastOutboundAt    DateTime?
+    lastMessageId     String?
+
+    createdAt         DateTime @default(now())
+    updatedAt         DateTime @updatedAt
+
+    messages          Message[]
+  }
+
+  model Message {
+    id                String  @id @default(cuid())
+    provider          String
+    direction         String
+
+    contact           Contact?         @relation(fields: [contactId], references: [id])
+    contactId         String?
+
+    campaign          Campaign?        @relation(fields: [campaignId], references: [id])
+    campaignId        String?
+
+    campaignTarget    CampaignTarget?  @relation(fields: [campaignTargetId], references: [id])
+    campaignTargetId  String?
+
+    fromNumber        String
+    toNumber          String
+    body              String
+
+    createdAt         DateTime @default(now())
+  }
+
