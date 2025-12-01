@@ -1,6 +1,5 @@
 import request from 'supertest';
 import path from 'path';
-import app from '../../src/server';
 import { prisma } from '../../src/db';
 
 const sampleCsv = path.resolve(__dirname, '../../test-data/sample-dealmachine.csv');
@@ -28,8 +27,9 @@ describe('Imports API idempotency', () => {
   });
 
   it('does not create duplicate contacts/properties/targets when importing the same CSV twice', async () => {
+    const server = (global as any).__TEST_SERVER__;
     // create campaign
-    const createRes = await request(app)
+    const createRes = await request(server)
       .post('/api/campaigns')
       .send({ name: 'import-idempotency', initialMessage: 'Hello world' })
       .set('Accept', 'application/json');
@@ -37,7 +37,7 @@ describe('Imports API idempotency', () => {
     const campaignId = createRes.body.id as string;
 
     // first import (authorized)
-    const res1 = await request(app)
+    const res1 = await request(server)
       .post(`/api/imports/dealmachine?campaignId=${campaignId}`)
       .set('x-api-key', 'test-key')
       .attach('file', sampleCsv);
@@ -51,7 +51,7 @@ describe('Imports API idempotency', () => {
     };
 
     // second import (same file, authorized)
-    const res2 = await request(app)
+    const res2 = await request(server)
       .post(`/api/imports/dealmachine?campaignId=${campaignId}`)
       .set('x-api-key', 'test-key')
       .attach('file', sampleCsv);
@@ -68,7 +68,8 @@ describe('Imports API idempotency', () => {
   });
 
   it('rejects imports without API key when IMPORT_API_KEY is set', async () => {
-    const createRes = await request(app)
+    const server = (global as any).__TEST_SERVER__;
+    const createRes = await request(server)
       .post('/api/campaigns')
       .send({ name: 'import-auth-test', initialMessage: 'Hello world' })
       .set('Accept', 'application/json');
@@ -77,7 +78,7 @@ describe('Imports API idempotency', () => {
 
     // Do not attach the file here to avoid streaming large multipart payload
     // when the request should be rejected early by API key middleware.
-    const res = await request(app)
+    const res = await request(server)
       .post(`/api/imports/dealmachine?campaignId=${campaignId}`)
       .set('Accept', 'application/json');
 

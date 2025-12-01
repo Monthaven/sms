@@ -1,5 +1,4 @@
 import request from 'supertest';
-import app from '../../src/server';
 import { prisma } from '../../src/db';
 
 describe('Campaigns API', () => {
@@ -27,7 +26,8 @@ describe('Campaigns API', () => {
       initialMessage: 'Hello from integration test'
     } as any;
 
-    const res = await request(app).post('/api/campaigns').send(payload).set('Accept', 'application/json');
+    const server = (global as any).__TEST_SERVER__;
+    const res = await request(server).post('/api/campaigns').send(payload).set('Accept', 'application/json');
     expect(res.status).toBe(201);
     expect(res.body).toHaveProperty('id');
     const id = res.body.id as string;

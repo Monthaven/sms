@@ -1,0 +1,21 @@
+version: '3.8'
+services:
+  app:
+    stdin_open: true
+    tty: true
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: npm run dev
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: "postgresql://postgres:postgres@db:5432/monthaven?schema=public"
+      DIRECT_URL: "postgresql://postgres:postgres@db:5432/monthaven"
+      IMPORT_API_KEY: ${IMPORT_API_KEY:-test-key}
+    ports:
+      - "4000:4000"
+    depends_on:
+      - db

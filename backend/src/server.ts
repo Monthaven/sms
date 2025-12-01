@@ -5,6 +5,7 @@ import { prisma } from './db';
 import { register } from './metrics';
 import { campaignsRouter } from './routes/campaigns';
 import { importsRouter } from './routes/imports';
+import { importRateLimiter } from './middleware/rateLimiter';
 import { leadsRouter } from './routes/leads';
 import { webhooksEzTextingRouter } from './routes/webhooksEzTexting';
 import { webhooksTwilioRouter } from './routes/webhooksTwilio';
@@ -44,7 +45,7 @@ app.get('/metrics', async (_req, res) => {
 
 // API routes
 app.use('/api/campaigns', campaignsRouter);
-app.use('/api/imports', importsRouter);
+app.use('/api/imports', importRateLimiter, importsRouter);
 app.use('/api/leads', leadsRouter);
 
 // Webhooks
@@ -58,8 +59,23 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
 });
 
 if (process.env.NODE_ENV !== 'test') {
-  app.listen(env.PORT, () => {
-    console.log(`Monthaven SMS backend listening on :${env.PORT}`);
+  // Attempt to connect to DB early so startup failures are visible in logs
+  prisma
+    .$connect()
+    .then(() => console.log('Prisma connected'))
+    .catch((err) => console.error('Prisma connection failed on startup:', err));
+
+  const host = '0.0.0.0';
+  const server = app.listen(env.PORT, host, () => {
+    console.log(`Monthaven SMS backend listening on ${host}:${env.PORT}`);
+  });
+
+  // Global handlers to make crashes visible in the console during development
+  process.on('unhandledRejection', (reason) => {
+    console.error('Unhandled Rejection at:', reason);
+  });
+  process.on('uncaughtException', (err) => {
+    console.error('Uncaught Exception:', err);
   });
 }
 

@@ -1,3 +1,64 @@
+**Backend Docker & Postgres Runbook**
+
+Quick guide to run the backend + Postgres locally using Docker and to generate Postgres migrations safely.
+
+- **Prerequisites:** Docker Desktop installed and running (on Windows, start Docker Desktop and ensure the Linux engine is running). `node` and `npm` available locally for non-container steps. `gh` CLI optional.
+
+1) Start Docker + compose (development)
+
+PowerShell (recommended):
+```powershell
+# from repo root
+cd "C:\Users\Smooth King\Downloads\New folder (2)\sms\sms"
+# start Postgres + app (dev override mounts code and runs `npm run dev` inside container)
+docker compose up --build
+```
+
+Notes:
+- The compose file exposes Postgres on host port `5432` and the app on `4000`.
+- The dev override uses `npm run dev` (ts-node-dev). If you prefer a production container, run without the override: `docker compose -f docker-compose.yml up --build`.
+
+2) Generate Postgres migrations (dry-run)
+
+If you need to reinitialize Prisma migrations for Postgres (safe non-destructive flow):
+
+PowerShell:
+```powershell
+# Wait until Postgres is accepting connections (or use docker logs db)
+docker compose exec db pg_isready -U postgres -d monthaven
+
+# In a separate terminal (inside backend folder) point Prisma to the Postgres instance
+cd backend
+setx DATABASE_URL "postgresql://postgres:postgres@localhost:5432/monthaven?schema=public"
+# or for the current PowerShell session only:
+$env:DATABASE_URL = 'postgresql://postgres:postgres@localhost:5432/monthaven?schema=public'
+
+# Generate a new migration for Postgres (will create a migrations/* folder)
+npx prisma migrate dev --schema=prisma/schema_postgres.prisma --name init_postgres
+
+# After verifying the migration locally, commit the new migrations to the branch and push
+git add prisma/migrations
+git commit -m "chore(migrations): init Postgres migration history"
+git push origin HEAD
+```
+
+3) CI helper option (if you cannot run Docker locally)
+
+- I can add a one-off GitHub Actions job that starts Postgres, runs `prisma migrate dev` against it, and uploads the generated `prisma/migrations` as an artifact so you can download and commit them. Tell me if you'd like that workflow added.
+
+4) Troubleshooting Docker on Windows
+
+- If you see "failed to connect to the docker API at npipe:////./pipe/dockerDesktopLinuxEngine", ensure Docker Desktop is running and you have restarted it after Windows updates. Launch Docker Desktop from Start Menu and wait until the whale icon shows "running".
+- If Docker still fails, open Docker Desktop Settings -> Resources -> WSL Integration and enable integration for your distro.
+
+5) Environment variables used by compose
+
+- `DATABASE_URL` and `DIRECT_URL` are set automatically in compose to point at the `db` service.
+- `IMPORT_API_KEY` is optional; override with your desired value.
+
+If you want, I can now:
+- Add the GitHub Actions job to generate Postgres migrations and upload artifacts, or
+- Walk you through starting Docker Desktop and running the migration commands interactively.
 Quickstart — Backend (local dev)
 
 This document shows how to run the backend locally for quick development and how to exercise the CSV import flow used in the repo README spec.
