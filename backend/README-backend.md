@@ -55,6 +55,17 @@ git push origin HEAD
 
 - `DATABASE_URL` and `DIRECT_URL` are set automatically in compose to point at the `db` service.
 - `IMPORT_API_KEY` is optional; override with your desired value.
+	- To require an API key for imports locally, set `IMPORT_API_KEY` in your `.env` (or in the compose override). Example:
+
+```powershell
+# in backend folder
+cp .env.example .env
+notepad .env
+# set IMPORT_API_KEY=test-key
+$env:IMPORT_API_KEY = 'test-key'
+```
+
+Then call the import endpoint with the header `x-api-key: test-key` (or via `curl -H "x-api-key: test-key" ...`).
 
 If you want, I can now:
 - Add the GitHub Actions job to generate Postgres migrations and upload artifacts, or

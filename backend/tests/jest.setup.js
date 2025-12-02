@@ -26,7 +26,30 @@ if (!process.env.GITHUB_ACTIONS) {
 	process.env.IMPORT_API_KEY = process.env.IMPORT_API_KEY || 'test-key';
 }
 
-// Ensure Prisma client disconnects after tests to avoid open handles
+// Start an ephemeral HTTP server for tests so we can close it deterministically
+let __listener = null;
+try {
+	const app = require('../src/server').default || require('../src/server');
+	// listen on ephemeral port
+	__listener = app.listen(0);
+	// reduce keep-alive timers that can keep Node alive after tests
+	try {
+		if (typeof __listener.keepAliveTimeout !== 'undefined') __listener.keepAliveTimeout = 0;
+		if (typeof __listener.headersTimeout !== 'undefined') __listener.headersTimeout = 0;
+	} catch (e) {
+		// ignore
+	}
+	try { __listener.unref && __listener.unref(); } catch (e) {}
+	global.__TEST_SERVER__ = __listener;
+	global.__TEST_APP__ = app;
+	global.__TEST_LISTENER__ = __listener;
+} catch (e) {
+	// If the server can't be started for any reason, ensure tests still run and fail with clear message
+	// eslint-disable-next-line no-console
+	console.error('jest.setup: could not start test listener', e && e.stack ? e.stack : e);
+}
+
+// Ensure Prisma client disconnects and other resources are cleaned after tests
 afterAll(async () => {
 	try {
 		const db = require('../src/db');
@@ -36,57 +59,41 @@ afterAll(async () => {
 	} catch (e) {
 		// ignore
 	}
-	// Close the test HTTP server if started
+
+	// Close the test listener if started
 	try {
-		const srv = global.__TEST_SERVER__;
+		const srv = global.__TEST_LISTENER__ || __listener;
 		if (srv && typeof srv.close === 'function') {
 			await new Promise((resolve) => srv.close(resolve));
 		}
 	} catch (e) {
 		// ignore
 	}
-});
 
-// Also clear prom-client registry to stop its default collection interval
-try {
-	const metrics = require('../src/metrics');
-	if (metrics && metrics.register && typeof metrics.register.clear === 'function') {
-		metrics.register.clear();
-	}
-} catch (e) {
-	// ignore
-}
-
-// Start an ephemeral HTTP server for tests so we can close it deterministically
-try {
-	const app = require('../src/server').default || require('../src/server');
-	// listen on ephemeral port
-	const srv = app.listen(0);
-	// expose server to tests via global
-	// reduce keep-alive timers that can keep Node alive after tests
+	// Stop prom-client default metrics interval to avoid open handles
 	try {
-		if (typeof srv.keepAliveTimeout !== 'undefined') srv.keepAliveTimeout = 0;
-		if (typeof srv.headersTimeout !== 'undefined') srv.headersTimeout = 0;
+		const metrics = require('../src/metrics');
+		if (metrics && typeof metrics.stopDefaultMetrics === 'function') {
+			metrics.stopDefaultMetrics();
+		}
+		if (metrics && metrics.register && typeof metrics.register.clear === 'function') {
+			metrics.register.clear();
+		}
 	} catch (e) {
 		// ignore
 	}
-	// allow process to exit if only the server remains
-	try { srv.unref && srv.unref(); } catch (e) {}
-	global.__TEST_SERVER__ = srv;
-} catch (e) {
-	// ignore if server cannot be started here
-}
 
-// Try to destroy HTTP/HTTPS global agents to close any sockets left by supertest
-try {
-	const http = require('http');
-	if (http && http.globalAgent && typeof http.globalAgent.destroy === 'function') {
-		http.globalAgent.destroy();
+	// Try to destroy HTTP/HTTPS global agents to close any sockets
+	try {
+		const http = require('http');
+		if (http && http.globalAgent && typeof http.globalAgent.destroy === 'function') {
+			http.globalAgent.destroy();
+		}
+		const https = require('https');
+		if (https && https.globalAgent && typeof https.globalAgent.destroy === 'function') {
+			https.globalAgent.destroy();
+		}
+	} catch (e) {
+		// ignore
 	}
-	const https = require('https');
-	if (https && https.globalAgent && typeof https.globalAgent.destroy === 'function') {
-		https.globalAgent.destroy();
-	}
-} catch (e) {
-	// ignore
-}
+});
