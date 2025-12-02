@@ -1,6 +1,56 @@
 name: Generate Postgres Migrations
 
 on:
+  workflow_dispatch:
+
+jobs:
+  generate-migrations:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Start Postgres service (container)
+        run: |
+          docker run --name monthaven-postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=monthaven -p 5432:5432 -d postgres:15
+          # Wait for Postgres to accept connections
+          for i in {1..30}; do
+            docker exec monthaven-postgres pg_isready -U postgres && break || sleep 1
+          done
+
+      - name: Generate Postgres migrations
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/monthaven?schema=public
+        run: |
+          npx prisma generate --schema=prisma/schema_postgres.prisma
+          # Create migrations only (do not apply to remote DB history)
+          npx prisma migrate dev --schema=prisma/schema_postgres.prisma --name init_postgres --create-only
+
+      - name: Upload migrations
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prisma-postgres-migrations
+          path: backend/prisma/migrations
+
+      - name: Stop Postgres container
+        if: always()
+        run: docker rm -f monthaven-postgres || true
+name: Generate Postgres Migrations
+
+on:
   workflow_dispatch: {}
 
 jobs:
