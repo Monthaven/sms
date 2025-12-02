@@ -1,0 +1,4 @@
+Triggered CI rerun by assistant on 2025-11-29T21:30:00Z
+
+This file was added to create a small change and trigger GitHub Actions CI to run again for
+branch `fix/ci-postgres-and-observability`.

@@ -3,12 +3,15 @@ import multer from 'multer';
 import { prisma } from '../db';
 import { normalizePhone } from '../utils/phone';
 import { parse } from 'csv-parse/sync';
+import logger from '../logger';
+import { requireApiKey } from '../middleware/apiKey';
 
 const upload = multer();
 export const importsRouter = Router();
 
 // Expected CSV headers: Address, City, State, Zip, Owner Name, Phone
-importsRouter.post('/dealmachine', upload.single('file'), async (req, res, next) => {
+// Protect import endpoints with API key when configured
+importsRouter.post('/dealmachine', requireApiKey, upload.single('file'), async (req, res, next) => {
   try {
     const campaignId = String(req.query.campaignId ?? '');
     if (!campaignId) {
@@ -42,6 +45,7 @@ importsRouter.post('/dealmachine', upload.single('file'), async (req, res, next)
       const rowNum = i + 2; // account for header line
       const rec = records[i];
       try {
+        logger.info({ campaignId, row: rowNum }, 'processing import row');
         const rawPhone = String(rec['Phone'] ?? '');
         const phone = normalizePhone(rawPhone);
         if (!phone) {
@@ -53,35 +57,71 @@ importsRouter.post('/dealmachine', upload.single('file'), async (req, res, next)
         const [firstName, ...rest] = ownerName.split(' ').filter(Boolean);
         const lastName = rest.join(' ') || null;
 
-        const contact = await prisma.contact.upsert({
-          where: { phoneE164: phone },
-          update: {},
-          create: {
-            phoneE164: phone,
-            firstName: firstName || null,
-            lastName,
-            source: 'DEALMACHINE_CSV'
-          }
-        });
+        // Perform per-row work inside a Prisma transaction to ensure atomicity
+        await prisma.$transaction(async (tx) => {
+          const contact = await tx.contact.upsert({
+            where: { phoneE164: phone },
+            update: {
+              // keep name fields if provided
+              firstName: firstName || undefined,
+              lastName: lastName || undefined
+            },
+            create: {
+              phoneE164: phone,
+              firstName: firstName || null,
+              lastName,
+              source: 'DEALMACHINE_CSV'
+            }
+          });
 
-        const property = await prisma.property.create({
-          data: {
-            ownerId: contact.id,
-            addressLine1: String(rec['Address'] ?? ''),
-            city: String(rec['City'] ?? ''),
-            state: String(rec['State'] ?? ''),
-            postalCode: String(rec['Zip'] ?? ''),
-            externalSource: 'DealMachine'
-          }
-        });
+          // Try to find an existing property for this owner with the same normalized address
+          const addrLine = String(rec['Address'] ?? '').trim();
+          const city = String(rec['City'] ?? '').trim();
+          const state = String(rec['State'] ?? '').trim();
+          const postal = String(rec['Zip'] ?? '').trim();
 
-        await prisma.campaignTarget.create({
-          data: {
-            campaignId,
-            contactId: contact.id,
-            propertyId: property.id,
-            status: 'PENDING_SEND',
-            relationshipStage: 'AUTOMATED'
+          let property = await tx.property.findFirst({
+            where: {
+              ownerId: contact.id,
+              addressLine1: addrLine,
+              city,
+              state,
+              postalCode: postal
+            }
+          });
+
+          if (!property) {
+            property = await tx.property.create({
+              data: {
+                ownerId: contact.id,
+                addressLine1: addrLine,
+                city,
+                state,
+                postalCode: postal,
+                externalSource: 'DealMachine'
+              }
+            });
+          }
+
+          // Avoid duplicate campaign targets for same campaign/contact/property
+          const existingTarget = await tx.campaignTarget.findFirst({
+            where: {
+              campaignId,
+              contactId: contact.id,
+              propertyId: property.id
+            }
+          });
+
+          if (!existingTarget) {
+            await tx.campaignTarget.create({
+              data: {
+                campaignId,
+                contactId: contact.id,
+                propertyId: property.id,
+                status: 'PENDING_SEND',
+                relationshipStage: 'AUTOMATED'
+              }
+            });
           }
         });
 
