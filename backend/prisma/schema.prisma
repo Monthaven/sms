@@ -5,110 +5,143 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL") // Optional, mostly for Neon
+  directUrl = env("DIRECT_URL") // Used for migrations in Neon
 }
 
+// --- CORE ENTITIES ---
+
+// The Human Owner
 model Contact {
   id          String   @id @default(cuid())
-  phoneE164   String   @unique
+  phoneE164   String   @unique // The normalized +1XXXXXXXXXX
   firstName   String?
   lastName    String?
   email       String?
-  source      String   @default("DEALMACHINE_CSV")
+  source      String   @default("DEALMACHINE") // e.g., "DEALMACHINE", "MANUAL", "OTHER_LIST"
+  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  properties  Property[]
-  targets     CampaignTarget[]
-  messages    Message[]
+  properties   Property[]
+  leads        Lead[]
+  interactions Interaction[]
+  
+  @@index([phoneE164])
 }
 
+// The Asset
 model Property {
   id             String   @id @default(cuid())
-  owner          Contact  @relation(fields: [ownerId], references: [id])
   ownerId        String
+  owner          Contact  @relation(fields: [ownerId], references: [id])
 
   addressLine1   String
   city           String
   state          String
   postalCode     String
-  externalSource String?
+  
+  // Future-proofing: Store ALL extra columns from DealMachine here
+  rawDetails     Json?    
 
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  targets        CampaignTarget[]
+  leads          Lead[]
 
-  @@unique([ownerId, addressLine1, city, state, postalCode])
-  @@index([ownerId])
+  @@unique([ownerId, addressLine1, city, state]) // Prevent duplicate property entries for same owner
 }
 
-model DncEntry {
-  id         String   @id @default(cuid())
-  phoneE164  String   @unique
-  reason     String?
-  createdAt  DateTime @default(now())
+// The "Global" DNC List
+model DncList {
+  id        String   @id @default(cuid())
+  phoneE164 String   @unique
+  reason    String?  // "STOP keyword", "Manual Entry", "Angry"
+  createdAt DateTime @default(now())
 }
+
+// --- CAMPAIGN & PIPELINE ---
 
 model Campaign {
-  id               String   @id @default(cuid())
-  name             String
-  description      String?
-  channel          String   @default("EZTEXTING_BULK")
-  eztextingListId  String?
-  eztextingCampId  String?
+  id              String   @id @default(cuid())
+  name            String
+  ezTextingGroupId String? // The ID returned from EzTexting API
+  status          String   @default("DRAFT") // DRAFT, ACTIVE, COMPLETED
 
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  targets          CampaignTarget[]
-  messages         Message[]
+  createdAt       DateTime @default(now())
+  
+  leads           Lead[]
 }
 
-model CampaignTarget {
-  id                String   @id @default(cuid())
-  campaign          Campaign @relation(fields: [campaignId], references: [id])
-  campaignId        String
+// The Pivot Table: Tracks a specific Contact + Property through a Campaign
+model Lead {
+  id             String      @id @default(cuid())
+  
+  campaignId     String
+  campaign       Campaign    @relation(fields: [campaignId], references: [id])
+  
+  contactId      String
+  contact        Contact     @relation(fields: [contactId], references: [id])
+  
+  propertyId     String?
+  property       Property?   @relation(fields: [propertyId], references: [id])
 
-  contact           Contact  @relation(fields: [contactId], references: [id])
-  contactId         String
+  // THE PIPELINE STATUS
+  status         LeadStatus  @default(NEW)
+  
+  // Scoring / AI Classification
+  sentimentScore Int         @default(0) // -100 (Hate) to 100 (Love)
+  aiSummary      String?
 
-  property          Property? @relation(fields: [propertyId], references: [id])
-  propertyId        String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
 
-  status            String   @default("PENDING_SEND")
-  relationshipStage String   @default("AUTOMATED")
+  @@unique([campaignId, contactId, propertyId]) // One lead per property per campaign
+  @@index([status])
+}
 
-  lastInboundAt     DateTime?
-  lastOutboundAt    DateTime?
-  lastMessageId     String?
+// Immutable Log of Communication
+model Interaction {
+  id          String   @id @default(cuid())
+  contactId   String
+  contact     Contact  @relation(fields: [contactId], references: [id])
 
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  messages          Message[]
-
-  @@index([campaignId])
+  channel     Channel  // EZTEXTING (Blast) or TWILIO (Office)
+  direction   Direction // INBOUND or OUTBOUND
+  
+  body        String   @db.Text
+  externalId  String?  // Message SID from Twilio/EzTexting
+  
+  createdAt   DateTime @default(now())
+  
   @@index([contactId])
 }
 
-model Message {
-  id                String  @id @default(cuid())
-  provider          String
-  direction         String
+// --- ENUMS ---
 
-  contact           Contact?         @relation(fields: [contactId], references: [id])
-  contactId         String?
+enum LeadStatus {
+  NEW             // Fresh from CSV
+  QUEUED          // Ready to send
+  SENT            // Handed to EzTexting
+  
+  // Responses
+  RESP_STOP       // "STOP", "DNC"
+  RESP_BOUNCE     // Failed delivery
+  RESP_COLD       // "Not interested"
+  RESP_WARM       // "Who is this?", "Maybe later"
+  RESP_HOT        // "Yes", "How much?", "Call me"
+  
+  // Human Workflow
+  CONVERSATION_ACTIVE // Human is talking via Twilio
+  CONVERTED       // Appointment set / Contract
+  ARCHIVED        // Dead
+}
 
-  campaign          Campaign?        @relation(fields: [campaignId], references: [id])
-  campaignId        String?
+enum Channel {
+  EZTEXTING
+  TWILIO
+}
 
-  campaignTarget    CampaignTarget?  @relation(fields: [campaignTargetId], references: [id])
-  campaignTargetId  String?
-
-  fromNumber        String
-  toNumber          String
-  body              String
-
-  createdAt         DateTime @default(now())
+enum Direction {
+  INBOUND
+  OUTBOUND
 }

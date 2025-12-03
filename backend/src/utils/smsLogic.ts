@@ -1,23 +1,36 @@
+import { LeadStatus } from '@prisma/client';
+
 export function isStopKeyword(text: string): boolean {
   const t = text.trim().toUpperCase();
-  return ['STOP', 'UNSUBSCRIBE', 'CANCEL', 'END', 'QUIT'].includes(t);
+  return ['STOP', 'UNSUBSCRIBE', 'CANCEL', 'END', 'QUIT', 'REMOVE'].includes(t);
 }
 
-// Classify reply text into status strings (compatible with string fields in schema)
-export function classifyReply(raw: string, current: string): string {
+/**
+ * The "Brain" of the operation.
+ * Decides if a reply is a DNC request, a Hot Lead, or just a Warm inquiry.
+ */
+export function classifyReply(raw: string, currentStatus: LeadStatus): LeadStatus {
   const text = raw.toLowerCase();
 
-  if (isStopKeyword(raw) || text.includes('wrong number') || text.includes('not interested')) {
-    return 'REPLIED_NEGATIVE';
+  // 1. Safety First: Check for STOP/DNC
+  if (isStopKeyword(raw) || text.includes('wrong number') || text.includes('do not text')) {
+    return LeadStatus.RESP_STOP;
   }
-  if (text.includes('maybe') || text.includes('info') || text.includes('follow up')) {
-    return 'REPLIED_NEUTRAL';
+
+  // 2. Check for Hot signals (Buying intent)
+  if (text.includes('yes') || text.includes('offer') || text.includes('price') || text.includes('how much')) {
+    return LeadStatus.RESP_HOT;
   }
-  if (text.includes('yes') || text.includes('call me') || text.includes('interested')) {
-    return 'REPLIED_POSITIVE';
+
+  // 3. Check for Warm signals (Curiosity)
+  if (text.includes('who is this') || text.includes('maybe') || text.includes('info') || text.includes('house')) {
+    return LeadStatus.RESP_WARM;
   }
-  if (current === 'REPLIED_POSITIVE' || current === 'REPLIED_NEUTRAL') {
-    return current;
+
+  // 4. Default to Warm for human review if it's not clearly negative
+  if (currentStatus === LeadStatus.RESP_HOT) {
+    return LeadStatus.RESP_HOT; // Don't downgrade a hot lead automatically
   }
-  return 'CONTACTED';
+
+  return LeadStatus.RESP_WARM;
 }
