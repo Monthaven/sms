@@ -52,4 +52,8 @@
       "<rootDir>/tests/jest.setup.js"
     ]
   }
+  ,
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
+  }
 }

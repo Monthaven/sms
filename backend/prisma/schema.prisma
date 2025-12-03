@@ -7,13 +7,33 @@ datasource db {
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
+// --- USERS & AUTH (New for Command Center) ---
 
-// --- ENTITIES ---
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  role      UserRole @default(AGENT)
+  
+  // Relations
+  assignedLeads Lead[]
+  auditLogs     LeadAudit[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum UserRole {
+  ADMIN
+  AGENT
+}
+
+// --- CORE ENTITIES ---
 
 model Contact {
   id          String   @id @default(cuid())
   phoneE164   String   @unique // Normalized +1XXXXXXXXXX
-  phoneType   String?  // "Mobile", "Landline", "VoIP" <-- CRITICAL
+  phoneType   String?  // "Mobile", "Landline", "VoIP"
   firstName   String?
   lastName    String?
   email       String?
@@ -32,7 +52,7 @@ model Contact {
 model Property {
   id             String   @id @default(cuid())
   
-  // Owner is optional now because we link primarily via Leads in Deep Trace
+  // Owner is optional because Deep Trace might have multiple contacts per property
   ownerId        String?  
   owner          Contact? @relation(fields: [ownerId], references: [id])
 
@@ -41,7 +61,7 @@ model Property {
   state          String
   postalCode     String
   
-  // Stores raw DealMachine CSV data to prevent data loss
+  // Stores the entire CSV row as JSON so we never lose data (Equity, Roof, etc.)
   rawDetails     Json?    
 
   createdAt      DateTime @default(now())
@@ -49,18 +69,18 @@ model Property {
 
   leads          Lead[]
 
-  // Unique by Address (Institutional Standard)
+  // Unique Identifier for a Property
   @@unique([addressLine1, city, state])
 }
 
 model DncList {
   id        String   @id @default(cuid())
   phoneE164 String   @unique
-  reason    String? 
+  reason    String?  // e.g. "STOP Keyword", "Litigator Scrub"
   createdAt DateTime @default(now())
 }
 
-// --- PIPELINE STATE ---
+// --- PIPELINE & WORKFLOW ---
 
 model Campaign {
   id               String   @id @default(cuid())
@@ -74,6 +94,8 @@ model Campaign {
 
 model Lead {
   id             String      @id @default(cuid())
+  
+  // Context
   campaignId     String
   campaign       Campaign    @relation(fields: [campaignId], references: [id])
   
@@ -83,14 +105,40 @@ model Lead {
   propertyId     String?
   property       Property?   @relation(fields: [propertyId], references: [id])
 
+  // Workflow State
   status         LeadStatus  @default(NEW)
   sentimentScore Int         @default(0) 
   
+  // Agent Workflow (The "Command Center" Logic)
+  assignedToId   String?
+  assignedTo     User?       @relation(fields: [assignedToId], references: [id])
+  
+  isFlagged      Boolean     @default(false) // For "Review Needed"
+  notes          String?     @db.Text        // Internal notes
+
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
+  
+  audits         LeadAudit[] // History of changes
 
   @@unique([campaignId, contactId, propertyId])
   @@index([status])
+  @@index([assignedToId])
+}
+
+// Audit Trail: Tracks WHO did WHAT (Compliance)
+model LeadAudit {
+  id        String   @id @default(cuid())
+  leadId    String
+  lead      Lead     @relation(fields: [leadId], references: [id])
+  
+  userId    String?  // If Null, it was a System/Bot action
+  user      User?    @relation(fields: [userId], references: [id])
+  
+  action    String   // e.g. "STATUS_CHANGE", "CLAIMED", "NOTE_ADDED"
+  details   String?  // e.g. "Changed status from NEW to RESP_HOT"
+  
+  createdAt DateTime @default(now())
 }
 
 model Interaction {
@@ -102,26 +150,32 @@ model Interaction {
   direction   Direction
   
   body        String   @db.Text
-  externalId  String?  
+  externalId  String?  // Twilio/EzTexting Message SID
   
   createdAt   DateTime @default(now())
   
   @@index([contactId])
 }
 
+// --- ENUMS ---
+
 enum LeadStatus {
-  NEW             
-  QUEUED_FOR_CALL // <--- New status for Landlines
-  QUEUED          
-  SENT            
-  RESP_STOP       
-  RESP_BOUNCE     
-  RESP_COLD       
-  RESP_WARM       
-  RESP_HOT        
-  CONVERSATION_ACTIVE 
-  CONVERTED       
-  ARCHIVED        
+  NEW             // Mobile: Ready for Blast
+  QUEUED_FOR_CALL // Landline: Needs manual call
+  QUEUED          // Waiting for API
+  SENT            // Blast successful
+  
+  // Responses
+  RESP_STOP       // DNC
+  RESP_BOUNCE     // Bad Number
+  RESP_COLD       // "Not interested"
+  RESP_WARM       // "Who is this?" / "Maybe"
+  RESP_HOT        // "Price?" / "Yes"
+  
+  // Human Work
+  CONVERSATION_ACTIVE // Agent is chatting
+  CONVERTED       // Appointment Set
+  ARCHIVED        // Dead Lead
 }
 
 enum Channel {
