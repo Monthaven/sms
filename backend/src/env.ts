@@ -8,16 +8,31 @@ function required(name: string): string {
   return v;
 }
 
+function optional(name: string): string | undefined {
+  return process.env[name];
+}
+
 export const env = {
   NODE_ENV: process.env.NODE_ENV ?? 'development',
   PORT: Number(process.env.PORT ?? 4000),
   DATABASE_URL: required('DATABASE_URL'),
   DIRECT_URL: required('DIRECT_URL'),
 
-  EZTEXTING_API_KEY: required('EZTEXTING_API_KEY'),
-  EZTEXTING_API_BASE: required('EZTEXTING_API_BASE'),
+  // EzTexting (Support multiple auth methods)
+  EZTEXTING_API_BASE: optional('EZTEXTING_API_BASE') || 'https://a.eztexting.com/v1',
+  EZTEXTING_USER: optional('EZTEXTING_USER'),
+  EZTEXTING_PASS: optional('EZTEXTING_PASS'),
+  EZTEXTING_API_KEY: optional('EZTEXTING_API_KEY'),
 
   TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID ?? '',
   TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN ?? '',
   TWILIO_MAIN_FROM: process.env.TWILIO_MAIN_FROM ?? ''
 };
+
+// Indicate whether EzTexting credentials are present. Do not throw here so
+// services that don't require EzTexting (imports, local testing) can still
+// start. Campaigns or other code that perform sends should check this flag
+// and fail gracefully if disabled.
+const hasEzKey = Boolean(env.EZTEXTING_API_KEY && env.EZTEXTING_API_KEY.length > 0);
+const hasEzUserPass = Boolean(env.EZTEXTING_USER && env.EZTEXTING_PASS);
+export const EZTEXTING_ENABLED = hasEzKey || hasEzUserPass;

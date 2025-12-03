@@ -5,19 +5,19 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL") // Used for migrations in Neon
+  directUrl = env("DIRECT_URL")
 }
 
-// --- CORE ENTITIES ---
+// --- ENTITIES ---
 
-// The Human Owner
 model Contact {
   id          String   @id @default(cuid())
-  phoneE164   String   @unique // The normalized +1XXXXXXXXXX
+  phoneE164   String   @unique // Normalized +1XXXXXXXXXX
+  phoneType   String?  // "Mobile", "Landline", "VoIP" <-- CRITICAL
   firstName   String?
   lastName    String?
   email       String?
-  source      String   @default("DEALMACHINE") // e.g., "DEALMACHINE", "MANUAL", "OTHER_LIST"
+  source      String   @default("DEALMACHINE")
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -29,18 +29,19 @@ model Contact {
   @@index([phoneE164])
 }
 
-// The Asset
 model Property {
   id             String   @id @default(cuid())
-  ownerId        String
-  owner          Contact  @relation(fields: [ownerId], references: [id])
+  
+  // Owner is optional now because we link primarily via Leads in Deep Trace
+  ownerId        String?  
+  owner          Contact? @relation(fields: [ownerId], references: [id])
 
   addressLine1   String
   city           String
   state          String
   postalCode     String
   
-  // Future-proofing: Store ALL extra columns from DealMachine here
+  // Stores raw DealMachine CSV data to prevent data loss
   rawDetails     Json?    
 
   createdAt      DateTime @default(now())
@@ -48,34 +49,31 @@ model Property {
 
   leads          Lead[]
 
-  @@unique([ownerId, addressLine1, city, state]) // Prevent duplicate property entries for same owner
+  // Unique by Address (Institutional Standard)
+  @@unique([addressLine1, city, state])
 }
 
-// The "Global" DNC List
 model DncList {
   id        String   @id @default(cuid())
   phoneE164 String   @unique
-  reason    String?  // "STOP keyword", "Manual Entry", "Angry"
+  reason    String? 
   createdAt DateTime @default(now())
 }
 
-// --- CAMPAIGN & PIPELINE ---
+// --- PIPELINE STATE ---
 
 model Campaign {
-  id              String   @id @default(cuid())
-  name            String
-  ezTextingGroupId String? // The ID returned from EzTexting API
-  status          String   @default("DRAFT") // DRAFT, ACTIVE, COMPLETED
+  id               String   @id @default(cuid())
+  name             String
+  ezTextingGroupId String? 
+  status           String   @default("DRAFT") 
 
-  createdAt       DateTime @default(now())
-  
-  leads           Lead[]
+  createdAt        DateTime @default(now())
+  leads            Lead[]
 }
 
-// The Pivot Table: Tracks a specific Contact + Property through a Campaign
 model Lead {
   id             String      @id @default(cuid())
-  
   campaignId     String
   campaign       Campaign    @relation(fields: [campaignId], references: [id])
   
@@ -85,55 +83,45 @@ model Lead {
   propertyId     String?
   property       Property?   @relation(fields: [propertyId], references: [id])
 
-  // THE PIPELINE STATUS
   status         LeadStatus  @default(NEW)
+  sentimentScore Int         @default(0) 
   
-  // Scoring / AI Classification
-  sentimentScore Int         @default(0) // -100 (Hate) to 100 (Love)
-  aiSummary      String?
-
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
 
-  @@unique([campaignId, contactId, propertyId]) // One lead per property per campaign
+  @@unique([campaignId, contactId, propertyId])
   @@index([status])
 }
 
-// Immutable Log of Communication
 model Interaction {
   id          String   @id @default(cuid())
   contactId   String
   contact     Contact  @relation(fields: [contactId], references: [id])
 
-  channel     Channel  // EZTEXTING (Blast) or TWILIO (Office)
-  direction   Direction // INBOUND or OUTBOUND
+  channel     Channel  
+  direction   Direction
   
   body        String   @db.Text
-  externalId  String?  // Message SID from Twilio/EzTexting
+  externalId  String?  
   
   createdAt   DateTime @default(now())
   
   @@index([contactId])
 }
 
-// --- ENUMS ---
-
 enum LeadStatus {
-  NEW             // Fresh from CSV
-  QUEUED          // Ready to send
-  SENT            // Handed to EzTexting
-  
-  // Responses
-  RESP_STOP       // "STOP", "DNC"
-  RESP_BOUNCE     // Failed delivery
-  RESP_COLD       // "Not interested"
-  RESP_WARM       // "Who is this?", "Maybe later"
-  RESP_HOT        // "Yes", "How much?", "Call me"
-  
-  // Human Workflow
-  CONVERSATION_ACTIVE // Human is talking via Twilio
-  CONVERTED       // Appointment set / Contract
-  ARCHIVED        // Dead
+  NEW             
+  QUEUED_FOR_CALL // <--- New status for Landlines
+  QUEUED          
+  SENT            
+  RESP_STOP       
+  RESP_BOUNCE     
+  RESP_COLD       
+  RESP_WARM       
+  RESP_HOT        
+  CONVERSATION_ACTIVE 
+  CONVERTED       
+  ARCHIVED        
 }
 
 enum Channel {
