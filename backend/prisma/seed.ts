@@ -7,7 +7,7 @@ async function main() {
 
   // 1. Create the Master Admin (YOU)
   // Replace these details with your actual login info
-  const adminEmail = "admin@monthaven.com"; // Change this!
+  const adminEmail = "Alec@monthavencapital.com"; // Change this!
   
   const admin = await prisma.user.upsert({
     where: { email: adminEmail },
@@ -34,9 +34,9 @@ async function main() {
 
   const agent2 = await prisma.user.upsert({
     where: { email: "agent@monthaven.com" },
-    update: {},
+    update: {email:"agent@monthavencapital.com"},
     create: {
-      email: "agent@monthaven.com",
+      email: "agent@monthavencapital.com",
       name: "Sales Agent 01",
       role: UserRole.AGENT,
     },

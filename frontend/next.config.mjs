@@ -4,7 +4,8 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: 'http://localhost:4000/api/:path*', // Proxy to Backend
+        // Force IPv4 to avoid Node.js v17+ preference for IPv6 (::1)
+        destination: 'http://127.0.0.1:4000/api/:path*', 
       },
     ];
   },

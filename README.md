@@ -1,53 +1,55 @@
 Monthaven Acquisition Engine (MAE)
 
-Status: ACTIVE DEVELOPMENT
-Version: 1.0.0 (Institutional)
+Status: ACTIVE DEVELOPMENT - PHASE 2
+Version: 2.1.0 (Institutional Node.js Platform)
 
 1. Executive Summary
 
 The Monthaven Acquisition Engine is a hybrid automated/manual real estate acquisition platform. It separates high-volume automated outreach from high-touch manual closing.
 
-Ingestion: Mass import of property/owner data (DealMachine).
+Ingestion: Mass import of property/owner data (DealMachine CSVs) with Deep Trace logic (multi-contact).
 
-Filtering: Automated SMS blasts and drip campaigns via EzTexting.
+Filtering: Automated SMS blasts and drip campaigns via EzTexting API.
 
 Routing: Intelligent webhooks classify replies (STOP vs. HOT).
 
-Closing: A dedicated "Command Center" dashboard allows humans to engage qualified leads via a separate Twilio Office Line.
+Closing: A dedicated Next.js "Command Center" allows humans to engage qualified leads via a separate Twilio Office Line.
 
-2. Architecture & Tech Stack
+2. System Architecture
 
-The system implements a strict Service-Oriented Architecture to ensure reliability and separation of concerns.
+2.1. The Backend API (Active)
 
-2.1. Backend Service (The Engine)
+Role: The heavy lifter. Handles CSV parsing, Database state, SMS automation, and Webhooks.
 
-Role: Data ingest, State management, Webhook processing, SMS Automation.
+Location: /backend
 
-Stack: Node.js (v18+), Express, TypeScript.
+Tech: Node.js (Express), TypeScript, Prisma ORM.
 
 Database: Neon (Serverless Postgres).
 
-ORM: Prisma (Single Source of Truth).
+Hosting: Render or Railway (Required for long-running CSV jobs).
 
-Hosting: Render / Railway (Must support long-running processes for CSV imports).
+2.2. The Command Center (Planned - Phase 5)
 
-2.2. Frontend Service (The Command Center)
+Role: The human interface for "Closer" agents.
 
-Role: Human interface for viewing "Hot" leads and 1:1 messaging.
+Location: /frontend (Next.js)
 
-Stack: Next.js (App Router), Tailwind CSS, Lucide Icons.
+Tech: Next.js (App Router), Tailwind CSS.
 
 Hosting: Vercel.
 
 3. Database Schema (Source of Truth)
 
-Strict Rules:
+Rules:
 
 Postgres Only. No SQLite.
 
-No Logic in DB. All logic lives in the Node.js application layer.
+Json for Flexibility. Property table uses rawDetails JSONB to store extra DealMachine columns without migration headaches.
 
-Immutable Logs. Interaction table records every event for compliance.
+Strict Status Enums. LeadStatus controls the entire lifecycle.
+
+Multi-User: Supports Admins and Agents.
 
 // backend/prisma/schema.prisma
 
@@ -61,11 +63,32 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// --- ENTITIES ---
+// --- USERS & AUTH ---
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  role      UserRole @default(AGENT)
+  
+  assignedLeads Lead[]
+  auditLogs     LeadAudit[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum UserRole {
+  ADMIN
+  AGENT
+}
+
+// --- CORE ENTITIES ---
 
 model Contact {
   id          String   @id @default(cuid())
   phoneE164   String   @unique // Normalized +1XXXXXXXXXX
+  phoneType   String?  // "Mobile", "Landline", "VoIP"
   firstName   String?
   lastName    String?
   email       String?
@@ -83,8 +106,8 @@ model Contact {
 
 model Property {
   id             String   @id @default(cuid())
-  ownerId        String
-  owner          Contact  @relation(fields: [ownerId], references: [id])
+  ownerId        String?
+  owner          Contact? @relation(fields: [ownerId], references: [id])
 
   addressLine1   String
   city           String
@@ -99,7 +122,7 @@ model Property {
 
   leads          Lead[]
 
-  @@unique([ownerId, addressLine1, city, state])
+  @@unique([addressLine1, city, state])
 }
 
 model DncList {
@@ -135,11 +158,31 @@ model Lead {
   status         LeadStatus  @default(NEW)
   sentimentScore Int         @default(0) // -100 to 100
   
+  // Agent Workflow
+  assignedToId   String?
+  assignedTo     User?       @relation(fields: [assignedToId], references: [id])
+  isFlagged      Boolean     @default(false)
+  notes          String?     @db.Text
+
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
+  
+  audits         LeadAudit[]
 
   @@unique([campaignId, contactId, propertyId])
   @@index([status])
+  @@index([assignedToId])
+}
+
+model LeadAudit {
+  id        String   @id @default(cuid())
+  leadId    String
+  lead      Lead     @relation(fields: [leadId], references: [id])
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String   
+  details   String?  
+  createdAt DateTime @default(now())
 }
 
 model Interaction {
@@ -161,8 +204,9 @@ model Interaction {
 // --- ENUMS ---
 
 enum LeadStatus {
-  NEW             // Imported
-  QUEUED          // Ready for EzTexting
+  NEW             // Mobile: Ready for Blast
+  QUEUED_FOR_CALL // Landline: Manual Call Queue
+  QUEUED          // Waiting
   SENT            // Blast Sent
   RESP_STOP       // Auto-DNC
   RESP_BOUNCE     // Failed
@@ -187,146 +231,78 @@ enum Direction {
 
 4. Implementation Master Plan
 
-Phase 1: Foundation (Backend)
+Phase 1: Foundation (Backend) ✅
 
-[x] Repo Cleanse: Remove SQLite artifacts, schema_local, and dev.db.
+[x] Repo Cleanse: Removed legacy Google Apps Scripts, SQLite files, and 50+ loose CSVs.
 
 [x] Schema Definition: Institutional Prisma schema defined.
 
-[ ] Environment Setup: Configure .env with Neon, EzTexting, and Twilio keys.
+[x] Stubbing: Fixed API route errors to allow server boot.
 
-[ ] DB Initialization: Run npx prisma db push to sync Neon.
+[x] Cleanup: Removed node_modules and re-installed cleanly.
 
-Phase 2: Data Ingestion (The Pipeline)
+Phase 2: Data Ingestion (The Pipeline) ✅
 
-[ ] Service: ImportService
+[x] Connect DB: Update .env with Neon credentials and run npx prisma db push.
 
-Stream-read DealMachine CSVs.
+[x] Service: ImportService
 
-Normalization: Convert (555) 123-4567 -> +15551234567.
+Implement stream-based CSV parsing (Deep Trace Logic).
 
-Upsert Logic: -   Check if Contact exists by phoneE164.
+Upsert Logic: Handle duplicate contacts and properties.
 
-Update Name if missing.
+Deep Trace: Iterate 20 contact columns.
 
-Create Property if not linked to Owner.
+Routing: Mobile -> NEW, Landline -> QUEUED_FOR_CALL.
 
-Create Lead with status NEW.
+Phase 3: The "Blast" Engine (EzTexting) ✅
 
-Phase 3: The "Blast" Engine (EzTexting)
+[x] Client: EzTextingClient updated for API v1 (Basic Auth).
 
-[ ] Service: CampaignService
+[x] Service: CampaignService
 
-createGroup(name): Calls EzTexting API to create a group.
+launchBlast(name, message) logic implemented.
 
-addContacts(groupId, numbers): Batches uploads (100 at a time).
+Updates Lead status to SENT.
 
-launchBlast(campaignId): Triggers the initial message via API.
+Phase 4: The "Brain" (Inbound Routing) ✅
 
-State Update: Mark all included Leads as SENT.
+[x] Webhook: POST /webhooks/eztexting
 
-Phase 4: The "Brain" (Inbound Routing)
+Classifies replies (STOP/HOT/WARM).
 
-[ ] Webhook: POST /webhooks/eztexting
+Updates Lead Status.
 
-Input: Phone Number, Message Body.
+Logs to Interaction table.
 
-Logic:
+[x] Webhook: POST /webhooks/twilio
 
-If body contains STOP/REMOVE/UNSUBSCRIBE:
+Logs manual conversations.
 
-Create DncList entry.
+Phase 5: The Command Center (Frontend) ⏳
 
-Update Lead Status -> RESP_STOP.
+[ ] Setup: Initialize Next.js project (npx create-next-app).
 
-If body contains YES/PRICE/OFFER:
+[ ] API Client: Typed fetch wrapper to talk to the Backend.
 
-Update Lead Status -> RESP_HOT.
+[ ] View (Inbox): Table showing leads where status is HOT/WARM.
 
-Else:
+[ ] Action (Chat): Interface to send 1:1 texts via Twilio Office Line.
 
-Update Lead Status -> RESP_WARM (Human Review).
+[ ] View (Call Queue): List of Landlines for manual calling.
 
-Logging: Save message to Interaction table (Channel: EZTEXTING).
+5. Environment Variables (Required)
 
-[ ] Webhook: POST /webhooks/twilio
+Create backend/.env (do not commit to Git):
 
-Input: SMS to Office Number.
-
-Logic:
-
-Find Contact.
-
-Log Interaction (Channel: TWILIO).
-
-Update Lead Status -> CONVERSATION_ACTIVE.
-
-Phase 5: The Command Center (Frontend)
-
-[ ] Setup: Initialize Next.js project.
-
-[ ] View: Inbox
-
-Fetch Leads where Status IN (RESP_HOT, RESP_WARM, CONVERSATION_ACTIVE).
-
-Sort by updatedAt desc.
-
-[ ] Feature: Quick Chat
-
-Right-side panel showing Interaction history.
-
-Input box -> Calls Backend /api/chat/send.
-
-Backend uses Twilio SDK to send 1:1 message.
-
-5. API Logic Flows
-
-Sending a Manual Text (Office Line)
-
-Frontend: User types "Hi, are you the owner?" and clicks Send.
-
-API: POST /api/chat/send { contactId, message }.
-
-Backend:
-
-Checks DncList (Safety first!).
-
-Calls twilioClient.messages.create({ from: OFFICE_NUM, to: contact.phone, body }).
-
-Creates Interaction record (Direction: OUTBOUND, Channel: TWILIO).
-
-Result: Message sent, history updated.
-
-Handling an EzTexting Reply
-
-Event: Lead replies "Who is this?" to the automated blast.
-
-EzTexting: Hits POST /webhooks/eztexting.
-
-Backend:
-
-Parses Phone +1....
-
-Finds Lead associated with recent Campaign.
-
-Regex Check: Matches "Who is this?" -> RESP_WARM.
-
-Updates Lead.status = RESP_WARM.
-
-Logs Interaction.
-
-Frontend: Dashboard polls/swrs and shows new "Warm" lead in Inbox.
-
-6. Environment Variables (Required)
-
-# Data
+# Data (Neon)
 DATABASE_URL="postgresql://..."
 DIRECT_URL="postgresql://..." # For migrations
 
-# EzTexting (Blast)
+# EzTexting (Blast - Basic Auth)
 EZTEXTING_USER="..."
 EZTEXTING_PASS="..."
-EZTEXTING_API_URL="[https://a.eztexting.com/v1](https://a.eztexting.com/v1)"
+EZTEXTING_API_BASE="[https://a.eztexting.com/v1](https://a.eztexting.com/v1)"
 
 # Twilio (Office)
 TWILIO_ACCOUNT_SID="AC..."
