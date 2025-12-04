@@ -31,16 +31,6 @@ eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpac
 
 /***/ }),
 
-/***/ "(ssr)/./node_modules/lucide-react/dist/esm/icons/bar-chart-3.js":
-/*!*****************************************************************!*\
-  !*** ./node_modules/lucide-react/dist/esm/icons/bar-chart-3.js ***!
-  \*****************************************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpack_require__.d(__webpack_exports__, {\n/* harmony export */   \"default\": () => (/* binding */ BarChart3)\n/* harmony export */ });\n/* harmony import */ var _createLucideIcon_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../createLucideIcon.js */ \"(ssr)/./node_modules/lucide-react/dist/esm/createLucideIcon.js\");\n/**\n * lucide-react v0.290.0 - ISC\n */\n\n\n\nconst BarChart3 = (0,_createLucideIcon_js__WEBPACK_IMPORTED_MODULE_0__[\"default\"])(\"BarChart3\", [\n  [\"path\", { d: \"M3 3v18h18\", key: \"1s2lah\" }],\n  [\"path\", { d: \"M18 17V9\", key: \"2bz60n\" }],\n  [\"path\", { d: \"M13 17V5\", key: \"1frdt8\" }],\n  [\"path\", { d: \"M8 17v-3\", key: \"17ska0\" }]\n]);\n\n\n//# sourceMappingURL=bar-chart-3.js.map\n//# sourceURL=[module]\n//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiKHNzcikvLi9ub2RlX21vZHVsZXMvbHVjaWRlLXJlYWN0L2Rpc3QvZXNtL2ljb25zL2Jhci1jaGFydC0zLmpzIiwibWFwcGluZ3MiOiI7Ozs7O0FBQUE7QUFDQTtBQUNBOztBQUVzRDs7QUFFdEQsa0JBQWtCLGdFQUFnQjtBQUNsQyxhQUFhLGdDQUFnQztBQUM3QyxhQUFhLDhCQUE4QjtBQUMzQyxhQUFhLDhCQUE4QjtBQUMzQyxhQUFhLDhCQUE4QjtBQUMzQzs7QUFFZ0M7QUFDaEMiLCJzb3VyY2VzIjpbIndlYnBhY2s6Ly9tb250aGF2ZW4tY29tbWFuZC1jZW50ZXIvLi9ub2RlX21vZHVsZXMvbHVjaWRlLXJlYWN0L2Rpc3QvZXNtL2ljb25zL2Jhci1jaGFydC0zLmpzPzE1ZDciXSwic291cmNlc0NvbnRlbnQiOlsiLyoqXG4gKiBsdWNpZGUtcmVhY3QgdjAuMjkwLjAgLSBJU0NcbiAqL1xuXG5pbXBvcnQgY3JlYXRlTHVjaWRlSWNvbiBmcm9tICcuLi9jcmVhdGVMdWNpZGVJY29uLmpzJztcblxuY29uc3QgQmFyQ2hhcnQzID0gY3JlYXRlTHVjaWRlSWNvbihcIkJhckNoYXJ0M1wiLCBbXG4gIFtcInBhdGhcIiwgeyBkOiBcIk0zIDN2MThoMThcIiwga2V5OiBcIjFzMmxhaFwiIH1dLFxuICBbXCJwYXRoXCIsIHsgZDogXCJNMTggMTdWOVwiLCBrZXk6IFwiMmJ6NjBuXCIgfV0sXG4gIFtcInBhdGhcIiwgeyBkOiBcIk0xMyAxN1Y1XCIsIGtleTogXCIxZnJkdDhcIiB9XSxcbiAgW1wicGF0aFwiLCB7IGQ6IFwiTTggMTd2LTNcIiwga2V5OiBcIjE3c2thMFwiIH1dXG5dKTtcblxuZXhwb3J0IHsgQmFyQ2hhcnQzIGFzIGRlZmF1bHQgfTtcbi8vIyBzb3VyY2VNYXBwaW5nVVJMPWJhci1jaGFydC0zLmpzLm1hcFxuIl0sIm5hbWVzIjpbXSwic291cmNlUm9vdCI6IiJ9\n//# sourceURL=webpack-internal:///(ssr)/./node_modules/lucide-react/dist/esm/icons/bar-chart-3.js\n");
-
-/***/ }),
-
 /***/ "(ssr)/./node_modules/lucide-react/dist/esm/icons/inbox.js":
 /*!***********************************************************!*\
   !*** ./node_modules/lucide-react/dist/esm/icons/inbox.js ***!
