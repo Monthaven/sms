@@ -1,5 +1,5 @@
 {
-  "name": "crown-oak-sms",
+  "name": "monthaven",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -12,7 +12,8 @@
     "verify:real": "DRY_RUN=false node address-verifier-runner.cjs",
     "pipeline": "node ops/pipeline.js",
     "commercial-test": "node ops/pipeline.js --csv campaigns/inputs/sample-commercial.csv --dry-run true",
-    "commercial-live": "node ops/pipeline.js --csv campaigns/inputs/sample-commercial.csv --dry-run false"
+    "commercial-live": "node ops/pipeline.js --csv campaigns/inputs/sample-commercial.csv --dry-run false",
+    "db:sync": "node scripts/db-sync.cjs"
   },
   "dependencies": {
     "@notionhq/client": "^5.4.0",
