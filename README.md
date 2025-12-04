@@ -1,100 +1,4 @@
-Here is the definitive README.md for the Monthaven Acquisition Engine (MAE). It reflects the new Hybrid Architecture where heavy processing happens locally ("The Engine") and availability is handled by Vercel ("The Storefront").
-
-Replace the contents of your root README.md with this.
-
-Monthaven Acquisition Engine (MAE)
-Status: ACTIVE | Version: 3.0.0 (Hybrid Architecture)
-
-1. Executive Summary
-The Monthaven Acquisition Engine (MAE) is a hybrid real estate acquisition platform. It separates high-compute batch processing from high-availability user interaction.
-
-The Problem: Large CSV imports and SMS blasts (10k+ records) cause timeouts on serverless platforms like Vercel/AWS Lambda.
-
-The Solution: We run "The Engine" locally to handle heavy lifting without time limits, while "The Storefront" (UI) lives on the cloud to catch leads 24/7.
-
-2. System Architecture
-A. The Brain (Database)
-Technology: Neon (Serverless Postgres).
-
-Role: The Single Source of Truth. Both the local engine and the cloud UI connect to this same database.
-
-B. The Engine (Local Backend)
-Location: /backend
-
-Runtime: Node.js (Local Machine) via ts-node.
-
-Responsibilities:
-
-Ingestion: Parses massive DealMachine CSVs using streams.
-
-Blasting: Orchestrates bulk SMS campaigns via EzTexting API.
-
-Deep Trace: Deeply inspects contact records (up to 20 slots per property).
-
-C. The Storefront (Cloud Frontend)
-Location: /frontend
-
-Runtime: Next.js 14 (Deployed on Vercel).
-
-Responsibilities:
-
-The Net: Catches inbound SMS webhooks (replies) 24/7.
-
-Command Center: Provides the "Inbox" and "Call Queue" for agents to close deals.
-
-Visuals: Real-time dashboard of lead statuses.
-
-3. Directory Structure
-Plaintext
-
-/
-├── backend/               # THE ENGINE (Local Scripts)
-│   ├── prisma/            # SCHEMA MASTER (Source of Truth)
-│   ├── src/
-│   │   ├── services/      # Business Logic (Import, Campaign)
-│   │   └── scripts/       # Executable Entry Points (Ingest, Blast)
-│   └── .env               # Local Env (Direct DB Connection)
-│
-├── frontend/              # THE STOREFRONT (Vercel)
-│   ├── app/
-│   │   ├── dashboard/     # Agent UI
-│   │   └── api/           # Webhook Endpoints
-│   ├── prisma/            # Copy of Schema (Synced)
-│   └── .env               # Vercel Env (Pooled DB Connection)
-4. Setup Guide
-Phase 1: Database (Neon)
-Create a Project in Neon.
-
-Get two connection strings:
-
-Direct Connection: For backend (migrations/scripts).
-
-Pooled Connection: For frontend (Vercel serverless).
-
-Phase 2: Environment Variables
-backend/.env
-
-Bash
-
-DATABASE_URL="postgres://user:pass@ep-xyz.us-east-2.aws.neon.tech/neondb?sslmode=require"
-EZTEXTING_USER="..."
-EZTEXTING_PASS="..."
-frontend/.env (and Vercel Environment Variables)
-
-Bash
-
-# MUST use the Pooled connection (pgbouncer=true)
-DATABASE_URL="postgres://user:pass@ep-xyz-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require&pgbouncer=true"
-Phase 3: Installation & Sync
-Run this from the root directory to install dependencies and sync the database schema.
-
-Bash
-
-# 1. Install Dependencies
-cd backend && npm install
-cd ../frontend && npm install
-
-## Monthaven Acquisition Engine (MAE)
+﻿# Monthaven Acquisition Engine (MAE)
 
 **Status:** ACTIVE | **Version:** 3.0.0 (Hybrid Architecture)
 
@@ -114,17 +18,17 @@ The Monthaven Acquisition Engine (MAE) is a hybrid real estate acquisition platf
 * **Location:** `/backend`
 * **Runtime:** Node.js (Local Machine) via `ts-node`.
 * **Responsibilities:**
-	* **Ingestion:** Parses massive DealMachine CSVs using streams.
-	* **Blasting:** Orchestrates bulk SMS campaigns via EzTexting API.
-	* **Deep Trace:** Deeply inspects contact records (up to 20 slots per property).
+    * **Ingestion:** Parses massive DealMachine CSVs using streams.
+    * **Blasting:** Orchestrates bulk SMS campaigns via EzTexting API.
+    * **Deep Trace:** Deeply inspects contact records (up to 20 slots per property).
 
 ### C. The Storefront (Cloud Frontend)
 * **Location:** `/frontend`
 * **Runtime:** Next.js 14 (Deployed on Vercel).
 * **Responsibilities:**
-	* **The Net:** Catches inbound SMS webhooks (replies) 24/7.
-	* **Command Center:** Provides the "Inbox" and "Call Queue" for agents to close deals.
-	* **Visuals:** Real-time dashboard of lead statuses.
+    * **The Net:** Catches inbound SMS webhooks (replies) 24/7.
+    * **Command Center:** Provides the "Inbox" and "Call Queue" for agents to close deals.
+    * **Visuals:** Real-time dashboard of lead statuses.
 
 ---
 
@@ -132,19 +36,19 @@ The Monthaven Acquisition Engine (MAE) is a hybrid real estate acquisition platf
 
 ```text
 /
-├── backend/               # THE ENGINE (Local Scripts)
-│   ├── prisma/            # SCHEMA MASTER (Source of Truth)
-+│   ├── src/
-│   │   ├── services/      # Business Logic (Import, Campaign)
-│   │   └── scripts/       # Executable Entry Points (Ingest, Blast)
-│   └── .env               # Local Env (Direct DB Connection)
-│
-├── frontend/              # THE STOREFRONT (Vercel)
-│   ├── app/
-│   │   ├── dashboard/     # Agent UI
-│   │   └── api/           # Webhook Endpoints
-│   ├── prisma/            # Copy of Schema (Synced)
-│   └── .env               # Vercel Env (Pooled DB Connection)
+ backend/               # THE ENGINE (Local Scripts)
+    prisma/            # SCHEMA MASTER (Source of Truth)
+    src/
+       services/      # Business Logic (Import, Campaign)
+       scripts/       # Executable Entry Points (Ingest, Blast)
+    .env               # Local Env (Direct DB Connection)
+
+ frontend/              # THE STOREFRONT (Vercel)
+    app/
+       dashboard/     # Agent UI
+       api/           # Webhook Endpoints
+    prisma/            # Copy of Schema (Synced)
+    .env               # Vercel Env (Pooled DB Connection)
 ```
 
 ## 4. Setup Guide
