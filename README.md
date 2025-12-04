@@ -1,52 +1,40 @@
-Here is the definitive README.md for the Monthaven Acquisition Engine (MAE). It reflects the new Hybrid Architecture where heavy processing happens locally ("The Engine") and availability is handled by Vercel ("The Storefront").
+# Monthaven Acquisition Engine (MAE)
 
-Replace the contents of your root README.md with this.
+**Status:** ACTIVE | **Version:** 3.0.0 (Hybrid Architecture)
 
-Monthaven Acquisition Engine (MAE)
-Status: ACTIVE | Version: 3.0.0 (Hybrid Architecture)
+## 1. Executive Summary
+The Monthaven Acquisition Engine (MAE) is a hybrid real estate acquisition platform. It separates **high-compute batch processing** from **high-availability user interaction**.
 
-1. Executive Summary
-The Monthaven Acquisition Engine (MAE) is a hybrid real estate acquisition platform. It separates high-compute batch processing from high-availability user interaction.
+* **The Problem:** Large CSV imports and SMS blasts (10k+ records) cause timeouts on serverless platforms like Vercel/AWS Lambda.
+* **The Solution:** We run "The Engine" locally to handle heavy lifting without time limits, while "The Storefront" (UI) lives on the cloud to catch leads 24/7.
 
-The Problem: Large CSV imports and SMS blasts (10k+ records) cause timeouts on serverless platforms like Vercel/AWS Lambda.
+## 2. System Architecture
 
-The Solution: We run "The Engine" locally to handle heavy lifting without time limits, while "The Storefront" (UI) lives on the cloud to catch leads 24/7.
+### A. The Brain (Database)
+* **Technology:** Neon (Serverless Postgres).
+* **Role:** The Single Source of Truth. Both the local engine and the cloud UI connect to this same database.
 
-2. System Architecture
-A. The Brain (Database)
-Technology: Neon (Serverless Postgres).
+### B. The Engine (Local Backend)
+* **Location:** `/backend`
+* **Runtime:** Node.js (Local Machine) via `ts-node`.
+* **Responsibilities:**
+	* **Ingestion:** Parses massive DealMachine CSVs using streams.
+	* **Blasting:** Orchestrates bulk SMS campaigns via EzTexting API.
+	* **Deep Trace:** Deeply inspects contact records (up to 20 slots per property).
 
-Role: The Single Source of Truth. Both the local engine and the cloud UI connect to this same database.
+### C. The Storefront (Cloud Frontend)
+* **Location:** `/frontend`
+* **Runtime:** Next.js 14 (Deployed on Vercel).
+* **Responsibilities:**
+	* **The Net:** Catches inbound SMS webhooks (replies) 24/7.
+	* **Command Center:** Provides the "Inbox" and "Call Queue" for agents to close deals.
+	* **Visuals:** Real-time dashboard of lead statuses.
 
-B. The Engine (Local Backend)
-Location: /backend
+---
 
-Runtime: Node.js (Local Machine) via ts-node.
+## 3. Directory Structure
 
-Responsibilities:
-
-Ingestion: Parses massive DealMachine CSVs using streams.
-
-Blasting: Orchestrates bulk SMS campaigns via EzTexting API.
-
-Deep Trace: Deeply inspects contact records (up to 20 slots per property).
-
-C. The Storefront (Cloud Frontend)
-Location: /frontend
-
-Runtime: Next.js 14 (Deployed on Vercel).
-
-Responsibilities:
-
-The Net: Catches inbound SMS webhooks (replies) 24/7.
-
-Command Center: Provides the "Inbox" and "Call Queue" for agents to close deals.
-
-Visuals: Real-time dashboard of lead statuses.
-
-3. Directory Structure
-Plaintext
-
+```text
 /
 ├── backend/               # THE ENGINE (Local Scripts)
 │   ├── prisma/            # SCHEMA MASTER (Source of Truth)
@@ -58,9 +46,11 @@ Plaintext
 ├── frontend/              # THE STOREFRONT (Vercel)
 │   ├── app/
 │   │   ├── dashboard/     # Agent UI
-│   │   └── api/           # Webhook Endpoints
-│   ├── prisma/            # Copy of Schema (Synced)
-│   └── .env               # Vercel Env (Pooled DB Connection)
++   │   └── api/           # Webhook Endpoints
+   ├── prisma/            # Copy of Schema (Synced)
+   └── .env               # Vercel Env (Pooled DB Connection)
+```
+
 4. Setup Guide
 Phase 1: Database (Neon)
 Create a Project in Neon.
@@ -87,7 +77,6 @@ Bash
 DATABASE_URL="postgres://user:pass@ep-xyz-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require&pgbouncer=true"
 Phase 3: Installation & Sync
 Run this from the root directory to install dependencies and sync the database schema.
-
 Bash
 
 # 1. Install Dependencies
