@@ -10,10 +10,13 @@
     "dev:compiled": "node dist/server.js",
     "test": "cross-env NODE_ENV=test jest --runInBand",
     "prisma:generate": "prisma generate",
+    "script:ingest": "ts-node src/scripts/ingest.ts",
+    "script:blast": "ts-node src/scripts/blast.ts",
+    "script:create-campaign": "ts-node src/scripts/create-campaign.ts",
     "prisma:migrate": "prisma migrate dev --name init"
   },
   "dependencies": {
-    "@prisma/client": "^5.0.0",
+    "@prisma/client": "5.22.0",
     "cors": "^2.8.5",
     "csv-parse": "^5.4.0",
     "csv-parser": "^3.2.0",
@@ -36,7 +39,7 @@
     "jest": "^29.0.0",
     "pino": "^8.0.0",
     "pino-http": "^8.0.0",
-    "prisma": "^5.0.0",
+    "prisma": "5.22.0",
     "supertest": "^6.3.0",
     "ts-jest": "^29.0.0",
     "ts-node-dev": "^2.0.0",
@@ -51,8 +54,7 @@
     "setupFilesAfterEnv": [
       "<rootDir>/tests/jest.setup.js"
     ]
-  }
-  ,
+  },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
   }
