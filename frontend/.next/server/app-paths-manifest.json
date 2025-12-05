@@ -1,9 +1,13 @@
 {
-  "/api/telemetry/ingestion/route": "app/api/telemetry/ingestion/route.js",
-  "/api/agents/route": "app/api/agents/route.js",
   "/api/leads/route": "app/api/leads/route.js",
+  "/api/automations/route": "app/api/automations/route.js",
+  "/api/agents/route": "app/api/agents/route.js",
   "/not-found": "app/not-found.js",
-  "/dashboard/queue/page": "app/dashboard/queue/page.js",
+  "/api/integrations/twilio/route": "app/api/integrations/twilio/route.js",
+  "/api/integrations/route": "app/api/integrations/route.js",
+  "/dashboard/admin/agents/page": "app/dashboard/admin/agents/page.js",
   "/dashboard/page": "app/dashboard/page.js",
-  "/dashboard/campaigns/page": "app/dashboard/campaigns/page.js"
+  "/dashboard/admin/integrations/page": "app/dashboard/admin/integrations/page.js",
+  "/dashboard/admin/automations/page": "app/dashboard/admin/automations/page.js",
+  "/dashboard/intelligence/page": "app/dashboard/intelligence/page.js"
 }

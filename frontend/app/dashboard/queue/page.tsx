@@ -3,8 +3,8 @@
 import CallOutcomeModal from "@/components/CallOutcomeModal";
 import HeatBadge from "@/components/HeatBadge";
 import LeadActionButtons from "@/components/LeadActionButtons";
-import LeadStatusBadge from "@/components/LeadStatusBadge";
 import PageFooterRail from "@/components/PageFooterRail";
+import { Avatar, StatusBadge } from "@/components/Shared";
 import { Lead } from "@/lib/api";
 import { useLeads } from "@/lib/hooks/useLeads";
 import {
@@ -33,6 +33,29 @@ export default function QueuePage() {
   const queueSize = leads.length;
   const medianTta = queueSize ? "00:45" : "--:--";
   const contactablePct = queueSize ? 92 : 0;
+
+  function mapStatus(status: string | undefined) {
+    if (!status) return 'New';
+    switch (status) {
+      case 'RESP_HOT':
+      case 'HOT':
+      case 'QUEUED_FOR_CALL':
+        return 'Hot';
+      case 'RESP_WARM':
+      case 'WARM':
+        return 'Warm';
+      case 'NEW':
+      case 'CREATED':
+        return 'New';
+      case 'RESP_STOP':
+      case 'DNC':
+        return 'DNC';
+      case 'SOLD':
+        return 'Sold';
+      default:
+        return 'Cold';
+    }
+  }
 
   if (isLoading) return <div className="p-10 text-slate-300">Loading Call Queue…</div>;
 
@@ -125,10 +148,15 @@ export default function QueuePage() {
               {leads.map((lead) => (
                 <tr key={lead.id} className="bg-white/[0.02]">
                   <td className="px-6 py-4">
-                    <p className="font-semibold text-white">
-                      {lead.contact.firstName} {lead.contact.lastName}
-                    </p>
-                    <p className="text-xs text-slate-400">{lead.contact.phoneE164}</p>
+                    <div className="flex items-center gap-4">
+                      <Avatar name={`${lead.contact.firstName ?? ''} ${lead.contact.lastName ?? ''}`.trim() || lead.contact.phoneE164} />
+                      <div>
+                        <p className="font-semibold text-white">
+                          {lead.contact.firstName} {lead.contact.lastName}
+                        </p>
+                        <p className="text-xs text-slate-400">{lead.contact.phoneE164}</p>
+                      </div>
+                    </div>
                   </td>
                   <td className="px-6 py-4">
                     <p className="text-slate-200">{lead.property?.addressLine1 ?? "Unknown address"}</p>
@@ -140,7 +168,7 @@ export default function QueuePage() {
                     <HeatBadge score={lead.sentimentScore} status={lead.status} />
                   </td>
                   <td className="px-6 py-4">
-                    <LeadStatusBadge status="QUEUED_FOR_CALL" />
+                    <StatusBadge status={mapStatus(lead.status)} />
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex flex-wrap gap-2">

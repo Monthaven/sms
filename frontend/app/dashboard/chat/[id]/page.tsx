@@ -1,6 +1,6 @@
 import { getLeadDetails } from "@/app/actions";
 import LeadActionButtons from "@/components/LeadActionButtons";
-import LeadStatusBadge from "@/components/LeadStatusBadge";
+import { Avatar, StatusBadge } from "@/components/Shared";
 import PageFooterRail from "@/components/PageFooterRail";
 import ReplyComposer from "@/components/ReplyComposer";
 import CallLogButton from "@/components/CallLogButton";
@@ -52,6 +52,29 @@ export default async function ChatThread({
     interactions as InteractionEntry[]
   );
 
+  function mapStatus(status: string | undefined) {
+    if (!status) return 'New';
+    switch (status) {
+      case 'RESP_HOT':
+      case 'HOT':
+      case 'QUEUED_FOR_CALL':
+        return 'Hot';
+      case 'RESP_WARM':
+      case 'WARM':
+        return 'Warm';
+      case 'NEW':
+      case 'CREATED':
+        return 'New';
+      case 'RESP_STOP':
+      case 'DNC':
+        return 'DNC';
+      case 'SOLD':
+        return 'Sold';
+      default:
+        return 'Cold';
+    }
+  }
+
   return (
     <div className="space-y-8 text-slate-100">
       <Link
@@ -64,17 +87,18 @@ export default async function ChatThread({
 
       <section className="glass-panel border border-white/10 p-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
-              Lead Profile
-            </p>
-            <h1 className="text-3xl font-semibold text-white">
-              {lead.contact.firstName} {lead.contact.lastName}
-            </h1>
-            <p className="text-sm text-slate-400">{lead.contact.phoneE164}</p>
+          <div className="flex items-center gap-4">
+            <Avatar name={`${lead.contact.firstName ?? ''} ${lead.contact.lastName ?? ''}`.trim() || lead.contact.phoneE164} size="md" />
+            <div>
+              <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Lead Profile</p>
+              <h1 className="text-3xl font-semibold text-white">
+                {lead.contact.firstName} {lead.contact.lastName}
+              </h1>
+              <p className="text-sm text-slate-400">{lead.contact.phoneE164}</p>
+            </div>
           </div>
           <div className="flex flex-col items-start gap-3 md:items-end">
-            <LeadStatusBadge status={lead.status} />
+            <StatusBadge status={mapStatus(lead.status)} />
             <LeadActionButtons leadId={lead.id} context="chat" />
             <CallLogButton leadId={lead.id} leadName={displayName} />
           </div>

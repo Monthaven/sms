@@ -11,25 +11,35 @@
       "static/chunks/main-app.js",
       "static/chunks/app/not-found.js"
     ],
-    "/dashboard/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/page.js"
-    ],
     "/dashboard/layout": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/dashboard/layout.js"
     ],
-    "/dashboard/queue/page": [
+    "/dashboard/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/queue/page.js"
+      "static/chunks/app/dashboard/page.js"
     ],
-    "/dashboard/campaigns/page": [
+    "/dashboard/admin/agents/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/campaigns/page.js"
+      "static/chunks/app/dashboard/admin/agents/page.js"
+    ],
+    "/dashboard/admin/automations/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/dashboard/admin/automations/page.js"
+    ],
+    "/dashboard/admin/integrations/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/dashboard/admin/integrations/page.js"
+    ],
+    "/dashboard/intelligence/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/dashboard/intelligence/page.js"
     ]
   }
 }
