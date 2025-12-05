@@ -2,7 +2,7 @@ import fs from 'fs';
 import csv from 'csv-parser';
 import { prisma } from '../db';
 import { normalizePhone } from '../utils/phone';
-import { LeadStatus } from '@prisma/client';
+import { IngestionJobStatus, LeadStatus } from '@prisma/client';
 
 interface DealMachineRow {
   [key: string]: string; 
@@ -10,7 +10,7 @@ interface DealMachineRow {
 
 export class ImportService {
   
-  static async processDealMachineCsv(filePath: string, campaignId?: string) {
+  static async processDealMachineCsv(filePath: string, campaignId?: string, ingestionJobId?: string) {
     const results: DealMachineRow[] = [];
     
     // Stats for reporting back to UI
@@ -22,6 +22,8 @@ export class ImportService {
       landlinesFound: 0 
     };
 
+    const startedAt = Date.now();
+
     return new Promise((resolve, reject) => {
       fs.createReadStream(filePath)
         .pipe(csv())
@@ -29,19 +31,48 @@ export class ImportService {
         .on('end', async () => {
           console.log(`Starting Deep Trace on ${results.length} properties...`);
           
-          for (const row of results) {
-            try {
-              await this.processDeepTraceRow(row, campaignId, stats);
-            } catch (err) {
-              console.error(`Error processing row:`, err);
+          try {
+            for (const row of results) {
+              try {
+                await this.processDeepTraceRow(row, campaignId, stats);
+              } catch (err) {
+                console.error(`Error processing row:`, err);
+              }
             }
-          }
 
-          // Cleanup temp file
-          try { if (fs.existsSync(filePath)) fs.unlinkSync(filePath); } catch (e) {}
-          
-          console.log("Import Complete:", stats);
-          resolve({ success: true, stats });
+            if (ingestionJobId) {
+              await prisma.ingestionJob.update({
+                where: { id: ingestionJobId },
+                data: {
+                  status: IngestionJobStatus.SUCCESS,
+                  rowsProcessed: stats.rowsProcessed,
+                  contactsCreated: stats.contactsCreated,
+                  leadsCreated: stats.leadsCreated,
+                  finishedAt: new Date(),
+                  durationSeconds: Math.floor((Date.now() - startedAt) / 1000),
+                },
+              });
+            }
+
+            // Cleanup temp file
+            try { if (fs.existsSync(filePath)) fs.unlinkSync(filePath); } catch (e) {}
+            
+            console.log("Import Complete:", stats);
+            resolve({ success: true, stats });
+          } catch (error) {
+            if (ingestionJobId) {
+              await prisma.ingestionJob.update({
+                where: { id: ingestionJobId },
+                data: {
+                  status: IngestionJobStatus.FAILED,
+                  errorMessage: (error as Error).message,
+                  finishedAt: new Date(),
+                  durationSeconds: Math.floor((Date.now() - startedAt) / 1000),
+                },
+              });
+            }
+            reject(error);
+          }
         })
         .on('error', (err) => reject(err));
     });

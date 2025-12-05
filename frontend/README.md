@@ -30,3 +30,9 @@ This project is optimized for Vercel.
 4. Build & Install commands: use Vercel defaults (`npm install`, `next build`).
 
 Important: Run `npm run db:sync` from the repo root locally after any schema changes so `frontend/prisma/schema.prisma` is up to date before deploying.
+
+## 4. Data Plumbing & Hooks
+- `/app/api/leads`, `/api/agents`, `/api/campaigns`, `/api/automations`, and `/api/integrations` are Prisma-backed and return live Neon data.
+- React Query hooks (`useLeads`, `useAgents`, `useCampaigns`, `useAutomations`, `useIntegrations`, `useTelemetry`, `useTwilioStatus`) power pages so the UI updates automatically as ingestion scripts run.
+- Admin pages are client components that render loading/error states based on these hooks; no mock data remains in the Storefront.
+- When adding a new dashboard module, expose a typed API route first, export a `fetchX` helper from `lib/api.ts`, then wrap it in a `useX` hook for consistency.

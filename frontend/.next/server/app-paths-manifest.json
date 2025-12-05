@@ -1,5 +1,6 @@
 {
-  "/page": "app/page.js",
-  "/dashboard/page": "app/dashboard/page.js",
-  "/dashboard/queue/page": "app/dashboard/queue/page.js"
+  "/api/agents/route": "app/api/agents/route.js",
+  "/api/telemetry/ingestion/route": "app/api/telemetry/ingestion/route.js",
+  "/api/leads/route": "app/api/leads/route.js",
+  "/dashboard/page": "app/dashboard/page.js"
 }

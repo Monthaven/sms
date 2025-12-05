@@ -1,66 +1,87 @@
-"use client";
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { loginUser } from '@/lib/api';
+import LoginForm from "@/components/LoginForm";
+import { Activity, MessageSquare, Shield, Zap } from "lucide-react";
+
+const architecture = [
+  {
+    title: "The Engine",
+    description: "Local ts-node runners power ingestion + blasting without Vercel timeouts.",
+    icon: Activity,
+  },
+  {
+    title: "The Storefront",
+    description: "Always-on Next.js dashboard that catches inbound replies + routes agents.",
+    icon: MessageSquare,
+  },
+];
+
+const stats = [
+  { value: "500k+", label: "Rows per CSV ingest", sublabel: "Streamed locally via ts-node" },
+  { value: "24/7", label: "Cloud coverage", sublabel: "Neon pooled connection" },
+  { value: "10k+", label: "SMS / blast reach", sublabel: "EzTexting orchestrated" },
+];
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const router = useRouter();
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-
-    try {
-      const user = await loginUser(email);
-      if (user) {
-        // Save basic session (Local storage for V1)
-        localStorage.setItem('monthaven_user', JSON.stringify(user));
-        router.push('/dashboard');
-      }
-    } catch (err: any) {
-      console.error("Login error:", err);
-      if (err.code === 'ERR_NETWORK') {
-         setError('Cannot connect to backend. Is it running?');
-      } else if (err.response?.status === 404) {
-         setError('User not found. Please ask Admin to seed you.');
-      } else {
-         setError('Access Denied. Are you seeded in the DB?');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-100">
-      <div className="w-full max-w-md p-8 space-y-6 bg-white rounded shadow-md">
-        <h1 className="text-2xl font-bold text-center text-gray-900">Monthaven Command</h1>
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Agent Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-2 mt-1 border rounded-md text-black"
-              placeholder="agent@monthaven.com"
-              required
-              disabled={loading}
-            />
-          </div>
-          {error && <p className="text-red-500 text-sm">{error}</p>}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-blue-300"
-          >
-            {loading ? 'Connecting...' : 'Enter Command Center'}
-          </button>
-        </form>
+    <div className="relative mx-auto flex min-h-screen w-full max-w-6xl items-center px-6 py-16">
+      <div className="glass-panel w-full border border-white/10 bg-slate-900/40 px-8 py-12 shadow-2xl lg:px-12">
+        <div className="grid gap-12 lg:grid-cols-2">
+          <section className="space-y-8 text-slate-200">
+            <div className="space-y-4">
+              <span className="pill text-sky-200/80">MAE v3.0 · Hybrid Architecture</span>
+              <h1 className="text-4xl font-semibold leading-tight text-white lg:text-5xl">
+                Monthaven Acquisition <span className="text-gradient">Command Center</span>
+              </h1>
+              <p className="max-w-xl text-base text-slate-300">
+                Catch inbound SMS leads the second they hit Neon. The Engine handles heavy ingestion + blasting
+                locally while the Storefront keeps agents online with inbox, call queue, and live telemetry.
+              </p>
+            </div>
+
+            <div className="grid gap-5 md:grid-cols-2">
+              {architecture.map((item) => (
+                <div key={item.title} className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                  <item.icon className="mb-3 h-6 w-6 text-sky-300" />
+                  <p className="text-sm font-semibold text-white">{item.title}</p>
+                  <p className="mt-1 text-sm text-slate-400">{item.description}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-3">
+              {stats.map((stat) => (
+                <div key={stat.label} className="kpi-card">
+                  <p className="text-2xl font-semibold text-white">{stat.value}</p>
+                  <p className="text-sm text-slate-400">{stat.label}</p>
+                  <p className="mt-1 text-xs uppercase tracking-wide text-slate-500">{stat.sublabel}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="rounded-[1.75rem] border border-white/10 bg-white/5 p-10 text-white shadow-xl">
+            <div className="mb-8 space-y-3">
+              <div className="flex items-center gap-3 text-sm text-slate-300">
+                <Shield className="h-4 w-4 text-sky-300" />
+                Secured by Neon + EzTexting
+              </div>
+              <h2 className="text-3xl font-semibold">Authenticate</h2>
+              <p className="text-sm text-slate-400">Use your agent email to open the Monthaven Storefront.</p>
+            </div>
+
+            <LoginForm />
+
+            <div className="mt-10 rounded-2xl border border-white/10 bg-slate-900/60 p-5">
+              <div className="flex items-center gap-3 text-sm text-slate-400">
+                <Zap className="h-4 w-4 text-amber-300" />
+                <span>Real-time feed</span>
+              </div>
+              <p className="mt-2 text-sm text-slate-300">
+                Every inbound text hits <span className="font-semibold text-white">/api/webhooks/eztexting</span> on
+                Vercel. Leads sync into Neon and are surfaced instantly in your Inbox + Call Queue.
+              </p>
+            </div>
+          </section>
+        </div>
       </div>
     </div>
   );

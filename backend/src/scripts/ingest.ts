@@ -1,6 +1,6 @@
-import { ImportService } from '../services/importService';
-import { prisma } from '../db';
-import path from 'path';
+import path from "path";
+import { ImportService } from "../services/importService";
+import { prisma } from "../db";
 
 async function main() {
   const args = process.argv.slice(2);
@@ -13,15 +13,17 @@ async function main() {
   const campaignId = args[1];
   const filePath = path.resolve(process.cwd(), relativePath);
 
-  console.log(`\n🏭 ENGINE: Starting Ingestion...`);
-  console.log(`📄 Target: ${filePath}`);
-  if (campaignId) console.log(`🎯 Campaign: ${campaignId}`);
+  console.log("\nENGINE: Starting Ingestion...");
+  console.log(`Target: ${filePath}`);
+  if (campaignId) console.log(`Campaign: ${campaignId}`);
+
+  const jobStart = Date.now();
 
   try {
-    const result = await ImportService.processDealMachineCsv(filePath, campaignId);
-    console.log("\n✅ ENGINE: Job Complete.", result);
+    const result = await ImportService.processDealMachineCsv(filePath, campaignId, undefined);
+    console.log("\nENGINE: Job Complete.", result);
   } catch (error) {
-    console.error("\n❌ ENGINE: Critical Failure:", error);
+    console.error("\nENGINE: Critical Failure:", error);
   } finally {
     await prisma.$disconnect();
   }

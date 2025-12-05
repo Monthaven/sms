@@ -18,6 +18,7 @@ model User {
   // Relations
   assignedLeads Lead[]
   auditLogs     LeadAudit[]
+  ingestionJobs IngestionJob[] @relation("IngestionStartedBy")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -90,6 +91,7 @@ model Campaign {
 
   createdAt        DateTime @default(now())
   leads            Lead[]
+  ingestionJobs    IngestionJob[] @relation("CampaignIngestionJobs")
 }
 
 model Lead {
@@ -157,6 +159,34 @@ model Interaction {
   @@index([contactId])
 }
 
+model IngestionJob {
+  id              String              @id @default(cuid())
+  fileName        String
+  campaignId      String?
+  campaign        Campaign?           @relation("CampaignIngestionJobs", fields: [campaignId], references: [id])
+  status          IngestionJobStatus  @default(PENDING)
+  rowsProcessed   Int                 @default(0)
+  contactsCreated Int                 @default(0)
+  leadsCreated    Int                 @default(0)
+  startedById     String?
+  startedBy       User?               @relation("IngestionStartedBy", fields: [startedById], references: [id])
+  startedAt       DateTime            @default(now())
+  finishedAt      DateTime?
+  durationSeconds Int?
+  errorMessage    String?
+}
+
+model WebhookLog {
+  id           String     @id @default(cuid())
+  provider     String
+  direction    Direction
+  status       String
+  statusCode   Int?
+  payload      Json?
+  errorMessage String?
+  createdAt    DateTime   @default(now())
+}
+
 // --- ENUMS ---
 
 enum LeadStatus {
@@ -186,4 +216,11 @@ enum Channel {
 enum Direction {
   INBOUND
   OUTBOUND
+}
+
+enum IngestionJobStatus {
+  PENDING
+  RUNNING
+  SUCCESS
+  FAILED
 }
