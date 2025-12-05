@@ -1,6 +1,9 @@
 {
-  "/api/agents/route": "app/api/agents/route.js",
   "/api/telemetry/ingestion/route": "app/api/telemetry/ingestion/route.js",
+  "/api/agents/route": "app/api/agents/route.js",
   "/api/leads/route": "app/api/leads/route.js",
-  "/dashboard/page": "app/dashboard/page.js"
+  "/not-found": "app/not-found.js",
+  "/dashboard/queue/page": "app/dashboard/queue/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/dashboard/campaigns/page": "app/dashboard/campaigns/page.js"
 }

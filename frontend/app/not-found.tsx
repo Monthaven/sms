@@ -6,7 +6,9 @@ import { ArrowLeft, Compass, Home } from "lucide-react";
 export default function NotFound() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-6 text-center text-slate-100">
-      <p className="pill text-rose-200/80">404 · Signal Lost</p>
+      <p className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-3 py-1 text-[11px] uppercase tracking-[0.35em] text-rose-200/80">
+        404 · Signal Lost
+      </p>
       <h1 className="mt-4 text-4xl font-semibold text-white">We can’t find that route in the Storefront.</h1>
       <p className="mt-2 max-w-md text-sm text-slate-400">
         The Engine might not have synced this page yet. Accept a fallback below or jump back into the Command Center.

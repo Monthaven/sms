@@ -47,6 +47,10 @@ export async function POST(
   request: Request,
   { params }: { params: { id: string } }
 ) {
+  const delegate = db?.ingestionJob;
+  if (!delegate) {
+    return NextResponse.json({ error: "Ingestion delegate unavailable" }, { status: 500 });
+  }
   const job = await delegate.findUnique({
     where: { id: params.id },
   });

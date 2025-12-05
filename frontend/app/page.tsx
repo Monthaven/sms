@@ -27,7 +27,9 @@ export default function LoginPage() {
         <div className="grid gap-12 lg:grid-cols-2">
           <section className="space-y-8 text-slate-200">
             <div className="space-y-4">
-              <span className="pill text-sky-200/80">MAE v3.0 · Hybrid Architecture</span>
+              <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-3 py-1 text-[11px] uppercase tracking-[0.35em] text-sky-200/80">
+                MAE v3.0 · Hybrid Architecture
+              </span>
               <h1 className="text-4xl font-semibold leading-tight text-white lg:text-5xl">
                 Monthaven Acquisition <span className="text-gradient">Command Center</span>
               </h1>

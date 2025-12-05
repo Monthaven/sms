@@ -39,7 +39,9 @@ export default function AdminHome() {
     <div className="space-y-10 text-slate-100">
       <section className="glass-panel border border-white/10 p-8">
         <div className="flex flex-col gap-4">
-          <span className="pill text-amber-200/80">Admin Control Tower</span>
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] uppercase tracking-[0.35em] text-amber-200/80">
+            Admin Control Tower
+          </span>
           <div>
             <h1 className="text-4xl font-semibold text-white">Operations & Integrations</h1>
             <p className="mt-2 text-sm text-slate-400">

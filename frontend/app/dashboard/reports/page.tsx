@@ -7,6 +7,21 @@ import { useIngestionJobs, useWebhookLogs } from "@/lib/hooks/useTelemetry";
 import { useSearchParams } from "next/navigation";
 import { Activity, PhoneCall } from "lucide-react";
 
+type TrendPoint = {
+  label: string;
+  rows: number;
+  leads: number;
+  duration: number;
+};
+
+type WebhookStat = {
+  provider: string;
+  success: number;
+  failed: number;
+  total: number;
+  lastEvent?: string;
+};
+
 export default function ReportsPage() {
   const {
     data: jobs,
@@ -51,6 +66,61 @@ export default function ReportsPage() {
     ];
   }, [jobs]);
 
+  const trendData = useMemo<TrendPoint[]>(() => {
+    if (!jobs || jobs.length === 0) return [];
+    const latest = [...jobs]
+      .sort(
+        (a, b) =>
+          new Date(a.startedAt).getTime() - new Date(b.startedAt).getTime()
+      )
+      .slice(-8);
+    return latest.map((job) => ({
+      label: new Date(job.startedAt).toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+      }),
+      rows: job.rowsProcessed ?? 0,
+      leads: job.leadsCreated ?? 0,
+      duration: job.durationSeconds ?? 0,
+    }));
+  }, [jobs]);
+
+  const webhookStats = useMemo<WebhookStat[]>(() => {
+    if (!webhookLogs || webhookLogs.length === 0) return [];
+    const stats = new Map<string, WebhookStat>();
+    webhookLogs.forEach((log) => {
+      const key = log.provider ?? "Unknown";
+      if (!stats.has(key)) {
+        stats.set(key, {
+          provider: key,
+          success: 0,
+          failed: 0,
+          total: 0,
+          lastEvent: log.createdAt,
+        });
+      }
+      const target = stats.get(key)!;
+      const isSuccess =
+        typeof log.statusCode === "number" ? log.statusCode < 400 : false;
+      target.total += 1;
+      if (isSuccess) {
+        target.success += 1;
+      } else {
+        target.failed += 1;
+      }
+      if (
+        !target.lastEvent ||
+        new Date(log.createdAt).getTime() >
+          new Date(target.lastEvent).getTime()
+      ) {
+        target.lastEvent = log.createdAt;
+      }
+    });
+    return Array.from(stats.values()).sort(
+      (a, b) => (b.lastEvent ? new Date(b.lastEvent).getTime() : 0) - (a.lastEvent ? new Date(a.lastEvent).getTime() : 0)
+    );
+  }, [webhookLogs]);
+
   return (
     <div className="space-y-10 text-slate-100">
       <header>
@@ -77,6 +147,48 @@ export default function ReportsPage() {
           </div>
         ))}
       </div>
+
+      <section className="grid gap-4 lg:grid-cols-2">
+        <TrendCard
+          title="Rows processed per job"
+          subtitle="Last 8 ingestion runs"
+          metric={trendData.at(-1)?.rows}
+          trend={trendData}
+          dataKey="rows"
+          accent="sky"
+        />
+        <TrendCard
+          title="Leads created per job"
+          subtitle="Last 8 ingestion runs"
+          metric={trendData.at(-1)?.leads}
+          trend={trendData}
+          dataKey="leads"
+          accent="emerald"
+        />
+      </section>
+
+      <section className="glass-panel border border-white/10 p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
+              Webhook Health
+            </p>
+            <p className="text-sm text-slate-400">
+              Success vs failure counts per provider.
+            </p>
+          </div>
+        </div>
+        {webhookStats.length === 0 && (
+          <p className="mt-6 text-sm text-slate-500">
+            No webhook traffic logged yet.
+          </p>
+        )}
+        <div className="mt-6 space-y-4">
+          {webhookStats.map((stat) => (
+            <WebhookStatRow key={stat.provider} stat={stat} />
+          ))}
+        </div>
+      </section>
 
       <div className="glass-panel border border-white/10">
         <div className="flex items-center justify-between px-6 py-4">
@@ -235,6 +347,153 @@ export default function ReportsPage() {
           { label: "Admin Tower", href: "/dashboard/admin", icon: Activity },
         ]}
       />
+    </div>
+  );
+}
+
+type TrendCardProps = {
+  title: string;
+  subtitle: string;
+  metric?: number;
+  trend: TrendPoint[];
+  dataKey: "rows" | "leads" | "duration";
+  accent: "sky" | "emerald";
+};
+
+function TrendCard({
+  title,
+  subtitle,
+  metric,
+  trend,
+  dataKey,
+  accent,
+}: TrendCardProps) {
+  return (
+    <div className="glass-panel border border-white/10 p-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
+            {title}
+          </p>
+          <p className="text-sm text-slate-400">{subtitle}</p>
+        </div>
+        <p className="text-2xl font-semibold text-white">
+          {metric !== undefined ? metric.toLocaleString() : "--"}
+        </p>
+      </div>
+      <MiniTrendChart data={trend} dataKey={dataKey} accent={accent} />
+      <div className="mt-4 flex flex-wrap gap-3 text-xs text-slate-500">
+        {trend.map((point) => (
+          <span key={point.label}>
+            {point.label} ·{" "}
+            {Number(point[dataKey]).toLocaleString(undefined, {
+              maximumFractionDigits: 0,
+            })}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MiniTrendChart({
+  data,
+  dataKey,
+  accent,
+}: {
+  data: TrendPoint[];
+  dataKey: "rows" | "leads" | "duration";
+  accent: "sky" | "emerald";
+}) {
+  if (!data || data.length === 0) {
+    return (
+      <div className="mt-6 h-32 rounded-2xl border border-dashed border-white/10 text-center text-xs text-slate-500">
+        <span className="inline-block translate-y-12">
+          Waiting for ingestion dataƒ??
+        </span>
+      </div>
+    );
+  }
+  const values = data.map((point) => Number(point[dataKey]) || 0);
+  const max = Math.max(...values, 1);
+  const points = values.map((value, index) => {
+    const x =
+      data.length === 1 ? 0 : (index / (data.length - 1)) * 100;
+    const y = 100 - (value / max) * 100;
+    return `${x},${y}`;
+  });
+  const gradientId = `trend-${accent}`;
+  const strokeColor =
+    accent === "emerald" ? "rgba(52, 211, 153, 0.9)" : "rgba(56, 189, 248, 0.9)";
+  const fillColor =
+    accent === "emerald" ? "rgba(52, 211, 153, 0.15)" : "rgba(56, 189, 248, 0.15)";
+
+  return (
+    <svg className="mt-6 h-32 w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor={fillColor} />
+          <stop offset="100%" stopColor="rgba(15, 23, 42, 0.05)" />
+        </linearGradient>
+      </defs>
+      {points.length > 1 ? (
+        <>
+          <polygon
+            points={`0,100 ${points.join(" ")} 100,100`}
+            fill={`url(#${gradientId})`}
+          />
+          <polyline
+            points={points.join(" ")}
+            fill="none"
+            stroke={strokeColor}
+            strokeWidth="1.8"
+            strokeLinecap="round"
+          />
+        </>
+      ) : (
+        <line
+          x1="0"
+          y1={points[0]?.split(",")[1] ?? 100}
+          x2="100"
+          y2={points[0]?.split(",")[1] ?? 100}
+          stroke={strokeColor}
+          strokeWidth="1.8"
+        />
+      )}
+    </svg>
+  );
+}
+
+function WebhookStatRow({ stat }: { stat: WebhookStat }) {
+  const successRatio = stat.total
+    ? Math.round((stat.success / stat.total) * 100)
+    : 0;
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+      <div className="flex items-center justify-between text-sm">
+        <div>
+          <p className="font-semibold text-white">{stat.provider}</p>
+          <p className="text-xs text-slate-500">
+            Last event{" "}
+            {stat.lastEvent
+              ? new Date(stat.lastEvent).toLocaleString()
+              : "N/A"}
+          </p>
+        </div>
+        <div className="text-right text-xs text-slate-400">
+          <div>Success {stat.success.toLocaleString()}</div>
+          <div>Failed {stat.failed.toLocaleString()}</div>
+        </div>
+      </div>
+      <div className="mt-3 h-2 rounded-full bg-slate-800">
+        <div
+          className="h-full rounded-full bg-emerald-400 transition-[width]"
+          style={{ width: `${successRatio}%` }}
+        />
+      </div>
+      <div className="mt-2 text-xs text-slate-500">
+        {successRatio}% success rate across {stat.total.toLocaleString()} events
+      </div>
     </div>
   );
 }

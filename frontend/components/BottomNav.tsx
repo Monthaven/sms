@@ -1,83 +1,47 @@
 "use client";
 
-import { PRIMARY_NAV } from "@/lib/navigation";
-import clsx from "clsx";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import {
+  LayoutDashboard,
+  ListTodo,
+  MessageSquare,
+  Megaphone,
+} from "lucide-react";
 
 export default function BottomNav() {
   const pathname = usePathname();
-  const meta = resolveFooterMeta(pathname);
-  const refreshedAt = new Date().toLocaleTimeString();
+
+  const items = [
+    { id: "/dashboard", icon: LayoutDashboard, label: "Dash" },
+    { id: "/dashboard/queue", icon: ListTodo, label: "Queue" },
+    { id: "/dashboard/chat", icon: MessageSquare, label: "Inbox" },
+    { id: "/dashboard/campaigns", icon: Megaphone, label: "Cmpgn" },
+  ];
+
+  const isActive = (path: string) => {
+    if (path === "/dashboard" && pathname === "/dashboard") return true;
+    if (path !== "/dashboard" && pathname?.startsWith(path)) return true;
+    return false;
+  };
 
   return (
-    <nav className="footer-pill">
-      <div className="footer-pill-content">
-        <div className="footer-pill-meta">
-          <span className="text-white">
-            {meta.scope} • {meta.channel}
-          </span>
-          <span>{meta.dataset}</span>
-          <span>{meta.status}</span>
-          <span>Refreshed {refreshedAt}</span>
-        </div>
-        <div className="footer-pill-nav text-xs">
-          {PRIMARY_NAV.map((item) => {
-            const active =
-              pathname === item.href ||
-              (item.href !== "/dashboard" && pathname.startsWith(item.href));
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={clsx(
-                  active
-                    ? "border border-sky-400/40 bg-sky-500/10 text-white"
-                    : "border border-transparent text-slate-400 hover:border-white/20 hover:text-white"
-                )}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
-        </div>
-      </div>
-    </nav>
-  );
-}
-
-const FOOTER_META = [
-  {
-    matcher: (path: string) => path.startsWith("/dashboard/admin"),
-    scope: "Admin Tower",
-    channel: "Ops Suite",
-    dataset: "Neon · Campaigns & Agents",
-    status: "Storefront · Vercel pooled connection",
-  },
-  {
-    matcher: (path: string) => path.startsWith("/dashboard/queue"),
-    scope: "Queue Control",
-    channel: "Voice + SMS handoffs",
-    dataset: "Leads via Neon · status=QUEUED*",
-    status: "Dialer ready",
-  },
-  {
-    matcher: (path: string) => path.startsWith("/dashboard/reports"),
-    scope: "Telemetry",
-    channel: "Ingestion + Webhooks",
-    dataset: "IngestionJob · WebhookLog · Interaction",
-    status: "Metabase + Storefront sync",
-  },
-];
-
-function resolveFooterMeta(pathname: string) {
-  const match = FOOTER_META.find((meta) => meta.matcher(pathname));
-  return (
-    match ?? {
-      scope: "Live Inbox",
-      channel: "MAE Command Center",
-      dataset: "Leads + Contacts via Neon pooled connection",
-      status: "Listening for replies",
-    }
+    <div className="md:hidden fixed bottom-0 left-0 right-0 flex h-16 items-center justify-around border-t border-gray-800 bg-[#151B2D] px-2 pb-safe shadow-2xl">
+      {items.map((item) => {
+        const active = isActive(item.id);
+        return (
+          <Link
+            key={item.id}
+            href={item.id}
+            className={`flex h-full w-full flex-col items-center justify-center space-y-1 ${
+              active ? "text-indigo-400" : "text-gray-500"
+            }`}
+          >
+            <item.icon size={20} strokeWidth={active ? 2.5 : 2} />
+            <span className="text-[10px] font-medium">{item.label}</span>
+          </Link>
+        );
+      })}
+    </div>
   );
 }

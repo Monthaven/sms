@@ -1,36 +1,25 @@
 import BottomNav from "@/components/BottomNav";
-import NotificationsPanel from "@/components/NotificationsPanel";
 import Sidebar from "@/components/Sidebar";
 import TopBar from "@/components/TopBar";
-import { getCurrentUser } from "@/lib/auth";
+import { THEME } from "@/lib/theme";
 
-export default async function DashboardLayout({
+export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const currentUser = await getCurrentUser();
-
-  const navUser = {
-    name: currentUser?.name ?? currentUser?.email ?? "Agent",
-    role: currentUser?.role ?? "AGENT",
-    email: currentUser?.email ?? undefined,
-  };
-
   return (
-    <div className="layout-shell text-slate-100">
-      <div className="mae-grid" aria-hidden />
-      <Sidebar currentUser={navUser} />
-      <main className="command-surface">
-        <div className="command-inner pb-32">
-          <TopBar currentUser={navUser} />
-          <div className="command-columns">
-            <div className="min-w-0">{children}</div>
-            <NotificationsPanel />
-          </div>
-        </div>
-        <BottomNav />
-      </main>
+    <div
+      className={`flex min-h-screen ${THEME.bg} font-sans text-gray-100 selection:bg-indigo-500/30 selection:text-indigo-200 overflow-hidden`}
+    >
+      <div className="hidden md:block shadow-2xl">
+        <Sidebar />
+      </div>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <TopBar />
+        <main className="flex-1 overflow-y-auto scroll-smooth">{children}</main>
+      </div>
+      <BottomNav />
     </div>
   );
 }

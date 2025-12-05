@@ -29,6 +29,29 @@ export default async function ChatThread({
   const displayName =
     `${lead.contact.firstName ?? ""} ${lead.contact.lastName ?? ""}`.trim() || lead.contact.phoneE164;
 
+  const macroTemplates = [
+    {
+      id: "confirm",
+      label: "Confirm property",
+      body: `Hi ${lead.contact.firstName ?? "there"}, thanks for the quick response. I wanted to confirm we're talking about ${lead.property?.addressLine1 ?? "your property"} — are you open to reviewing an offer if it looks good?`,
+      description: "Friendly confirmation + open-ended question",
+    },
+    {
+      id: "schedule",
+      label: "Schedule call",
+      body: "I can have our acquisitions partner call you later today or tomorrow morning to go over condition and price. Does a quick 15 minute call work?",
+    },
+    {
+      id: "handoff",
+      label: "Handoff to closer",
+      body: "I'm looping in our closer now so we can finalize numbers. Expect an introduction text shortly—appreciate your time.",
+    },
+  ];
+
+  const groupedInteractions = groupInteractions(
+    interactions as InteractionEntry[]
+  );
+
   return (
     <div className="space-y-8 text-slate-100">
       <Link
@@ -111,31 +134,47 @@ export default async function ChatThread({
                 No interaction logs yet. Once EzTexting hits the webhook, replies render here chronologically.
               </div>
             )}
-            {interactions.map((interaction) => (
-              <article
-                key={interaction.id}
-                className={`rounded-2xl border p-4 ${
-                  interaction.direction === "INBOUND"
-                    ? "border-emerald-400/40 bg-emerald-400/5"
-                    : "border-sky-400/30 bg-sky-400/5"
-                }`}
-              >
-                <div className="flex items-center justify-between text-xs text-slate-300">
-                  <span className="font-semibold uppercase tracking-[0.4em] text-slate-500">
-                    {interaction.direction}
-                  </span>
-                  <span>
-                    {new Date(interaction.createdAt).toLocaleString()}
-                  </span>
+            {groupedInteractions.map((group) => (
+              <div key={group.label} className="space-y-3">
+                <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.4em] text-slate-500">
+                  <span className="h-px flex-1 bg-white/10" />
+                  {group.label}
+                  <span className="h-px flex-1 bg-white/10" />
                 </div>
-                <p className="mt-3 text-sm text-white">{interaction.body}</p>
-              </article>
+                <div className="space-y-4">
+                  {group.items.map((interaction) => (
+                    <article
+                      key={interaction.id}
+                      className={`rounded-2xl border p-4 ${
+                        interaction.direction === "INBOUND"
+                          ? "border-emerald-400/40 bg-emerald-400/5"
+                          : "border-sky-400/30 bg-sky-400/5"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between text-xs text-slate-300">
+                        <span className="font-semibold uppercase tracking-[0.4em] text-slate-500">
+                          {interaction.direction}
+                        </span>
+                        <span>
+                          {new Date(interaction.createdAt).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </div>
+                      <p className="mt-3 text-sm text-white">
+                        {interaction.body}
+                      </p>
+                    </article>
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         </div>
 
         <div className="glass-panel border border-white/10 p-6">
-          <ReplyComposer leadId={lead.id} />
+          <ReplyComposer leadId={lead.id} macros={macroTemplates} />
         </div>
       </section>
 
@@ -150,4 +189,29 @@ export default async function ChatThread({
       />
     </div>
   );
+}
+
+type LeadDetail = Awaited<ReturnType<typeof getLeadDetails>>;
+type InteractionEntry =
+  NonNullable<LeadDetail>["interactions"][number];
+
+function groupInteractions(interactions: InteractionEntry[]) {
+  const sorted = [...interactions].sort(
+    (a, b) =>
+      new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+  );
+  const groups: { label: string; items: typeof sorted }[] = [];
+  sorted.forEach((interaction) => {
+    const dateLabel = new Date(interaction.createdAt).toLocaleDateString(
+      undefined,
+      { weekday: "long", month: "short", day: "numeric" }
+    );
+    const existing = groups.find((group) => group.label === dateLabel);
+    if (existing) {
+      existing.items.push(interaction);
+    } else {
+      groups.push({ label: dateLabel, items: [interaction] });
+    }
+  });
+  return groups;
 }

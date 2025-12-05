@@ -47,7 +47,9 @@ export default function QueuePage() {
     <div className="space-y-8 text-slate-100">
       <section className="glass-panel border border-white/10 p-8">
         <div className="flex flex-col gap-4">
-          <span className="pill text-green-200/70">Live Call Queue</span>
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] uppercase tracking-[0.35em] text-green-200/70">
+            Live Call Queue
+          </span>
           <div>
             <h1 className="text-3xl font-semibold text-white">Phone-ready Sellers</h1>
             <p className="mt-2 max-w-3xl text-sm text-slate-400">

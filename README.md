@@ -8,6 +8,19 @@ The Monthaven Acquisition Engine (MAE) is a hybrid real estate acquisition platf
 * **The Problem:** Large CSV imports and SMS blasts (10k+ records) cause timeouts on serverless platforms like Vercel/AWS Lambda.
 * **The Solution:** We run "The Engine" locally to handle heavy lifting without time limits, while "The Storefront" (UI) lives on the cloud to catch leads 24/7.
 
+---
+
+## Implementation Snapshot & Doc Map
+
+MAE is now in its v3 architecture: the Engine (local `/backend` scripts) ingests CSVs and orchestrates EzTexting blasts, while the Storefront (`/frontend` Next.js 14 app) is the 24/7 CRM surface showing inbox, queue, admin modules, and telemetry off of Neon Postgres. Both halves already share a common Prisma schema, Tailwind-based design system, and React Query hooks, but admin tables, Twilio wiring, and telemetry visualizations still need to transition from mocks to real Prisma APIs per the roadmap in section 7.
+
+Use these focused manuals as the sources of truth for each surface:
+
+- [`/backend/README.md`](backend/README.md) – Operator playbook for running ingest/blast scripts, managing Prisma migrations, and keeping Neon authoritative (includes the “Standard Database Workflow”).
+- [`/frontend/README.md`](frontend/README.md) – Storefront/UX guide covering environment setup, data plumbing expectations, and how hooks/API routes map to Prisma models. Pair it with `frontend/docs/ui-ux-plan.md` for the detailed dashboard/queue/admin polish plan.
+
+If you are joining the project midstream, read this root README for the big-picture architecture, then dive into the respective README before touching Engine scripts or Storefront UI. The “Storefront Upgrade Roadmap” below matches the plan captured in the recent implementation brief (Navigation polish, auth hardening, Twilio integration, telemetry, etc.).
+
 ## 2. System Architecture
 
 ### A. The Brain (Database)

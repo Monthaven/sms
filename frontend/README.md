@@ -36,3 +36,15 @@ Important: Run `npm run db:sync` from the repo root locally after any schema cha
 - React Query hooks (`useLeads`, `useAgents`, `useCampaigns`, `useAutomations`, `useIntegrations`, `useTelemetry`, `useTwilioStatus`) power pages so the UI updates automatically as ingestion scripts run.
 - Admin pages are client components that render loading/error states based on these hooks; no mock data remains in the Storefront.
 - When adding a new dashboard module, expose a typed API route first, export a `fetchX` helper from `lib/api.ts`, then wrap it in a `useX` hook for consistency.
+
+## 5. UX & Navigation Plan
+- The design language (dark “command center” palette, glass panels, footer pill) is defined in `app/globals.css`. Components should either reuse those classes or consume Tailwind utilities that reference the `mae` color tokens.
+- Navigation is a two-layer system: primary nav (Command ▸ Queue ▸ Admin ▸ Reports) in `TopBar`/`BottomNav`, and contextual pill nav derived from `lib/navigation.ts`. Keep breadcrumbs and footer pill metadata in sync with any new route.
+- Upcoming work (mirrors the root README roadmap):
+  1. **Data plumbing:** ensure `/api/{leads,campaigns,agents,automations,integrations}` proxy Neon via Prisma—no mocks in production.
+  2. **Auth & role gating:** middleware must redirect anonymous users; admin routes require `User.role === ADMIN`.
+  3. **Twilio integration:** once credentials exist, wire `/api/webhooks/twilio`, outbound messaging actions, and Integrations UI health states.
+  4. **Telemetry:** Reports page should display live ingestion jobs and webhook logs; NotificationsPanel pulls from `/api/telemetry/*`.
+  5. **Navigation polish:** top bar + bottom pill must follow the “cutting-edge CRM” spec (breadcrumbs, CTA pills, notifications rail).
+
+For detailed mockups/tasks see [`docs/ui-ux-plan.md`](docs/ui-ux-plan.md). Coordinate any schema or API changes with `/backend/README.md` and the root README “Storefront Upgrade Roadmap.”
