@@ -1,3 +1,12 @@
+export const MAE = {
+  background: '#0B0F19',
+  surface: '#0B1320',
+  accent: '#4f46e5',
+  border: '#2A3449',
+  text: '#E6EEF8',
+};
+
+export default MAE;
 export const THEME = {
   bg: "bg-[#0B0F19]",
   surface: "bg-[#151B2D]",

@@ -122,39 +122,45 @@ export async function updateLeadStatus(
   leadId: string,
   newStatus: LeadStatus,
   options?: LeadStatusOptions
-) {
-  const user = options?.assignToCurrent ? await getCurrentUser() : null;
+): Promise<{ success?: boolean; error?: string }> {
+  try {
+    const user = options?.assignToCurrent ? await getCurrentUser() : null;
 
-  const updateData: Prisma.LeadUpdateInput = {
-    status: newStatus,
-  };
+    const updateData: Prisma.LeadUpdateInput = {
+      status: newStatus,
+    };
 
-  if (options?.assignToCurrent) {
-    if (!user) {
-      throw new Error("Unable to assign lead without an authenticated user.");
+    if (options?.assignToCurrent) {
+      if (!user) {
+        return { error: "Authentication required to assign lead." };
+      }
+      updateData.assignedTo = { connect: { id: user.id } };
+    } else if (options?.assignTo) {
+      updateData.assignedTo = { connect: { id: options.assignTo } };
+    } else if (options?.assignTo === null) {
+      updateData.assignedTo = { disconnect: true };
     }
-    updateData.assignedTo = { connect: { id: user.id } };
-  } else if (options?.assignTo) {
-    updateData.assignedTo = { connect: { id: options.assignTo } };
-  } else if (options?.assignTo === null) {
-    updateData.assignedTo = { disconnect: true };
+
+    await prisma.lead.update({
+      where: { id: leadId },
+      data: updateData,
+    });
+
+    await prisma.leadAudit.create({
+      data: {
+        leadId,
+        userId: user?.id ?? null,
+        action: "STATUS_CHANGE",
+        details: buildAuditDetails(newStatus, options),
+      },
+    });
+
+    revalidateLeadViews(leadId);
+    return { success: true };
+  } catch (err: any) {
+    console.warn("updateLeadStatus failed:", err);
+    return { error: err?.message ?? String(err) };
   }
-
-  await prisma.lead.update({
-    where: { id: leadId },
-    data: updateData,
-  });
-
-  await prisma.leadAudit.create({
-    data: {
-      leadId,
-      userId: user?.id ?? null,
-      action: "STATUS_CHANGE",
-      details: buildAuditDetails(newStatus, options),
-    },
-  });
-
-  revalidateLeadViews(leadId);
 }
 
 type AssignmentOptions = {
@@ -166,49 +172,55 @@ export async function assignLeadAction(
   leadId: string,
   agentId: string,
   options?: AssignmentOptions
-) {
-  const actingUser = await getCurrentUser();
+): Promise<{ success?: boolean; error?: string }> {
+  try {
+    const actingUser = await getCurrentUser();
 
-  const lead = await prisma.lead.findUnique({
-    where: { id: leadId },
-    select: { notes: true },
-  });
+    const lead = await prisma.lead.findUnique({
+      where: { id: leadId },
+      select: { notes: true },
+    });
 
-  let updatedNotes = lead?.notes ?? null;
-  if (options?.note) {
-    updatedNotes = [lead?.notes, options.note].filter(Boolean).join("\n");
+    let updatedNotes = lead?.notes ?? null;
+    if (options?.note) {
+      updatedNotes = [lead?.notes, options.note].filter(Boolean).join("\n");
+    }
+
+    await prisma.lead.update({
+      where: { id: leadId },
+      data: {
+        assignedTo: { connect: { id: agentId } },
+        ...(options?.note ? { notes: updatedNotes } : {}),
+      },
+    });
+
+    const slaNote = options?.slaMinutes
+      ? `SLA: ${options.slaMinutes}m (due ${new Date(
+          Date.now() + options.slaMinutes * 60 * 1000
+        ).toISOString()})`
+      : null;
+
+    await prisma.leadAudit.create({
+      data: {
+        leadId,
+        userId: actingUser?.id ?? null,
+        action: "ASSIGNED",
+        details: [
+          `Assigned to ${agentId}`,
+          options?.note ? `Note: ${options.note}` : null,
+          slaNote,
+        ]
+          .filter(Boolean)
+          .join(" | "),
+      },
+    });
+
+    revalidateLeadViews(leadId);
+    return { success: true };
+  } catch (err: any) {
+    console.warn("assignLeadAction failed:", err);
+    return { error: err?.message ?? String(err) };
   }
-
-  await prisma.lead.update({
-    where: { id: leadId },
-    data: {
-      assignedTo: { connect: { id: agentId } },
-      ...(options?.note ? { notes: updatedNotes } : {}),
-    },
-  });
-
-  const slaNote = options?.slaMinutes
-    ? `SLA: ${options.slaMinutes}m (due ${new Date(
-        Date.now() + options.slaMinutes * 60 * 1000
-      ).toISOString()})`
-    : null;
-
-  await prisma.leadAudit.create({
-    data: {
-      leadId,
-      userId: actingUser?.id ?? null,
-      action: "ASSIGNED",
-      details: [
-        `Assigned to ${agentId}`,
-        options?.note ? `Note: ${options.note}` : null,
-        slaNote,
-      ]
-        .filter(Boolean)
-        .join(" | "),
-    },
-  });
-
-  revalidateLeadViews(leadId);
 }
 
 type CallOutcomeInput = {
@@ -222,35 +234,41 @@ export async function logCallOutcomeAction(
   leadId: string,
   payload: CallOutcomeInput
 ) {
-  const actingUser = await getCurrentUser();
-  const calledAt = payload.calledAt
-    ? new Date(payload.calledAt)
-    : new Date();
+  try {
+    const actingUser = await getCurrentUser();
+    const calledAt = payload.calledAt
+      ? new Date(payload.calledAt)
+      : new Date();
 
-  await prisma.lead.update({
-    where: { id: leadId },
-    data: {
-      ...(payload.status ? { status: payload.status } : {}),
-    },
-  });
+    await prisma.lead.update({
+      where: { id: leadId },
+      data: {
+        ...(payload.status ? { status: payload.status } : {}),
+      },
+    });
 
-  await prisma.leadAudit.create({
-    data: {
-      leadId,
-      userId: actingUser?.id ?? null,
-      action: "CALL_LOG",
-      details: [
-        `Outcome: ${payload.outcome}`,
-        payload.note ? `Notes: ${payload.note}` : null,
-        `Called at: ${calledAt.toISOString()}`,
-        payload.status ? `Status set to ${payload.status}` : null,
-      ]
-        .filter(Boolean)
-        .join(" | "),
-    },
-  });
+    await prisma.leadAudit.create({
+      data: {
+        leadId,
+        userId: actingUser?.id ?? null,
+        action: "CALL_LOG",
+        details: [
+          `Outcome: ${payload.outcome}`,
+          payload.note ? `Notes: ${payload.note}` : null,
+          `Called at: ${calledAt.toISOString()}`,
+          payload.status ? `Status set to ${payload.status}` : null,
+        ]
+          .filter(Boolean)
+          .join(" | "),
+      },
+    });
 
-  revalidateLeadViews(leadId);
+    revalidateLeadViews(leadId);
+    return { success: true } as { success: boolean };
+  } catch (err: any) {
+    console.warn("logCallOutcomeAction failed:", err);
+    return { error: err?.message ?? String(err) };
+  }
 }
 
 function revalidateLeadViews(leadId: string) {

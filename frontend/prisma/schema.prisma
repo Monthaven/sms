@@ -18,6 +18,7 @@ model User {
   // Relations
   assignedLeads Lead[]
   auditLogs     LeadAudit[]
+  ingestionJobs IngestionJob[] @relation("IngestionStartedBy")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -90,6 +91,7 @@ model Campaign {
 
   createdAt        DateTime @default(now())
   leads            Lead[]
+  ingestionJobs    IngestionJob[] @relation("CampaignIngestionJobs")
 }
 
 model Lead {
@@ -161,13 +163,13 @@ model IngestionJob {
   id              String              @id @default(cuid())
   fileName        String
   campaignId      String?
-  campaign        Campaign?           @relation(fields: [campaignId], references: [id])
+  campaign        Campaign?           @relation("CampaignIngestionJobs", fields: [campaignId], references: [id])
   status          IngestionJobStatus  @default(PENDING)
   rowsProcessed   Int                 @default(0)
   contactsCreated Int                 @default(0)
   leadsCreated    Int                 @default(0)
   startedById     String?
-  startedBy       User?               @relation(fields: [startedById], references: [id])
+  startedBy       User?               @relation("IngestionStartedBy", fields: [startedById], references: [id])
   startedAt       DateTime            @default(now())
   finishedAt      DateTime?
   durationSeconds Int?

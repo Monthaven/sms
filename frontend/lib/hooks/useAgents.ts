@@ -12,11 +12,17 @@ export type AgentPresence = {
 };
 
 async function fetchAgents(): Promise<AgentPresence[]> {
-  const res = await fetch("/api/agents");
-  if (!res.ok) {
-    throw new Error("Unable to load agents");
+  try {
+    const res = await fetch("/api/agents");
+    if (!res.ok) {
+      console.warn("fetchAgents non-ok response:", res.status);
+      return [];
+    }
+    return (await res.json()) as AgentPresence[];
+  } catch (err) {
+    console.warn("fetchAgents failed:", err);
+    return [];
   }
-  return res.json();
 }
 
 export function useAgents() {

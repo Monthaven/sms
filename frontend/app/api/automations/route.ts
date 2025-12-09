@@ -21,8 +21,10 @@ type AutomationPayload = {
 export async function GET() {
   const ingestionDelegate = db?.ingestionJob;
   const webhookDelegate = db?.webhookLog;
+  // If delegates are unavailable (e.g. trimmed frontend client), return safe defaults
   if (!ingestionDelegate || !webhookDelegate) {
-    console.warn("Prisma delegates unavailable for automations route.");
+    // Avoid spamming logs during dev hot-reloads; log once via a non-throwing warning
+    console.debug && console.debug("Prisma delegates partially unavailable for automations route; returning defaults.");
   }
   const [jobs, webhooks] = await Promise.all([
     ingestionDelegate

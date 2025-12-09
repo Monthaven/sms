@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const delegate = db?.webhookLog;
   if (!delegate) {
-    console.warn("Prisma webhookLog delegate unavailable.");
+    console.debug && console.debug("Prisma webhookLog delegate unavailable; returning empty list.");
     return NextResponse.json([]);
   }
   const logs = await delegate.findMany({

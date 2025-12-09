@@ -28,15 +28,31 @@ export type WebhookLog = {
 };
 
 async function fetchIngestionJobs(): Promise<IngestionJob[]> {
-  const res = await fetch("/api/telemetry/ingestion");
-  if (!res.ok) throw new Error("Unable to load ingestion jobs");
-  return res.json();
+  try {
+    const res = await fetch("/api/telemetry/ingestion");
+    if (!res.ok) {
+      console.warn("fetchIngestionJobs non-ok response:", res.status);
+      return [];
+    }
+    return (await res.json()) as IngestionJob[];
+  } catch (err) {
+    console.warn("fetchIngestionJobs failed:", err);
+    return [];
+  }
 }
 
 async function fetchWebhookLogs(): Promise<WebhookLog[]> {
-  const res = await fetch("/api/telemetry/webhooks");
-  if (!res.ok) throw new Error("Unable to load webhook logs");
-  return res.json();
+  try {
+    const res = await fetch("/api/telemetry/webhooks");
+    if (!res.ok) {
+      console.warn("fetchWebhookLogs non-ok response:", res.status);
+      return [];
+    }
+    return (await res.json()) as WebhookLog[];
+  } catch (err) {
+    console.warn("fetchWebhookLogs failed:", err);
+    return [];
+  }
 }
 
 export function useIngestionJobs() {

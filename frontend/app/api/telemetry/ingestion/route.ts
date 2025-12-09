@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const delegate = db?.ingestionJob;
   if (!delegate) {
-    console.warn("Prisma ingestionJob delegate unavailable.");
+    console.debug && console.debug("Prisma ingestionJob delegate unavailable; returning empty list.");
     return NextResponse.json([]);
   }
   const jobs = await delegate.findMany({

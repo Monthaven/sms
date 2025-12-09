@@ -38,8 +38,13 @@ export const fetchLeads = async (statuses?: string | string[]) => {
     statusParam = statuses;
   }
   const params = statusParam ? { status: statusParam } : {};
-  const { data } = await api.get<Lead[]>("/leads", { params });
-  return data;
+  try {
+    const { data } = await api.get<Lead[]>("/leads", { params });
+    return data;
+  } catch (err) {
+    console.warn("fetchLeads failed:", err);
+    return [] as Lead[];
+  }
 };
 
 export const loginUser = async (email: string) => {
@@ -61,8 +66,13 @@ export interface CampaignSummary {
 }
 
 export const fetchCampaigns = async (): Promise<CampaignSummary[]> => {
-  const { data } = await api.get<CampaignSummary[]>("/campaigns");
-  return data;
+  try {
+    const { data } = await api.get<CampaignSummary[]>("/campaigns");
+    return data;
+  } catch (err) {
+    console.warn("fetchCampaigns failed:", err);
+    return [] as CampaignSummary[];
+  }
 };
 
 export interface AutomationRow {
@@ -75,8 +85,13 @@ export interface AutomationRow {
 }
 
 export const fetchAutomations = async (): Promise<AutomationRow[]> => {
-  const { data } = await api.get<AutomationRow[]>("/automations");
-  return data;
+  try {
+    const { data } = await api.get<AutomationRow[]>("/automations");
+    return data;
+  } catch (err) {
+    console.warn("fetchAutomations failed:", err);
+    return [] as AutomationRow[];
+  }
 };
 
 export interface IntegrationStatus {
@@ -88,6 +103,11 @@ export interface IntegrationStatus {
 }
 
 export const fetchIntegrations = async (): Promise<IntegrationStatus[]> => {
-  const { data } = await api.get<IntegrationStatus[]>("/integrations");
-  return data;
+  try {
+    const { data } = await api.get<IntegrationStatus[]>("/integrations");
+    return data;
+  } catch (err) {
+    console.warn("fetchIntegrations failed:", err);
+    return [] as IntegrationStatus[];
+  }
 };

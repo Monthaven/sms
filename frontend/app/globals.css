@@ -1,21 +1,22 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Removed Tailwind directives for plain CSS compatibility */
+/* If using Tailwind, ensure your build tool processes these directives */
 
 :root {
   --foreground-rgb: 255, 255, 255;
-  --background-start-rgb: 11, 15, 25;
-  --background-end-rgb: 11, 15, 25;
+  --mae-bg: #0B0F19; /* Midnight background */
+  --mae-surface: #0B1320;
+  --mae-accent: #4f46e5;
+}
+
+html, body, #__next {
+  height: 100%;
 }
 
 body {
   color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+  background-color: var(--mae-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 @layer components {
@@ -39,102 +40,255 @@ body {
   }
 
   .glass-panel {
-    @apply rounded-3xl border border-[#2A3449] bg-[#151B2D]/90 p-6 text-gray-200 shadow-[0_25px_80px_rgba(2,4,12,0.65)];
+    border-radius: 1.5rem; /* rounded-3xl */
+    border: 1px solid #2A3449;
+    background-color: rgba(21, 27, 45, 0.9); /* bg-[#151B2D]/90 */
+    padding: 1.5rem; /* p-6 */
+    color: #e5e7eb; /* text-gray-200 */
+    box-shadow: 0 25px 80px rgba(2, 4, 12, 0.65);
+    -webkit-backdrop-filter: blur(28px);
     backdrop-filter: blur(28px);
   }
 
   .kpi-card {
-    @apply rounded-2xl border border-[#2A3449]/80 bg-gradient-to-br from-[#151B2D] to-[#0B0F19] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.45)];
+    border-radius: 1rem; /* rounded-2xl */
+    border: 1px solid rgba(42, 52, 73, 0.8); /* border-[#2A3449]/80 */
+    background-image: linear-gradient(to bottom right, #151B2D, #0B0F19); /* bg-gradient-to-br from-[#151B2D] to-[#0B0F19] */
+    padding: 1.25rem; /* p-5 */
+    box-shadow: 0 18px 45px rgba(0,0,0,0.45); /* shadow-[0_18px_45px_rgba(0,0,0,0.45)] */
   }
 
   .pill {
-    @apply inline-flex items-center gap-2 rounded-full border border-[#2A3449] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.35em] text-gray-400 transition-colors;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: 9999px;
+    border: 1px solid #2A3449;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.35em;
+    color: #9ca3af;
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+    transition-duration: 150ms;
   }
 
   .mae-button {
-    @apply inline-flex items-center gap-2 rounded-full border border-[#2A3449] px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.3em] text-gray-300 transition-colors;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: 9999px;
+    border: 1px solid #2A3449;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    padding-top: 0.375rem;
+    padding-bottom: 0.375rem;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3em;
+    color: #d1d5db; /* text-gray-300 */
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+    transition-duration: 150ms;
   }
 
   .mae-button.primary {
-    @apply border-indigo-500 bg-gradient-to-r from-indigo-500 to-violet-600 text-white shadow-[0_15px_35px_rgba(79,70,229,0.35)];
+    border: 1px solid #6366f1; /* border-indigo-500 */
+    background: linear-gradient(to right, #6366f1, #7c3aed); /* bg-gradient-to-r from-indigo-500 to-violet-600 */
+    color: #fff; /* text-white */
+    box-shadow: 0 15px 35px rgba(79,70,229,0.35); /* shadow */
   }
 
   .mae-button.ghost {
-    @apply border-[#2A3449] bg-transparent text-gray-300 hover:bg-[#1E2538] hover:text-white;
+    border: 1px solid #2A3449;
+    background: transparent;
+    color: #d1d5db;
+    transition: background 0.15s, color 0.15s;
+  }
+  .mae-button.ghost:hover {
+    background: #1E2538;
+    color: #fff;
   }
 
   .status-grid {
-    @apply grid gap-3 md:grid-cols-3;
+    display: grid;
+    gap: 0.75rem; /* gap-3 */
+  }
+  @media (min-width: 768px) {
+    .status-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
   }
 
   .status-card {
-    @apply rounded-2xl border border-[#2A3449]/90 bg-[#151B2D] p-4 shadow-lg;
+    border-radius: 1rem; /* rounded-2xl */
+    border: 1px solid rgba(42, 52, 73, 0.9);
+    background: #151B2D;
+    padding: 1rem; /* p-4 */
+    box-shadow: 0 1rem 2rem rgba(0,0,0,0.15); /* shadow-lg */
   }
 
   .topbar-nav {
-    @apply flex flex-wrap gap-2 text-[11px] uppercase tracking-[0.35em] text-gray-500;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.35em;
+    color: #6b7280;
   }
 
   .topbar-subnav {
-    @apply flex flex-wrap gap-2 text-[11px] uppercase tracking-[0.35em] text-gray-500;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.35em;
+    color: #6b7280;
   }
 
   .footer-pill {
-    @apply fixed inset-x-0 bottom-4 flex justify-center px-4 text-xs;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 1rem;
+    display: flex;
+    justify-content: center;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    font-size: 12px;
   }
 
   .footer-pill-content {
-    @apply flex w-full max-w-4xl flex-col gap-4 rounded-full border border-[#2A3449] bg-[#151B2D]/95 px-6 py-4 text-gray-300 shadow-[0_15px_40px_rgba(0,0,0,0.45)] backdrop-blur;
+    display: flex;
+    width: 100%;
+    max-width: 64rem;
+    flex-direction: column;
+    gap: 1rem;
+    border-radius: 9999px;
+    border: 1px solid #2A3449;
+    background: rgba(21,27,45,0.95);
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+    color: #d1d5db;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.45);
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
   }
 
   .footer-pill-meta {
-    @apply flex flex-wrap gap-3 text-[10px] uppercase tracking-[0.35em] text-gray-500;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.35em;
+    color: #6b7280;
   }
 
   .footer-pill-nav {
-    @apply flex flex-wrap gap-2;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
   }
 
   .layout-shell {
-    @apply flex min-h-screen;
-  }
-
-  .command-surface {
-    @apply flex flex-1 flex-col bg-[#0B0F19];
+    display: flex;
+.no-scrollbar {
+  -ms-overflow-style: none;
+  /* scrollbar-width: none; */ /* Not supported in Chrome < 121, Safari, Samsung Internet */
+}
+    display: flex;
+    flex: 1 1 0%;
+    flex-direction: column;
+    background: #0B0F19;
   }
 
   .command-inner {
-    @apply mx-auto w-full max-w-6xl px-6 py-10;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+    max-width: 72rem;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+    padding-top: 2.5rem;
+    padding-bottom: 2.5rem;
   }
 
   .command-columns {
-    @apply mt-8 grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(280px,1.2fr)];
+    margin-top: 2rem;
+    display: grid;
+    gap: 1.5rem;
+  }
+  @media (min-width: 1024px) {
+    .command-columns {
+      grid-template-columns: minmax(0,3fr) minmax(280px,1.2fr);
+    }
   }
 
   .timeline {
-    @apply relative space-y-6;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
   }
 
   .timeline::before {
     content: "";
-    @apply absolute left-2 top-1 h-full w-px bg-gradient-to-b from-indigo-500/40 via-gray-700 to-transparent;
+    position: absolute;
+    left: 0.5rem;
+    top: 0.25rem;
+    height: 100%;
+    width: 1px;
+    background: linear-gradient(to bottom, rgba(99,102,241,0.4), #374151, transparent);
   }
 
   .timeline-item {
-    @apply relative ml-6 space-y-1;
+    position: relative;
+    margin-left: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
   }
 
   .timeline-item::before {
     content: "";
-    @apply absolute -left-6 top-1.5 h-2.5 w-2.5 rounded-full bg-indigo-500 shadow-[0_0_12px_rgba(99,102,241,0.7)];
+    position: absolute;
+    left: -1.5rem;
+    top: 0.375rem;
+    height: 0.625rem;
+    width: 0.625rem;
+    border-radius: 9999px;
+    background: #6366f1;
+    box-shadow: 0 0 12px rgba(99,102,241,0.7);
   }
 
   .avatar-stack {
-    @apply flex items-center;
+    display: flex;
+    align-items: center;
   }
 
   .avatar-stack span {
-    @apply -ml-2 flex h-8 w-8 items-center justify-center rounded-full border border-[#2A3449] bg-[#1E2538] text-xs font-semibold text-gray-200 shadow;
+    margin-left: -0.5rem;
+    display: flex;
+    height: 2rem;
+    width: 2rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    border: 1px solid #2A3449;
+    background: #1E2538;
+    font-size: 12px;
+    font-weight: 600;
+    color: #e5e7eb;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   }
 }
 
@@ -161,5 +315,5 @@ body {
 
 .no-scrollbar {
   -ms-overflow-style: none;
-  scrollbar-width: none;
+  /* scrollbar-width: none; */ /* Not supported in Chrome < 121, Safari, Samsung Internet */
 }
