@@ -1,7 +1,7 @@
 {
-  "/api/agents/route": "app/api/agents/route.js",
   "/api/leads/route": "app/api/leads/route.js",
+  "/api/agents/route": "app/api/agents/route.js",
   "/not-found": "app/not-found.js",
-  "/dashboard/admin/agents/page": "app/dashboard/admin/agents/page.js",
-  "/dashboard/page": "app/dashboard/page.js"
+  "/dashboard/page": "app/dashboard/page.js",
+  "/dashboard/admin/agents/page": "app/dashboard/admin/agents/page.js"
 }
