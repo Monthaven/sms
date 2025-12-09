@@ -30,13 +30,33 @@ export const NAVIGATION_CONFIG = [
   },
 ];
 
+// Compatibility layer for components expecting `NAV_SECTIONS` and helper
+export const NAV_SECTIONS = NAVIGATION_CONFIG.map((section) => ({
+  label: section.title,
+  items: section.items.map((it) => ({ href: it.id, name: it.label, icon: it.icon })),
+}));
+
+export function buildBreadcrumbs(pathname: string | null | undefined) {
+  if (!pathname) return [{ label: "Monthaven", href: "/dashboard" }];
+
+  for (const section of NAVIGATION_CONFIG) {
+    const item = section.items.find((i) => pathname === i.id || pathname.startsWith(i.id + "/"));
+    if (item) {
+      return [
+        { label: section.title, href: "#" },
+        { label: item.label, href: item.id },
+      ];
+    }
+  }
+
+  return [{ label: "Monthaven", href: "/dashboard" }];
+}
+
 export function getPageTitle(pathname: string | null | undefined) {
   if (!pathname) return { section: "Monthaven", title: "Dashboard" };
 
   for (const section of NAVIGATION_CONFIG) {
-    const item = section.items.find(
-      (i) => pathname === i.id || pathname.startsWith(i.id + "/")
-    );
+    const item = section.items.find((i) => pathname === i.id || pathname.startsWith(i.id + "/"));
     if (item) {
       return { section: section.title, title: item.label };
     }
