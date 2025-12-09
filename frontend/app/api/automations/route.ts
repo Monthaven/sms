@@ -26,21 +26,33 @@ export async function GET() {
     // Avoid spamming logs during dev hot-reloads; log once via a non-throwing warning
     console.debug && console.debug("Prisma delegates partially unavailable for automations route; returning defaults.");
   }
-  const [jobs, webhooks] = await Promise.all([
-    ingestionDelegate
-      ? ingestionDelegate.findMany({
-          orderBy: { startedAt: "desc" },
-          take: 3,
-          include: { startedBy: { select: { name: true, email: true } } },
-        })
-      : Promise.resolve([]),
-    webhookDelegate
-      ? webhookDelegate.findMany({
-          orderBy: { createdAt: "desc" },
-          take: 5,
-        })
-      : Promise.resolve([]),
-  ]);
+  let jobs: any[] = [];
+  let webhooks: any[] = [];
+
+  try {
+    const results = await Promise.all([
+      ingestionDelegate
+        ? ingestionDelegate.findMany({
+            orderBy: { startedAt: "desc" },
+            take: 3,
+            include: { startedBy: { select: { name: true, email: true } } },
+          })
+        : Promise.resolve([]),
+      webhookDelegate
+        ? webhookDelegate.findMany({
+            orderBy: { createdAt: "desc" },
+            take: 5,
+          })
+        : Promise.resolve([]),
+    ]);
+    jobs = results[0] || [];
+    webhooks = results[1] || [];
+  } catch (err: any) {
+    // If the database/table is missing (common in local dev), return safe defaults
+    console.debug && console.debug("Automations route: prisma query failed, returning defaults.", err?.code || err?.message || err);
+    jobs = [];
+    webhooks = [];
+  }
 
   const latestJob = jobs[0];
   const latestWebhook = webhooks[0];

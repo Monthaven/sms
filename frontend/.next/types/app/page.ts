@@ -1,8 +1,8 @@
-// File: C:\Users\Smooth King\Downloads\New folder (2)\sms\sms\frontend\app\dashboard\chat\[id]\page.tsx
-import * as entry from '../../../../../../app/dashboard/chat/[id]/page.js'
+// File: C:\Users\Smooth King\Downloads\New folder (2)\sms\sms\frontend\app\page.tsx
+import * as entry from '../../../app/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 
-type TEntry = typeof import('../../../../../../app/dashboard/chat/[id]/page.js')
+type TEntry = typeof import('../../../app/page.js')
 
 // Check that the entry is a valid entry
 checkFields<Diff<{

@@ -2,6 +2,7 @@ import React from "react";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { THEME } from "@/lib/theme";
+import { motion } from "framer-motion";
 
 interface StatCardProps {
   label: string;
@@ -47,6 +48,14 @@ export function StatCard({
             {trendUp ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
             {trend}
           </span>
+        )}
+        {trend === "Live" && (
+          <motion.span
+            aria-hidden
+            className="absolute left-6 top-6 h-3 w-3 rounded-full bg-emerald-400/80 shadow-[0_0_10px_rgba(16,185,129,0.45)]"
+            animate={{ scale: [1, 1.5, 1] }}
+            transition={{ repeat: Infinity, duration: 1.4 }}
+          />
         )}
       </div>
       <div className="relative z-10 mt-5">

@@ -15,24 +15,12 @@ import {
 } from "lucide-react";
 import NavButton from "./NavButton";
 import ProfileRail from "./ProfileRail";
+import { NAVIGATION_CONFIG } from "@/lib/navigation";
 import { THEME } from "@/lib/theme";
 
-export default function Sidebar() {
+export default function Sidebar({ onItemClick }: { onItemClick?: () => void } = {}) {
   const pathname = usePathname();
 
-  const navItems = [
-    { id: "/dashboard", label: "Overview", icon: LayoutDashboard },
-    { id: "/dashboard/queue", label: "Call Queue", icon: ListTodo },
-    { id: "/dashboard/chat", label: "Inbox", icon: MessageSquare },
-    { id: "/dashboard/campaigns", label: "Campaigns", icon: Megaphone },
-    { id: "/dashboard/intelligence", label: "Intelligence", icon: BarChart3 },
-  ];
-
-  const adminItems = [
-    { id: "/dashboard/admin/agents", label: "Team", icon: Users },
-    { id: "/dashboard/admin/automations", label: "Auto-Pilot", icon: Bot },
-    { id: "/dashboard/admin/integrations", label: "Connections", icon: Plug },
-  ];
 
   const baseClasses =
     "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group text-sm font-medium border border-transparent";
@@ -64,39 +52,25 @@ export default function Sidebar() {
       </div>
 
       <div className="custom-scrollbar flex-1 space-y-8 overflow-y-auto px-4 py-6">
-        <div>
-          <div className="px-4 text-[10px] font-bold uppercase tracking-widest text-gray-600">
-            Mission Control
+        {NAVIGATION_CONFIG.map((section) => (
+          <div key={section.title}>
+            <div className="px-4 text-[10px] font-bold uppercase tracking-widest text-gray-600">
+              {section.title}
+            </div>
+            <div className="mt-4 space-y-1">
+              {section.items.map((item) => (
+                <NavButton
+                  key={item.id}
+                  href={item.id}
+                  Icon={item.icon}
+                  label={item.label}
+                  active={isActive(item.id)}
+                  onClick={onItemClick}
+                />
+              ))}
+            </div>
           </div>
-          <div className="mt-4 space-y-1">
-            {navItems.map((item) => (
-              <NavButton
-                key={item.id}
-                href={item.id}
-                Icon={item.icon}
-                label={item.label}
-                active={isActive(item.id)}
-              />
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <div className="px-4 text-[10px] font-bold uppercase tracking-widest text-gray-600">
-            System
-          </div>
-          <div className="mt-4 space-y-1">
-            {adminItems.map((item) => (
-              <NavButton
-                key={item.id}
-                href={item.id}
-                Icon={item.icon}
-                label={item.label}
-                active={isActive(item.id)}
-              />
-            ))}
-          </div>
-        </div>
+        ))}
       </div>
 
       <div className="border-t border-[#1E2538] p-6">

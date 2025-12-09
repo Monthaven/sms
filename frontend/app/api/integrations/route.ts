@@ -20,15 +20,26 @@ type IntegrationStatus = {
 
 export async function GET() {
   const delegate = db?.webhookLog;
-  const [logs, twilioStatus] = await Promise.all([
-    delegate
-      ? delegate.findMany({
-          orderBy: { createdAt: "desc" },
-          take: 20,
-        })
-      : Promise.resolve([]),
-    Promise.resolve(evaluateTwilioStatus()),
-  ]);
+  let logs: any[] = [];
+  let twilioStatus: any = { status: "connected" };
+
+  try {
+    const results = await Promise.all([
+      delegate
+        ? delegate.findMany({
+            orderBy: { createdAt: "desc" },
+            take: 20,
+          })
+        : Promise.resolve([]),
+      Promise.resolve(evaluateTwilioStatus()),
+    ]);
+    logs = results[0] || [];
+    twilioStatus = results[1] || twilioStatus;
+  } catch (err: any) {
+    console.debug && console.debug("Integrations route: prisma query failed, returning defaults.", err?.code || err?.message || err);
+    logs = [];
+    twilioStatus = { status: "missing" };
+  }
 
   const latestByProvider = new Map<string, Date>();
   for (const log of logs) {
