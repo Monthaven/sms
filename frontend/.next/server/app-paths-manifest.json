@@ -1,4 +1,6 @@
 {
   "/api/leads/route": "app/api/leads/route.js",
-  "/dashboard/page": "app/dashboard/page.js"
+  "/api/agents/route": "app/api/agents/route.js",
+  "/not-found": "app/not-found.js",
+  "/dashboard/queue/page": "app/dashboard/queue/page.js"
 }

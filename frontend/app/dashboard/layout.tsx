@@ -1,7 +1,7 @@
-import BottomNav from "@/components/BottomNav";
+import React from "react";
 import Sidebar from "@/components/Sidebar";
 import TopBar from "@/components/TopBar";
-import { THEME } from "@/lib/theme";
+import AgentPresence from "@/components/AgentPresence";
 
 export default function DashboardLayout({
   children,
@@ -9,17 +9,32 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div
-      className={`flex min-h-screen ${THEME.bg} font-sans text-gray-100 selection:bg-indigo-500/30 selection:text-indigo-200 overflow-hidden`}
-    >
-      <div className="hidden md:block shadow-2xl">
+    <div className="flex h-screen w-full overflow-hidden bg-[#0B1120] text-slate-100 antialiased selection:bg-indigo-500/30">
+      {/* 1. Permanent Sidebar Navigation */}
+      <aside className="hidden w-64 flex-col border-r border-white/5 bg-[#0F1629] md:flex">
         <Sidebar />
-      </div>
-      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="mt-auto border-t border-white/5 p-4">
+          <AgentPresence />
+        </div>
+      </aside>
+
+      {/* 2. Main Content Area */}
+      <main className="flex flex-1 flex-col overflow-hidden relative">
         <TopBar />
-        <main className="flex-1 overflow-y-auto scroll-smooth">{children}</main>
-      </div>
-      <BottomNav />
+        
+        {/* Scrollable Page Content */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-6 md:p-8 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+          <div className="mx-auto max-w-7xl space-y-8 pb-20">
+            {children}
+          </div>
+        </div>
+
+        {/* Background Ambient Glows */}
+        <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+          <div className="absolute -left-1/4 -top-1/4 h-[500px] w-[500px] rounded-full bg-indigo-500/5 blur-[100px]" />
+          <div className="absolute -bottom-1/4 -right-1/4 h-[500px] w-[500px] rounded-full bg-emerald-500/5 blur-[100px]" />
+        </div>
+      </main>
     </div>
   );
 }

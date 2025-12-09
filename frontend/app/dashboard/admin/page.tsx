@@ -1,194 +1,124 @@
 "use client";
 
-import PageFooterRail from "@/components/PageFooterRail";
-import { useAgents } from "@/lib/hooks/useAgents";
-import { useAutomations } from "@/lib/hooks/useAutomations";
-import { useCampaigns } from "@/lib/hooks/useCampaigns";
-import { useIntegrations } from "@/lib/hooks/useIntegrations";
 import Link from "next/link";
-import { Activity, ArrowRight, Loader2, PlugZap, Radio, Settings2, Users } from "lucide-react";
+import { Activity, ArrowRight, Radio, Users, Settings2, PlugZap, Database } from "lucide-react";
+import PageFooterRail from "@/components/PageFooterRail";
+import { useCampaigns } from "@/lib/hooks/useCampaigns";
+import { useAgents } from "@/lib/hooks/useAgents";
 
-export default function AdminHome() {
-  const {
-    data: campaigns,
-    isLoading: campaignsLoading,
-    error: campaignsError,
-  } = useCampaigns();
-  const {
-    data: agents,
-    isLoading: agentsLoading,
-    error: agentsError,
-  } = useAgents();
-  const {
-    data: integrations,
-    isLoading: integrationsLoading,
-    error: integrationsError,
-  } = useIntegrations();
-  const {
-    data: automations,
-    isLoading: automationsLoading,
-    error: automationsError,
-  } = useAutomations();
-
-  const campaignCount = campaigns?.length ?? 0;
-  const agentCount = agents?.length ?? 0;
-  const integrationConnected =
-    integrations?.filter((integration) => integration.status === "connected").length ?? 0;
+export default function AdminPage() {
+  const { data: campaigns } = useCampaigns();
+  const { data: agents } = useAgents();
 
   return (
-    <div className="space-y-10 text-slate-100">
-      <section className="glass-panel border border-white/10 p-8">
-        <div className="flex flex-col gap-4">
-          <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] uppercase tracking-[0.35em] text-amber-200/80">
-            Admin Control Tower
+    <div className="space-y-10">
+      {/* Header */}
+      <section className="glass-panel border border-white/10 p-8 relative overflow-hidden">
+        <div className="relative z-10">
+          <span className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-[11px] uppercase tracking-[0.35em] text-amber-200">
+            Control Tower
           </span>
-          <div>
-            <h1 className="text-4xl font-semibold text-white">Operations & Integrations</h1>
-            <p className="mt-2 text-sm text-slate-400">
-              Manage campaigns, agents, automations, and integrations that sync the Engine with the Storefront.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-3 text-xs">
-            <Link href="/dashboard/admin/campaigns" className="mae-button primary text-xs">
-              Launch campaign
-            </Link>
-            <Link href="/dashboard/admin/agents" className="mae-button ghost text-xs">
-              Invite agent
-            </Link>
-            <Link href="/dashboard/admin/integrations" className="mae-button ghost text-xs">
-              Configure channels
-            </Link>
-          </div>
+          <h1 className="mt-4 text-4xl font-bold text-white">System Operations</h1>
+          <p className="mt-2 max-w-xl text-slate-400">
+            Manage the Engine's configuration. Launch mass blasts, assign agents, and monitor 
+            the health of the EzTexting/Twilio bridges.
+          </p>
         </div>
       </section>
 
-      <section className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+      {/* Main Modules Grid */}
+      <div className="grid gap-6 md:grid-cols-3">
         <AdminCard
           title="Campaigns"
-          icon={<Radio className="h-5 w-5 text-sky-300" />}
-          description={
-            campaignsLoading ? (
-              <CardLoader />
-            ) : campaignsError ? (
-              "Unable to load campaigns"
-            ) : (
-              `${campaignCount} draft/running campaigns`
-            )
-          }
+          icon={Radio}
+          metric={campaigns?.length || 0}
+          label="Active & Draft"
           href="/dashboard/admin/campaigns"
+          color="text-sky-400"
         />
         <AdminCard
           title="Agents"
-          icon={<Users className="h-5 w-5 text-emerald-300" />}
-          description={
-            agentsLoading ? <CardLoader /> : agentsError ? "Unable to load agents" : `${agentCount} active agents`
-          }
+          icon={Users}
+          metric={agents?.length || 0}
+          label="Team Members"
           href="/dashboard/admin/agents"
+          color="text-emerald-400"
         />
         <AdminCard
           title="Integrations"
-          icon={<Settings2 className="h-5 w-5 text-amber-300" />}
-          description={
-            integrationsLoading ? (
-              <CardLoader />
-            ) : integrationsError ? (
-              "Unable to load integrations"
-            ) : (
-              `${integrationConnected} connected`
-            )
-          }
+          icon={PlugZap}
+          metric={2}
+          label="Channels Connected"
           href="/dashboard/admin/integrations"
+          color="text-amber-400"
         />
-      </section>
+      </div>
 
+      {/* Engine Status */}
       <section className="glass-panel border border-white/5 p-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-semibold text-white">Recent Automation Footprints</h2>
-          <Link href="/dashboard/admin/automations" className="inline-flex items-center gap-2 text-xs text-sky-300">
-            View automations <ArrowRight className="h-4 w-4" />
-          </Link>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-semibold text-white flex items-center gap-3">
+            <Database size={20} className="text-slate-500" />
+            Data Source Truth
+          </h2>
+          <div className="text-xs font-mono text-slate-500">
+            Source: Neon Postgres (Direct)
+          </div>
         </div>
-
-        {automationsError && (
-          <p className="mt-4 text-sm text-rose-200">Unable to load automations. {automationsError.message}</p>
-        )}
-
-        <div className="timeline mt-6 space-y-4">
-          {automationsLoading && <CardLoader />}
-          {!automationsLoading &&
-            automations?.map((auto) => (
-              <div key={auto.id} className="timeline-item">
-                <p className="text-sm font-semibold text-white">{auto.name}</p>
-                <p className="text-xs text-slate-400">
-                  {auto.cadence} · {auto.status} · Last run {formatTimestamp(auto.lastRun)}
-                </p>
-              </div>
-            ))}
-          {!automationsLoading && automations && automations.length === 0 && (
-            <p className="text-xs text-slate-500">No automation data yet. Run script:import-staged to seed logs.</p>
-          )}
+        
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="rounded-xl bg-white/[0.02] p-4 border border-white/5">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm font-medium text-slate-300">Engine (Backend)</span>
+              <span className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"></span>
+            </div>
+            <p className="text-xs text-slate-500">
+              Responsible for CSV Ingestion, bulk SMS blasts, and address verification.
+              Run via `npm run engine:ingest` locally.
+            </p>
+          </div>
+          <div className="rounded-xl bg-white/[0.02] p-4 border border-white/5">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm font-medium text-slate-300">Storefront (UI)</span>
+              <span className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"></span>
+            </div>
+            <p className="text-xs text-slate-500">
+              Responsible for Lead Management, Chat, and Call Queue.
+              Running on Vercel Edge Network.
+            </p>
+          </div>
         </div>
       </section>
 
       <PageFooterRail
-        kicker="Admin Ops"
-        title="Maintain campaign health without leaving Storefront"
-        description="Jump into integrations or launch scripts directly after reviewing the tower summary."
+        kicker="Next Steps"
+        title="Ready to blast?"
+        description="Head to Campaigns to draft a new broadcast or check Integrations to verify provider credits."
         actions={[
-          { label: "Campaigns", href: "/dashboard/admin/campaigns", icon: Radio, variant: "primary" },
-          { label: "Agents", href: "/dashboard/admin/agents", icon: Users },
-          { label: "Integrations", href: "/dashboard/admin/integrations", icon: PlugZap },
+          { label: "Open Campaigns", href: "/dashboard/admin/campaigns", icon: Radio, variant: "primary" },
+          { label: "Check Credits", href: "/dashboard/admin/integrations", icon: Settings2 },
         ]}
       />
     </div>
   );
 }
 
-function AdminCard({
-  title,
-  description,
-  icon,
-  href,
-}: {
-  title: string;
-  description: React.ReactNode;
-  icon: React.ReactNode;
-  href: string;
-}) {
+function AdminCard({ title, icon: Icon, metric, label, href, color }: any) {
   return (
-    <Link
-      href={href}
-      className="glass-panel border border-white/10 p-6 transition hover:border-sky-400/50 hover:bg-slate-900/70"
-    >
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Manage</p>
-          <h3 className="text-xl font-semibold text-white">{title}</h3>
+    <Link href={href} className="group glass-panel border border-white/10 p-6 transition-all hover:border-white/20 hover:bg-white/[0.03]">
+      <div className="flex justify-between items-start">
+        <div className={`rounded-lg bg-white/5 p-3 ${color}`}>
+          <Icon size={24} />
         </div>
-        {icon}
+        <ArrowRight className="text-slate-600 transition-transform group-hover:translate-x-1 group-hover:text-slate-400" size={18} />
       </div>
-      <p className="mt-3 text-sm text-slate-400">{description}</p>
-      <div className="mt-4 inline-flex items-center gap-2 text-xs text-sky-300">
-        Open module <Activity className="h-4 w-4" />
+      <div className="mt-4">
+        <p className="text-3xl font-bold text-white">{metric}</p>
+        <p className="text-sm font-medium text-slate-400">{label}</p>
+        <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-slate-500 group-hover:text-slate-300">
+          Manage {title}
+        </p>
       </div>
     </Link>
   );
-}
-
-function CardLoader() {
-  return (
-    <span className="inline-flex items-center gap-2 text-xs text-slate-500">
-      <Loader2 className="h-3 w-3 animate-spin text-sky-300" />
-      Loading
-    </span>
-  );
-}
-
-function formatTimestamp(value: string | undefined) {
-  if (!value || value === "never" || value === "queued") return value ?? "unknown";
-  try {
-    return new Date(value).toLocaleString();
-  } catch {
-    return value;
-  }
 }

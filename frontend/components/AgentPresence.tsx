@@ -1,3 +1,5 @@
+"use client";
+
 import { useAgents } from "@/lib/hooks/useAgents";
 import clsx from "clsx";
 

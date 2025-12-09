@@ -1,180 +1,186 @@
 "use client";
 
 import React from "react";
-import {
-  Users,
-  CheckCircle2,
-  MessageSquare,
-  DollarSign,
-  Clock,
-  ChevronRight,
+import Link from "next/link";
+import { 
+  Users, 
+  MessageSquare, 
+  Flame, 
+  Terminal, 
+  ArrowRight,
+  Clock 
 } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import { useLeads } from "@/lib/hooks/useLeads";
 import { THEME } from "@/lib/theme";
+import { Avatar, StatusBadge } from "@/components/Shared";
 
-const MOCK_LEADS = [
-  { id: "1", firstName: "Robert", lastName: "Vance", messages: [{ content: "Yes, looking for 1.2M" }] },
-  { id: "2", firstName: "Sarah", lastName: "Jenkins", messages: [] },
-  { id: "3", firstName: "James", lastName: "Kowalski", messages: [{ content: "Call me Tuesday" }] },
-  { id: "4", firstName: "Elena", lastName: "Rodriguez", messages: [] },
-];
+export default function CommandCenterPage() {
+  // Fetch "Radar" leads (Hot responses + Active conversations)
+  const { leads, isLoading } = useLeads({ 
+    statuses: ["RESP_HOT", "RESP_WARM", "CONVERSATION_ACTIVE"] 
+  });
 
-const Avatar = ({ name }: { name: string }) => {
-  const initials = name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .substring(0, 2);
-  return (
-    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 text-xs font-bold text-white shadow-lg">
-      {initials}
-    </div>
-  );
-};
-
-export default function DashboardPage() {
-  const { leads, isLoading } = useLeads();
-
-  const displayLeads =
-    leads && leads.length > 0 ? leads : (MOCK_LEADS as any[]);
-  const leadCount = leads?.length || 842;
-
-  const stats = [
-    {
-      label: "Active Leads",
-      value: leadCount,
-      icon: Users,
-      color: "bg-blue-500",
-      trend: "12%",
-      trendUp: true,
-    },
-    {
-      label: "Hot Opportunities",
-      value: displayLeads.length > 10 ? 12 : 3,
-      icon: CheckCircle2,
-      color: "bg-rose-500",
-      trend: "5%",
-      trendUp: true,
-    },
-    {
-      label: "Messages (24h)",
-      value: "142",
-      icon: MessageSquare,
-      color: "bg-amber-500",
-      trend: "2%",
-      trendUp: false,
-    },
-    {
-      label: "Pipeline Value",
-      value: "$4.2M",
-      icon: DollarSign,
-      color: "bg-emerald-500",
-      trend: "8%",
-      trendUp: true,
-    },
-  ];
+  const activeCount = leads?.length || 0;
+  const hotCount = leads?.filter(l => l.status === 'RESP_HOT').length || 0;
 
   return (
-    <div className="mx-auto max-w-7xl space-y-8 p-8 pb-20 md:pb-8">
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat, idx) => (
-          <StatCard key={idx} {...stat} />
-        ))}
+    <div className="space-y-8">
+      {/* 1. Hero KPI Grid */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          label="Inbox Radar"
+          value={activeCount}
+          icon={MessageSquare}
+          color="bg-indigo-500"
+          trend={activeCount > 0 ? "Live" : "Quiet"}
+          trendUp={activeCount > 0}
+        />
+        <StatCard
+          label="Hot Leads"
+          value={hotCount}
+          icon={Flame}
+          color="bg-rose-500"
+          trend="Immediate action"
+          trendUp={true}
+        />
+        <StatCard
+          label="Total Database"
+          value="39.5k"
+          icon={Users}
+          color="bg-slate-600"
+          trend="Static"
+          trendUp={false}
+        />
+        <div className="kpi-card group relative overflow-hidden border border-emerald-500/30 bg-emerald-500/5 transition hover:border-emerald-500/50">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wider text-emerald-200/70">Engine Status</p>
+              <p className="mt-2 text-2xl font-bold text-emerald-100">Standby</p>
+            </div>
+            <div className="rounded-lg bg-emerald-500/20 p-2 text-emerald-400">
+              <Terminal size={20} />
+            </div>
+          </div>
+          <Link href="/dashboard/admin" className="mt-4 flex items-center gap-1 text-xs font-medium text-emerald-300 hover:underline">
+            Manage Ingestion <ArrowRight size={12} />
+          </Link>
+        </div>
       </div>
 
-      <div className="grid gap-8 md:grid-cols-3">
-        <div
-          className={`md:col-span-2 ${THEME.surface} rounded-2xl border ${THEME.border} overflow-hidden`}
-        >
-          <div className="flex items-center justify-between border-b border-gray-800 p-6">
-            <h3 className="flex items-center gap-2 text-lg font-bold text-white">
-              <Clock size={20} className="text-indigo-500" />
-              Live Feed
+      {/* 2. Main Workspace Split */}
+      <div className="grid gap-8 lg:grid-cols-3">
+        {/* Left: Live Inbox Feed */}
+        <div className={`lg:col-span-2 ${THEME.surface} flex flex-col rounded-2xl border ${THEME.border} overflow-hidden min-h-[400px]`}>
+          <div className="flex items-center justify-between border-b border-white/5 p-6">
+            <h3 className="flex items-center gap-2 text-lg font-semibold text-white">
+              <Clock size={18} className="text-indigo-400" />
+              Response Feed
             </h3>
-            <button className="rounded-lg border border-gray-800 px-3 py-1.5 text-xs text-gray-400 transition-colors hover:border-gray-600 hover:text-white">
-              View All
-            </button>
+            <span className="text-xs text-slate-500">Real-time from Neon</span>
           </div>
-          <div className="divide-y divide-gray-800/50">
-            {displayLeads.slice(0, 5).map((lead: any) => (
-              <div
-                key={lead.id}
-                className="group flex cursor-pointer items-center gap-4 p-5 transition-colors hover:bg-white/5"
+          
+          <div className="flex-1 divide-y divide-white/5">
+            {isLoading && (
+              <div className="flex h-full items-center justify-center p-10 text-slate-500">
+                Loading live feed...
+              </div>
+            )}
+
+            {!isLoading && activeCount === 0 && (
+              <div className="flex h-full flex-col items-center justify-center p-10 text-center">
+                <div className="mb-4 rounded-full bg-white/5 p-4">
+                  <MessageSquare className="h-8 w-8 text-slate-600" />
+                </div>
+                <h4 className="text-white">Inbox Zero</h4>
+                <p className="max-w-xs text-sm text-slate-500 mt-2">
+                  No active conversations. Launch a campaign from the Admin tower to generate traffic.
+                </p>
+                <Link href="/dashboard/admin/campaigns" className="mt-6 mae-button primary">
+                  Launch Campaign
+                </Link>
+              </div>
+            )}
+
+            {leads?.map((lead) => (
+              <Link 
+                key={lead.id} 
+                href={`/dashboard/chat/${lead.id}`}
+                className="group flex items-center gap-4 p-4 transition-colors hover:bg-white/5"
               >
-                <Avatar name={`${lead.firstName} ${lead.lastName}`} />
+                <Avatar name={`${lead.contact.firstName || 'Unknown'} ${lead.contact.lastName || 'Lead'}`} />
                 <div className="min-w-0 flex-1">
-                  <div className="mb-1 flex items-center justify-between">
-                    <p className="text-sm font-bold text-gray-200 transition-colors group-hover:text-indigo-400">
-                      {lead.firstName} {lead.lastName}
+                  <div className="flex items-center justify-between">
+                    <p className="truncate text-sm font-bold text-slate-200 group-hover:text-indigo-400">
+                      {lead.contact.firstName} {lead.contact.lastName}
                     </p>
-                    <span className="text-[10px] font-mono text-gray-600">
-                      2h ago
+                    <span className="text-[10px] text-slate-500">
+                      {new Date(lead.updatedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                     </span>
                   </div>
-                  <p className="flex items-center gap-2 text-xs text-gray-500">
-                    <span
-                      className={
-                        lead.messages && lead.messages.length > 0
-                          ? "text-indigo-400"
-                          : "text-gray-600"
-                      }
-                    >
-                      {lead.messages && lead.messages.length > 0
-                        ? "Reply:"
-                        : "Status:"}
+                  <div className="mt-1 flex items-center gap-2">
+                    <StatusBadge status={lead.status.replace('RESP_', '')} />
+                    <span className="truncate text-xs text-slate-400">
+                      {lead.property?.addressLine1 || "No address data"}
                     </span>
-                    {lead.messages && lead.messages.length > 0
-                      ? lead.messages[lead.messages.length - 1].content ||
-                        lead.messages[lead.messages.length - 1].body
-                      : "Ready for review"}
-                  </p>
+                  </div>
                 </div>
-                <ChevronRight
-                  size={16}
-                  className="text-gray-700 transition-colors group-hover:text-gray-400"
-                />
-              </div>
+                <ArrowRight size={16} className="text-slate-700 opacity-0 transition-all group-hover:translate-x-1 group-hover:opacity-100" />
+              </Link>
             ))}
           </div>
         </div>
 
-        <div
-          className={`${THEME.surface} flex flex-col justify-center rounded-2xl border ${THEME.border} p-6`}
-        >
-          <div className="mb-6 text-center">
-            <h3 className="text-lg font-bold text-white">Lead Sources</h3>
-            <p className="mt-1 text-xs text-gray-500">This Month</p>
-          </div>
-          <div className="my-4 flex justify-center">
-            <div className="flex h-48 w-48 items-center justify-center rounded-full border-[16px] border-[#1E2538] border-t-indigo-500 border-r-emerald-500 border-b-[#1E2538] rotate-45 shadow-[0_0_30px_rgba(79,70,229,0.15)]">
-              <div className="rotate-[-45deg] text-center">
-                <span className="block text-3xl font-bold text-white">
-                  {leadCount}
+        {/* Right: Quick Actions / Context */}
+        <div className="space-y-6">
+          {/* Action Card */}
+          <div className={`${THEME.surface} rounded-2xl border ${THEME.border} p-6`}>
+            <h3 className="font-semibold text-white">Quick Actions</h3>
+            <div className="mt-4 space-y-2">
+              <Link href="/dashboard/queue" className="flex w-full items-center justify-between rounded-lg border border-white/10 bg-white/5 p-3 text-sm text-slate-300 hover:bg-white/10">
+                <span className="flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                  Start Call Queue
                 </span>
-                <span className="text-[10px] uppercase tracking-widest text-gray-500">
-                  Leads
+                <ArrowRight size={14} />
+              </Link>
+              <Link href="/dashboard/admin/campaigns" className="flex w-full items-center justify-between rounded-lg border border-white/10 bg-white/5 p-3 text-sm text-slate-300 hover:bg-white/10">
+                <span className="flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-amber-500" />
+                  Draft Blast
                 </span>
-              </div>
+                <ArrowRight size={14} />
+              </Link>
             </div>
           </div>
-          <div className="mt-4 space-y-3">
-            <div className="flex justify-between text-xs">
-              <span className="flex items-center gap-2 text-gray-400">
-                <span className="h-2 w-2 rounded-full bg-indigo-500" />
-                DealMachine
-              </span>
-              <span className="font-mono text-white">65%</span>
-            </div>
-            <div className="flex justify-between text-xs">
-              <span className="flex items-center gap-2 text-gray-400">
-                <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                Web Inbound
-              </span>
-              <span className="font-mono text-white">25%</span>
+
+          {/* Engine Health Stub */}
+          <div className={`${THEME.surface} rounded-2xl border ${THEME.border} p-6`}>
+            <h3 className="font-semibold text-white">System Health</h3>
+            <div className="mt-4 space-y-4">
+              <HealthRow label="Neon Database" status="healthy" />
+              <HealthRow label="EzTexting API" status="healthy" />
+              <HealthRow label="Twilio Gateway" status="disconnected" />
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function HealthRow({ label, status }: { label: string, status: 'healthy' | 'warning' | 'disconnected' }) {
+  const colors = {
+    healthy: "bg-emerald-500",
+    warning: "bg-amber-500",
+    disconnected: "bg-slate-700"
+  };
+  return (
+    <div className="flex items-center justify-between text-xs">
+      <span className="text-slate-400">{label}</span>
+      <div className="flex items-center gap-2">
+        <span className={`h-1.5 w-1.5 rounded-full ${colors[status]}`} />
+        <span className="uppercase text-slate-300">{status}</span>
       </div>
     </div>
   );
