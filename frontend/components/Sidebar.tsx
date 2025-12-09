@@ -4,79 +4,71 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
-  ListTodo,
-  MessageSquare,
-  BarChart3,
-  Settings,
-  Users,
-  Bot,
-  Plug,
-  Megaphone,
-} from "lucide-react";
-import NavButton from "./NavButton";
-import ProfileRail from "./ProfileRail";
-import { NAVIGATION_CONFIG } from "@/lib/navigation";
-import { THEME } from "@/lib/theme";
+  "use client";
 
-export default function Sidebar({ onItemClick }: { onItemClick?: () => void } = {}) {
-  const pathname = usePathname();
+  import React from "react";
+  import { usePathname } from "next/navigation";
+  import { MessageSquare } from "lucide-react";
+  import NavButton from "./NavButton";
+  import ProfileRail from "./ProfileRail"; 
+  import { NAV_SECTIONS } from "@/lib/navigation"; 
+  import { THEME } from "@/lib/theme";
 
+  interface SidebarProps {
+    onItemClick?: () => void;
+  }
 
-  const baseClasses =
-    "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group text-sm font-medium border border-transparent";
-  const activeClasses =
-    "bg-[#1E2538] text-white border-[#2A3449] shadow-lg shadow-black/20";
-  const inactiveClasses =
-    "text-gray-500 hover:text-gray-200 hover:bg-[#151B2D]";
+  export default function Sidebar({ onItemClick }: SidebarProps) {
+    const pathname = usePathname();
 
-  const isActive = (path: string) => {
-    if (path === "/dashboard" && pathname === "/dashboard") return true;
-    if (path !== "/dashboard" && pathname?.startsWith(path)) return true;
-    return false;
-  };
+    const isActive = (path: string) => {
+      if (path === "/dashboard" && pathname === "/dashboard") return true;
+      return path !== "/dashboard" && pathname?.startsWith(path);
+    };
 
-  return (
-    <div
-      className={`flex h-full flex-col ${THEME.bg} border-r ${THEME.border} w-72 transition-all duration-300 ease-in-out`}
-    >
-      <div className="p-8 pb-4">
-        <div className="flex items-center gap-3 font-bold text-xl text-white tracking-wide">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-indigo-500 to-cyan-500 text-white shadow-xl shadow-indigo-500/20">
-            <MessageSquare size={20} fill="currentColor" />
-          </div>
-          Monthaven
-        </div>
-        <div className="mt-2 pl-12 text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">
-          Private Console
-        </div>
-      </div>
-
-      <div className="custom-scrollbar flex-1 space-y-8 overflow-y-auto px-4 py-6">
-        {NAVIGATION_CONFIG.map((section) => (
-          <div key={section.title}>
-            <div className="px-4 text-[10px] font-bold uppercase tracking-widest text-gray-600">
-              {section.title}
+    return (
+      <div className={`flex h-full flex-col ${THEME.bg} border-r ${THEME.border} w-72 transition-all duration-300`}>
+        {/* Brand Header */}
+        <div className="p-8 pb-6">
+          <div className="flex items-center gap-3 font-bold text-xl text-white tracking-wide">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-indigo-500 to-cyan-500 text-white shadow-xl shadow-indigo-500/20">
+              <MessageSquare size={20} fill="currentColor" />
             </div>
-            <div className="mt-4 space-y-1">
-              {section.items.map((item) => (
-                <NavButton
-                  key={item.id}
-                  href={item.id}
-                  Icon={item.icon}
-                  label={item.label}
-                  active={isActive(item.id)}
-                  onClick={onItemClick}
-                />
-              ))}
-            </div>
+            Monthaven
           </div>
-        ))}
-      </div>
+          <div className="mt-2 pl-12 text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">
+            Private Console
+          </div>
+        </div>
 
-      <div className="border-t border-[#1E2538] p-6">
-        {/* Profile rail extracted to its own component for reusability */}
-        <ProfileRail />
+        {/* Dynamic Navigation from "The Brain" */}
+        <div className="custom-scrollbar flex-1 space-y-8 overflow-y-auto px-4 py-2">
+          {NAV_SECTIONS.map((section) => (
+            <div key={section.label}>
+              <div className="mb-2 px-4 text-[10px] font-bold uppercase tracking-widest text-gray-600">
+                {section.label}
+              </div>
+              <div className="space-y-1">
+                {section.items.map((item) => (
+                  <div key={item.href} onClick={onItemClick}>
+                    <NavButton
+                      href={item.href}
+                      // @ts-ignore
+                      Icon={item.icon}
+                      label={item.name}
+                      active={isActive(item.href)}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* User Profile Footer */}
+        <div className="mt-auto border-t border-[#1E2538] p-4">
+           <ProfileRail />
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
