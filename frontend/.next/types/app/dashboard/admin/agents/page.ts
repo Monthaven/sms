@@ -1,8 +1,8 @@
-// File: C:\Users\Smooth King\Downloads\New folder (2)\sms\sms\frontend\app\dashboard\queue\page.tsx
-import * as entry from '../../../../../app/dashboard/queue/page.js'
+// File: C:\Users\Smooth King\Downloads\New folder (2)\sms\sms\frontend\app\dashboard\admin\agents\page.tsx
+import * as entry from '../../../../../../app/dashboard/admin/agents/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 
-type TEntry = typeof import('../../../../../app/dashboard/queue/page.js')
+type TEntry = typeof import('../../../../../../app/dashboard/admin/agents/page.js')
 
 // Check that the entry is a valid entry
 checkFields<Diff<{

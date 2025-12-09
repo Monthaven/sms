@@ -13,6 +13,8 @@ import {
   Plug,
   Megaphone,
 } from "lucide-react";
+import NavButton from "./NavButton";
+import ProfileRail from "./ProfileRail";
 import { THEME } from "@/lib/theme";
 
 export default function Sidebar() {
@@ -68,23 +70,13 @@ export default function Sidebar() {
           </div>
           <div className="mt-4 space-y-1">
             {navItems.map((item) => (
-              <Link
+              <NavButton
                 key={item.id}
                 href={item.id}
-                className={`${baseClasses} ${
-                  isActive(item.id) ? activeClasses : inactiveClasses
-                } w-full`}
-              >
-                <item.icon
-                  size={18}
-                  className={
-                    isActive(item.id)
-                      ? "text-indigo-400"
-                      : "text-gray-600 group-hover:text-gray-400"
-                  }
-                />
-                <span>{item.label}</span>
-              </Link>
+                Icon={item.icon}
+                label={item.label}
+                active={isActive(item.id)}
+              />
             ))}
           </div>
         </div>
@@ -95,43 +87,21 @@ export default function Sidebar() {
           </div>
           <div className="mt-4 space-y-1">
             {adminItems.map((item) => (
-              <Link
+              <NavButton
                 key={item.id}
                 href={item.id}
-                className={`${baseClasses} ${
-                  isActive(item.id) ? activeClasses : inactiveClasses
-                } w-full`}
-              >
-                <item.icon
-                  size={18}
-                  className={
-                    isActive(item.id)
-                      ? "text-indigo-400"
-                      : "text-gray-600 group-hover:text-gray-400"
-                  }
-                />
-                <span>{item.label}</span>
-              </Link>
+                Icon={item.icon}
+                label={item.label}
+                active={isActive(item.id)}
+              />
             ))}
           </div>
         </div>
       </div>
 
       <div className="border-t border-[#1E2538] p-6">
-        <div className="group flex cursor-pointer items-center gap-3 rounded-xl border border-[#2A3449] bg-[#151B2D] p-3 shadow-lg hover:border-gray-600">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-800 font-bold text-gray-300 transition-colors group-hover:bg-indigo-600 group-hover:text-white">
-            JD
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-gray-200">
-              John Doe
-            </p>
-            <p className="truncate text-[10px] text-gray-500 transition-colors group-hover:text-gray-400">
-              Super Admin
-            </p>
-          </div>
-          <Settings size={16} className="text-gray-600 group-hover:text-white" />
-        </div>
+        {/* Profile rail extracted to its own component for reusability */}
+        <ProfileRail />
       </div>
     </div>
   );

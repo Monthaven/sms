@@ -11,6 +11,7 @@ import {
   Clock 
 } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
+import EmptyState from "@/components/EmptyState";
 import { useLeads } from "@/lib/hooks/useLeads";
 import { THEME } from "@/lib/theme";
 import { Avatar, StatusBadge } from "@/components/Shared";
@@ -52,26 +53,21 @@ export default function CommandCenterPage() {
           trend="Static"
           trendUp={false}
         />
-        <div className="kpi-card group relative overflow-hidden border border-emerald-500/30 bg-emerald-500/5 transition hover:border-emerald-500/50">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wider text-emerald-200/70">Engine Status</p>
-              <p className="mt-2 text-2xl font-bold text-emerald-100">Standby</p>
-            </div>
-            <div className="rounded-lg bg-emerald-500/20 p-2 text-emerald-400">
-              <Terminal size={20} />
-            </div>
-          </div>
-          <Link href="/dashboard/admin" className="mt-4 flex items-center gap-1 text-xs font-medium text-emerald-300 hover:underline">
-            Manage Ingestion <ArrowRight size={12} />
-          </Link>
-        </div>
+        <StatCard
+          label="Engine Status"
+          value="Standby"
+          icon={Terminal}
+          color="bg-emerald-500"
+          trend="Manage ingestion"
+          trendUp={false}
+          variant="status"
+        />
       </div>
 
       {/* 2. Main Workspace Split */}
-      <div className="grid gap-8 lg:grid-cols-3">
+        <div className="grid gap-8 lg:grid-cols-12">
         {/* Left: Live Inbox Feed */}
-        <div className={`lg:col-span-2 ${THEME.surface} flex flex-col rounded-2xl border ${THEME.border} overflow-hidden min-h-[400px]`}>
+          <div className={`lg:col-span-8 ${THEME.surface} flex flex-col rounded-2xl border ${THEME.border} overflow-hidden min-h-[400px]`}>
           <div className="flex items-center justify-between border-b border-white/5 p-6">
             <h3 className="flex items-center gap-2 text-lg font-semibold text-white">
               <Clock size={18} className="text-indigo-400" />
@@ -88,17 +84,17 @@ export default function CommandCenterPage() {
             )}
 
             {!isLoading && activeCount === 0 && (
-              <div className="flex h-full flex-col items-center justify-center p-10 text-center">
-                <div className="mb-4 rounded-full bg-white/5 p-4">
-                  <MessageSquare className="h-8 w-8 text-slate-600" />
-                </div>
-                <h4 className="text-white">Inbox Zero</h4>
-                <p className="max-w-xs text-sm text-slate-500 mt-2">
-                  No active conversations. Launch a campaign from the Admin tower to generate traffic.
-                </p>
-                <Link href="/dashboard/admin/campaigns" className="mt-6 mae-button primary">
-                  Launch Campaign
-                </Link>
+              <div className="h-full">
+                {/* Replace with reusable EmptyState component */}
+                {/* eslint-disable-next-line @typescript-eslint/ban-ts-comment */}
+                {/* @ts-ignore */}
+                <EmptyState
+                  title="Inbox Zero"
+                  description="No active conversations. Launch a campaign from the Admin tower to generate traffic."
+                  actionLabel="Launch Campaign"
+                  actionHref="/dashboard/admin/campaigns"
+                  icon={MessageSquare}
+                />
               </div>
             )}
 
@@ -132,7 +128,7 @@ export default function CommandCenterPage() {
         </div>
 
         {/* Right: Quick Actions / Context */}
-        <div className="space-y-6">
+          <div className="lg:col-span-4 space-y-6">
           {/* Action Card */}
           <div className={`${THEME.surface} rounded-2xl border ${THEME.border} p-6`}>
             <h3 className="font-semibold text-white">Quick Actions</h3>

@@ -38,9 +38,26 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        primary: "#0F172A",
-        secondary: "#334155",
-        accent: "#2563EB",
+        glass: {
+          100: "rgba(255, 255, 255, 0.03)",
+          200: "rgba(255, 255, 255, 0.08)",
+          border: "rgba(255, 255, 255, 0.08)",
+          highlight: "rgba(255, 255, 255, 0.15)",
+        },
+        neon: {
+          indigo: "#6366f1",
+          cyan: "#06b6d4",
+          rose: "#f43f5e",
+          emerald: "#10b981",
+        },
+      },
+      boxShadow: {
+        glass: "0 4px 30px rgba(0, 0, 0, 0.1)",
+        "neon-blue": "0 0 20px rgba(99, 102, 241, 0.4)",
+        "neon-green": "0 0 20px rgba(16, 185, 129, 0.4)",
+      },
+      backgroundImage: {
+        "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
       },
     },
   },
