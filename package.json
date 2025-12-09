@@ -1,29 +1,30 @@
 {
   "name": "monthaven",
-  "version": "1.0.0",
+  "version": "3.0.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "push": "clasp push",
-    "pull": "clasp pull",
-    "open": "clasp open",
-    "deploy": "clasp push && clasp deploy --description \"auto\"",
-    "verify:dry": "node address-verifier-runner.cjs",
-    "verify:real": "DRY_RUN=false node address-verifier-runner.cjs",
-    "pipeline": "node ops/pipeline.js",
-    "commercial-test": "node ops/pipeline.js --csv campaigns/inputs/sample-commercial.csv --dry-run true",
-    "commercial-live": "node ops/pipeline.js --csv campaigns/inputs/sample-commercial.csv --dry-run false",
-    "db:sync": "node scripts/db-sync.cjs"
+    "//--- ORCHESTRATION ---": "",
+    "setup": "npm install && cd backend && npm install && cd ../frontend && npm install",
+    "db:sync": "node scripts/db-sync.cjs",
+
+    "//--- ENGINE (Backend) ---": "",
+    "engine:ingest": "cd backend && npx ts-node src/scripts/ingest.ts",
+    "engine:blast": "cd backend && npx ts-node src/scripts/blast.ts",
+    "engine:test": "cd backend && npm test",
+
+    "//--- STOREFRONT (Frontend) ---": "",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build:frontend": "cd frontend && npm run build",
+
+    "//--- GOOGLE SERVICES ---": "",
+    "clasp:push": "clasp push",
+    "clasp:deploy": "clasp push && clasp deploy --description 'auto'"
   },
   "dependencies": {
-    "@notionhq/client": "^5.4.0",
-    "axios": "^1.13.2",
-    "csv-parse": "^5.5.6",
-    "express": "^5.1.0",
-    "googleapis": "^140.0.0",
-    "libphonenumber-js": "^1.11.7"
-    ,
-    "node-fetch": "^2.6.7"
+    "@notionhq/client": "^2.2.14",
+    "axios": "^1.6.0",
+    "dotenv": "^16.3.1"
   },
   "devDependencies": {
     "@google/clasp": "^2.4.2"
