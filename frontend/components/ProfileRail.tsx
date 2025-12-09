@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Settings } from "lucide-react";
+import { Settings, LogOut } from "lucide-react";
 
 export default function ProfileRail() {
   return (
@@ -10,8 +10,12 @@ export default function ProfileRail() {
         JD
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-gray-200">John Doe</p>
-        <p className="truncate text-[10px] text-gray-500 transition-colors group-hover:text-gray-400">Super Admin</p>
+        <p className="truncate text-sm font-semibold text-gray-200">
+          John Doe
+        </p>
+        <p className="truncate text-[10px] text-gray-500 transition-colors group-hover:text-gray-400">
+          Super Admin
+        </p>
       </div>
       <Settings size={16} className="text-gray-600 group-hover:text-white" />
     </div>

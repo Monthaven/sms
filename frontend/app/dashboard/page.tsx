@@ -10,14 +10,13 @@ import {
   ArrowRight,
   Clock 
 } from "lucide-react";
-import { StatCard } from "@/components/StatCard";
-import EmptyState from "@/components/EmptyState";
-import { useLeads } from "@/lib/hooks/useLeads";
-import { THEME } from "@/lib/theme";
-import { Avatar, StatusBadge } from "@/components/Shared";
+import { StatCard } from "../../components/StatCard";
+import { useLeads } from "../../lib/hooks/useLeads";
+import { THEME } from "../../lib/theme";
+import EmptyState from "../../components/EmptyState";
+import { Avatar, StatusBadge } from "../../components/Shared";
 
 export default function CommandCenterPage() {
-  // Fetch "Radar" leads (Hot responses + Active conversations)
   const { leads, isLoading } = useLeads({ 
     statuses: ["RESP_HOT", "RESP_WARM", "CONVERSATION_ACTIVE"] 
   });
@@ -26,8 +25,7 @@ export default function CommandCenterPage() {
   const hotCount = leads?.filter(l => l.status === 'RESP_HOT').length || 0;
 
   return (
-    <div className="space-y-8">
-      {/* 1. Hero KPI Grid */}
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Inbox Radar"
@@ -44,6 +42,7 @@ export default function CommandCenterPage() {
           color="bg-rose-500"
           trend="Immediate action"
           trendUp={true}
+          variant={hotCount > 0 ? "alert" : "default"}
         />
         <StatCard
           label="Total Database"
@@ -54,20 +53,18 @@ export default function CommandCenterPage() {
           trendUp={false}
         />
         <StatCard
-          label="Engine Status"
-          value="Standby"
-          icon={Terminal}
-          color="bg-emerald-500"
-          trend="Manage ingestion"
-          trendUp={false}
-          variant="status"
+           label="Engine Status"
+           value="Standby"
+           icon={Terminal}
+           color="bg-emerald-500"
+           trend="Online"
+           trendUp={true}
+           variant="status"
         />
       </div>
 
-      {/* 2. Main Workspace Split */}
-        <div className="grid gap-8 lg:grid-cols-12">
-        {/* Left: Live Inbox Feed */}
-          <div className={`lg:col-span-8 ${THEME.surface} flex flex-col rounded-2xl border ${THEME.border} overflow-hidden min-h-[400px]`}>
+      <div className="grid gap-8 lg:grid-cols-12">
+        <div className={`lg:col-span-8 ${THEME.surface} flex flex-col rounded-2xl border ${THEME.border} overflow-hidden min-h-[400px]`}>
           <div className="flex items-center justify-between border-b border-white/5 p-6">
             <h3 className="flex items-center gap-2 text-lg font-semibold text-white">
               <Clock size={18} className="text-indigo-400" />
@@ -84,18 +81,12 @@ export default function CommandCenterPage() {
             )}
 
             {!isLoading && activeCount === 0 && (
-              <div className="h-full">
-                {/* Replace with reusable EmptyState component */}
-                {/* eslint-disable-next-line @typescript-eslint/ban-ts-comment */}
-                {/* @ts-ignore */}
-                <EmptyState
-                  title="Inbox Zero"
-                  description="No active conversations. Launch a campaign from the Admin tower to generate traffic."
-                  actionLabel="Launch Campaign"
-                  actionHref="/dashboard/admin/campaigns"
-                  icon={MessageSquare}
-                />
-              </div>
+              <EmptyState 
+                title="Inbox Zero"
+                description="No active conversations. Launch a campaign from the Admin tower to generate traffic."
+                actionLabel="Launch Campaign"
+                onAction={() => window.location.href = '/dashboard/admin/campaigns'}
+              />
             )}
 
             {leads?.map((lead) => (
@@ -127,20 +118,18 @@ export default function CommandCenterPage() {
           </div>
         </div>
 
-        {/* Right: Quick Actions / Context */}
-          <div className="lg:col-span-4 space-y-6">
-          {/* Action Card */}
+        <div className="lg:col-span-4 space-y-6">
           <div className={`${THEME.surface} rounded-2xl border ${THEME.border} p-6`}>
             <h3 className="font-semibold text-white">Quick Actions</h3>
             <div className="mt-4 space-y-2">
-              <Link href="/dashboard/queue" className="flex w-full items-center justify-between rounded-lg border border-white/10 bg-white/5 p-3 text-sm text-slate-300 hover:bg-white/10">
+              <Link href="/dashboard/queue" className="flex w-full items-center justify-between rounded-lg border border-white/10 bg-white/5 p-3 text-sm text-slate-300 hover:bg-white/10 hover:border-emerald-500/30 transition-all">
                 <span className="flex items-center gap-2">
                   <span className="h-2 w-2 rounded-full bg-emerald-500" />
                   Start Call Queue
                 </span>
                 <ArrowRight size={14} />
               </Link>
-              <Link href="/dashboard/admin/campaigns" className="flex w-full items-center justify-between rounded-lg border border-white/10 bg-white/5 p-3 text-sm text-slate-300 hover:bg-white/10">
+              <Link href="/dashboard/admin/campaigns" className="flex w-full items-center justify-between rounded-lg border border-white/10 bg-white/5 p-3 text-sm text-slate-300 hover:bg-white/10 hover:border-amber-500/30 transition-all">
                 <span className="flex items-center gap-2">
                   <span className="h-2 w-2 rounded-full bg-amber-500" />
                   Draft Blast
@@ -150,33 +139,33 @@ export default function CommandCenterPage() {
             </div>
           </div>
 
-          {/* Engine Health Stub */}
           <div className={`${THEME.surface} rounded-2xl border ${THEME.border} p-6`}>
             <h3 className="font-semibold text-white">System Health</h3>
             <div className="mt-4 space-y-4">
-              <HealthRow label="Neon Database" status="healthy" />
-              <HealthRow label="EzTexting API" status="healthy" />
-              <HealthRow label="Twilio Gateway" status="disconnected" />
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-400">Neon Database</span>
+                <div className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="uppercase text-slate-300">healthy</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-400">EzTexting API</span>
+                <div className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  <span className="uppercase text-slate-300">healthy</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-400">Twilio Gateway</span>
+                <div className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-slate-700" />
+                  <span className="uppercase text-slate-500">disconnected</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function HealthRow({ label, status }: { label: string, status: 'healthy' | 'warning' | 'disconnected' }) {
-  const colors = {
-    healthy: "bg-emerald-500",
-    warning: "bg-amber-500",
-    disconnected: "bg-slate-700"
-  };
-  return (
-    <div className="flex items-center justify-between text-xs">
-      <span className="text-slate-400">{label}</span>
-      <div className="flex items-center gap-2">
-        <span className={`h-1.5 w-1.5 rounded-full ${colors[status]}`} />
-        <span className="uppercase text-slate-300">{status}</span>
       </div>
     </div>
   );

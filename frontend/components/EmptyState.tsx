@@ -1,35 +1,33 @@
 "use client";
 
-import Link from "next/link";
 import React from "react";
-import { Inbox, Wifi } from "lucide-react";
+import { MessageSquare, ArrowRight } from "lucide-react";
 
 interface EmptyStateProps {
   title: string;
-  description?: string;
+  description: string;
   actionLabel?: string;
-  actionHref?: string;
-  icon?: React.ComponentType<any>;
+  onAction?: () => void;
 }
 
-export default function EmptyState({
-  title,
-  description,
-  actionLabel,
-  actionHref,
-  icon: Icon = Inbox,
-}: EmptyStateProps) {
+export default function EmptyState({ title, description, actionLabel, onAction }: EmptyStateProps) {
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-4 p-8 text-center">
-      <div className="rounded-full opacity-20">
-        <Icon className="w-24 h-24 text-white" />
+    <div className="flex h-full flex-col items-center justify-center p-10 text-center animate-in fade-in zoom-in-95 duration-500">
+      <div className="mb-4 rounded-full bg-white/5 p-6 ring-1 ring-white/10">
+        <MessageSquare className="h-10 w-10 text-slate-600" />
       </div>
-      <h3 className="text-xl font-semibold text-white">{title}</h3>
-      {description && <p className="max-w-md text-sm text-slate-400">{description}</p>}
-      {actionLabel && actionHref && (
-        <Link href={actionHref} className="mt-4 inline-flex items-center gap-2 rounded-lg bg-white/6 px-4 py-2 text-sm font-medium text-white hover:bg-white/10">
+      <h4 className="text-lg font-medium text-white">{title}</h4>
+      <p className="max-w-xs text-sm text-slate-500 mt-2">
+        {description}
+      </p>
+      {actionLabel && onAction && (
+        <button 
+          onClick={onAction}
+          className="mt-6 flex items-center gap-2 rounded-lg bg-[#1E2538] px-4 py-2 text-sm font-medium text-indigo-400 hover:text-white hover:bg-indigo-600 transition-all shadow-lg hover:shadow-indigo-500/25 border border-[#2A3449]"
+        >
           {actionLabel}
-        </Link>
+          <ArrowRight size={14} />
+        </button>
       )}
     </div>
   );

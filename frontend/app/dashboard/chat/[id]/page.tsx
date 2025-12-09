@@ -88,7 +88,7 @@ export default async function ChatThread({
       <section className="glass-panel border border-white/10 p-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-4">
-            <Avatar name={`${lead.contact.firstName ?? ''} ${lead.contact.lastName ?? ''}`.trim() || lead.contact.phoneE164} size="md" />
+            <Avatar name={`${lead.contact.firstName ?? ''} ${lead.contact.lastName ?? ''}`.trim() || lead.contact.phoneE164} />
             <div>
               <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Lead Profile</p>
               <h1 className="text-3xl font-semibold text-white">

@@ -1,66 +1,65 @@
+"use client";
+
 import React from "react";
-import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { THEME } from "@/lib/theme";
 import { motion } from "framer-motion";
 
 interface StatCardProps {
   label: string;
   value: string | number;
   icon: LucideIcon;
-  trend?: string;
-  trendUp?: boolean;
   color: string;
-  variant?: "default" | "status" | "alert";
+  trend: string;
+  trendUp: boolean;
+  variant?: "default" | "alert" | "status";
 }
 
 export function StatCard({
   label,
   value,
   icon: Icon,
+  color,
   trend,
   trendUp,
-  color,
   variant = "default",
 }: StatCardProps) {
-  const iconColorClass = color.replace("bg-", "text-");
-  const glowColorClass = color.replace("bg-", "bg-opacity-10 bg-");
-  const statusAccent = variant === "status" ? "border-emerald-500" : "";
-  const statusBg = variant === "status" ? "bg-emerald-500/10" : "";
+  
+  // Base glass style
+  const baseStyle = "relative overflow-hidden rounded-2xl border border-[#2A3449] bg-[#151B2D] p-6 transition-all hover:border-gray-700";
+  
+  // Variant styles
+  const variants = {
+    default: baseStyle,
+    alert: "relative overflow-hidden rounded-2xl border border-rose-500/30 bg-rose-500/5 p-6 shadow-[0_0_30px_rgba(244,63,94,0.1)]",
+    status: "relative overflow-hidden rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-6 hover:border-emerald-500/50 transition-colors"
+  };
 
   return (
-    <div
-      className={`${THEME.surface} group relative overflow-hidden rounded-2xl border ${THEME.border} p-6 transition-all hover:border-gray-700 ${statusAccent}`}
-    >
-      <div
-        className={`absolute -right-6 -top-6 h-24 w-24 rounded-full ${glowColorClass} blur-3xl opacity-0 transition-opacity group-hover:opacity-100`}
-      />
+    <div className={variants[variant]}>
+      {/* Background Glow Effect */}
+      <div className={`absolute -right-6 -top-6 h-24 w-24 rounded-full bg-opacity-10 blur-3xl ${color} opacity-0 transition-opacity group-hover:opacity-100`} />
+
       <div className="relative z-10 flex items-start justify-between">
-        <div className={`rounded-xl ${color} ${statusBg} p-3.5 text-white`}>
-          <Icon size={24} className={`${iconColorClass} ${variant === "status" ? "text-emerald-400" : ""}`} />
+        <div className={`rounded-xl bg-opacity-10 p-3.5 text-white ${color.replace('bg-', 'bg-').replace('500', '500/10')}`}>
+          <Icon className={color.replace('bg-', 'text-')} size={24} />
         </div>
-        {trend && (
-          <span
-            className={`flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-bold ${
-              trendUp ? "bg-emerald-500/10 text-emerald-400" : "bg-rose-500/10 text-rose-400"
-            }`}
-          >
-            {trendUp ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
-            {trend}
-          </span>
-        )}
-        {trend === "Live" && (
-          <motion.span
-            aria-hidden
-            className="absolute left-6 top-6 h-3 w-3 rounded-full bg-emerald-400/80 shadow-[0_0_10px_rgba(16,185,129,0.45)]"
-            animate={{ scale: [1, 1.5, 1] }}
-            transition={{ repeat: Infinity, duration: 1.4 }}
-          />
-        )}
+        
+        <span className={`flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-bold ${
+          variant === 'status' ? 'bg-emerald-500/10 text-emerald-400' :
+          trendUp ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'
+        }`}>
+          {variant === 'status' && <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse mr-1"/>}
+          {trend}
+        </span>
       </div>
+
       <div className="relative z-10 mt-5">
-        <p className="text-sm font-medium uppercase tracking-wide text-gray-500">{label}</p>
-        <p className="mt-1 text-3xl font-bold text-white tracking-tight">{value}</p>
+        <p className="text-sm font-medium uppercase tracking-wide text-gray-500">
+          {label}
+        </p>
+        <p className="mt-1 text-3xl font-bold text-white tracking-tight">
+          {value}
+        </p>
       </div>
     </div>
   );

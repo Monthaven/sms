@@ -5,8 +5,8 @@ import { usePathname } from "next/navigation";
 import { MessageSquare } from "lucide-react";
 import NavButton from "./NavButton";
 import ProfileRail from "./ProfileRail"; 
-import { NAV_SECTIONS } from "@/lib/navigation"; 
-import { THEME } from "@/lib/theme";
+import { NAV_SECTIONS } from "../lib/navigation"; 
+import { THEME } from "../lib/theme";
 
 interface SidebarProps {
   onItemClick?: () => void;
@@ -35,7 +35,7 @@ export default function Sidebar({ onItemClick }: SidebarProps) {
         </div>
       </div>
 
-      {/* Dynamic Navigation from "The Brain" */}
+      {/* Dynamic Navigation */}
       <div className="custom-scrollbar flex-1 space-y-8 overflow-y-auto px-4 py-2">
         {NAV_SECTIONS.map((section) => (
           <div key={section.label}>
@@ -59,7 +59,7 @@ export default function Sidebar({ onItemClick }: SidebarProps) {
         ))}
       </div>
 
-      {/* User Profile Footer */}
+      {/* Footer */}
       <div className="mt-auto border-t border-[#1E2538] p-4">
          <ProfileRail />
       </div>

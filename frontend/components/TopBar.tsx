@@ -3,15 +3,14 @@
 import React, { useState } from "react";
 import { Search, Bell, Menu, X } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { THEME } from "@/lib/theme";
-import { buildBreadcrumbs } from "@/lib/navigation";
+import { THEME } from "../lib/theme";
+import { buildBreadcrumbs } from "../lib/navigation";
 import Sidebar from "./Sidebar";
 
 export default function TopBar() {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
-  // Use the "Brain" to determine titles
   const breadcrumbs = buildBreadcrumbs(pathname || "");
   const pageTitle = breadcrumbs[breadcrumbs.length - 1]?.label || "Overview";
   const sectionTitle = breadcrumbs.length > 1 ? breadcrumbs[0].label : "Monthaven";
@@ -35,7 +34,6 @@ export default function TopBar() {
         </div>
 
         <div className="flex items-center gap-4">
-           {/* Search Bar - Visual Only for now */}
            <div className="relative hidden md:block">
              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" size={16} />
              <input 
