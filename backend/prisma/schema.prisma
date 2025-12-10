@@ -3,224 +3,38 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
-}
-// --- USERS & AUTH (New for Command Center) ---
-
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  role      UserRole @default(AGENT)
-  
-  // Relations
-  assignedLeads Lead[]
-  auditLogs     LeadAudit[]
-  ingestionJobs IngestionJob[] @relation("IngestionStartedBy")
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-enum UserRole {
-  ADMIN
-  AGENT
-}
-
-// --- CORE ENTITIES ---
-
-model Contact {
-  id          String   @id @default(cuid())
-  phoneE164   String   @unique // Normalized +1XXXXXXXXXX
-  phoneType   String?  // "Mobile", "Landline", "VoIP"
-  firstName   String?
-  lastName    String?
-  email       String?
-  source      String   @default("DEALMACHINE")
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  properties   Property[]
-  leads        Lead[]
-  interactions Interaction[]
-  
-  @@index([phoneE164])
-}
-
-model Property {
-  id             String   @id @default(cuid())
-  
-  // Owner is optional because Deep Trace might have multiple contacts per property
-  ownerId        String?  
-  owner          Contact? @relation(fields: [ownerId], references: [id])
-
-  addressLine1   String
-  city           String
-  state          String
-  postalCode     String
-  
-  // Stores the entire CSV row as JSON so we never lose data (Equity, Roof, etc.)
-  rawDetails     Json?    
-
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  leads          Lead[]
-
-  // Unique Identifier for a Property
-  @@unique([addressLine1, city, state])
-}
-
-model DncList {
-  id        String   @id @default(cuid())
-  phoneE164 String   @unique
-  reason    String?  // e.g. "STOP Keyword", "Litigator Scrub"
-  createdAt DateTime @default(now())
-}
-
-// --- PIPELINE & WORKFLOW ---
-
-model Campaign {
-  id               String   @id @default(cuid())
-  name             String
-  ezTextingGroupId String? 
-  status           String   @default("DRAFT") 
-
-  createdAt        DateTime @default(now())
-  leads            Lead[]
-  ingestionJobs    IngestionJob[] @relation("CampaignIngestionJobs")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Lead {
-  id             String      @id @default(cuid())
-  
-  // Context
-  campaignId     String
-  campaign       Campaign    @relation(fields: [campaignId], references: [id])
-  
-  contactId      String
-  contact        Contact     @relation(fields: [contactId], references: [id])
-  
-  propertyId     String?
-  property       Property?   @relation(fields: [propertyId], references: [id])
+  id                String    @id @default(uuid())
+  campaignId        String
+  contactId         String    @unique // CRITICAL: Marks this as the joining key
+  propertyId        String?
+  status            String    // Mapped to String to handle custom DB enums safely
+  sentimentScore    Int       @default(0)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  assignedToId      String?
+  isFlagged         Boolean   @default(false)
+  notes             String?
+  lastInteractionAt DateTime? // Added via your SQL command
 
-  // Workflow State
-  status         LeadStatus  @default(NEW)
-  sentimentScore Int         @default(0) 
-  
-  // Agent Workflow (The "Command Center" Logic)
-  assignedToId   String?
-  assignedTo     User?       @relation(fields: [assignedToId], references: [id])
-  
-  isFlagged      Boolean     @default(false) // For "Review Needed"
-  notes          String?     @db.Text        // Internal notes
-
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
-  
-  audits         LeadAudit[] // History of changes
-
-  @@unique([campaignId, contactId, propertyId])
-  @@index([status])
-  @@index([assignedToId])
-}
-
-// Audit Trail: Tracks WHO did WHAT (Compliance)
-model LeadAudit {
-  id        String   @id @default(cuid())
-  leadId    String
-  lead      Lead     @relation(fields: [leadId], references: [id])
-  
-  userId    String?  // If Null, it was a System/Bot action
-  user      User?    @relation(fields: [userId], references: [id])
-  
-  action    String   // e.g. "STATUS_CHANGE", "CLAIMED", "NOTE_ADDED"
-  details   String?  // e.g. "Changed status from NEW to RESP_HOT"
-  
-  createdAt DateTime @default(now())
+  // RELATION: One Lead has many Interactions, linked by contactId
+  interactions      Interaction[]
 }
 
 model Interaction {
-  id          String   @id @default(cuid())
-  contactId   String
-  contact     Contact  @relation(fields: [contactId], references: [id])
+  id         String   @id @default(uuid())
+  contactId  String   // Foreign key matching Lead.contactId
+  channel    String
+  direction  String
+  body       String
+  externalId String?
+  createdAt  DateTime @default(now())
+  read       Boolean  @default(false) // Added via your SQL command
 
-  channel     Channel  
-  direction   Direction
-  
-  body        String   @db.Text
-  externalId  String?  // Twilio/EzTexting Message SID
-  
-  createdAt   DateTime @default(now())
-  
-  @@index([contactId])
-}
-
-model IngestionJob {
-  id              String              @id @default(cuid())
-  fileName        String
-  campaignId      String?
-  campaign        Campaign?           @relation("CampaignIngestionJobs", fields: [campaignId], references: [id])
-  status          IngestionJobStatus  @default(PENDING)
-  rowsProcessed   Int                 @default(0)
-  contactsCreated Int                 @default(0)
-  leadsCreated    Int                 @default(0)
-  startedById     String?
-  startedBy       User?               @relation("IngestionStartedBy", fields: [startedById], references: [id])
-  startedAt       DateTime            @default(now())
-  finishedAt      DateTime?
-  durationSeconds Int?
-  errorMessage    String?
-}
-
-model WebhookLog {
-  id           String     @id @default(cuid())
-  provider     String
-  direction    Direction
-  status       String
-  statusCode   Int?
-  payload      Json?
-  errorMessage String?
-  createdAt    DateTime   @default(now())
-}
-
-// --- ENUMS ---
-
-enum LeadStatus {
-  NEW             // Mobile: Ready for Blast
-  QUEUED_FOR_CALL // Landline: Needs manual call
-  QUEUED          // Waiting for API
-  SENT            // Blast successful
-  
-  // Responses
-  RESP_STOP       // DNC
-  RESP_BOUNCE     // Bad Number
-  RESP_COLD       // "Not interested"
-  RESP_WARM       // "Who is this?" / "Maybe"
-  RESP_HOT        // "Price?" / "Yes"
-  
-  // Human Work
-  CONVERSATION_ACTIVE // Agent is chatting
-  CONVERTED       // Appointment Set
-  ARCHIVED        // Dead Lead
-}
-
-enum Channel {
-  EZTEXTING
-  TWILIO
-}
-
-enum Direction {
-  INBOUND
-  OUTBOUND
-}
-
-enum IngestionJobStatus {
-  PENDING
-  RUNNING
-  SUCCESS
-  FAILED
+  // RELATION: Belongs to one Lead
+  lead       Lead     @relation(fields: [contactId], references: [contactId])
 }

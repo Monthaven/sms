@@ -291,58 +291,64 @@ function buildAuditDetails(status: LeadStatus, options?: LeadStatusOptions) {
   return notes.join(" | ");
 }
 
-// --- COMMAND CENTER INTELLIGENCE ---
+// --- COMMAND CENTER INTELLIGENCE (Schema-aware) ---
 
 export async function getDashboardStats() {
-  try {
-    const totalLeads = await prisma.lead.count();
-    const hotLeads = await prisma.lead.count({ where: { status: 'RESP_HOT' } });
+  const [totalLeads, hotLeads, activeQueue, recentActivity] = await Promise.all([
+    // 1. Total Database Count
+    prisma.lead.count(),
 
-    const recentActivity = await prisma.interaction.findMany({
+    // 2. Hot Leads Count (use raw SQL to avoid enum typing mismatch between clients)
+    (async () => {
+      const res: any = await prisma.$queryRaw`SELECT COUNT(*)::int AS cnt FROM "Lead" WHERE status::text IN ('HOT','RESP_HOT')`
+      return Array.isArray(res) ? res[0]?.cnt ?? 0 : res?.cnt ?? 0
+    })(),
+
+    // 3. Call Queue: fallback to createdAt ordering if lastInteractionAt isn't present
+    prisma.lead.findMany(({
+      where: { status: 'QUEUED_FOR_CALL' as any },
+      take: 5,
+      orderBy: { createdAt: 'asc' },
+      select: {
+        id: true,
+        contactId: true,
+        status: true,
+        createdAt: true,
+        sentimentScore: true
+      }
+    }) as any),
+
+    // 4. Recent Activity: Inbound texts
+    // 4. Recent Activity: Inbound texts — include contact info (lead relation may not be present)
+    prisma.interaction.findMany(({
       where: { direction: 'INBOUND' },
       take: 5,
       orderBy: { createdAt: 'desc' },
       include: {
-        lead: {
-          include: { contact: true }
-        }
+        contact: true
       }
-    });
+    }) as any)
+  ]);
 
-    const callQueue = await prisma.lead.findMany({
-      where: { status: 'QUEUED_FOR_CALL' },
-      take: 5,
-      orderBy: { updatedAt: 'desc' },
-      include: { contact: true }
-    });
-
-    return {
-      kpi: {
-        total: totalLeads,
-        hot: hotLeads,
-        revenue: "$1.2M",
-        conversion: "24%",
-      },
-      activity: recentActivity.map(i => ({
-        id: i.id,
-        name: `${i.lead?.contact?.firstName ?? 'Unknown'} ${i.lead?.contact?.lastName ?? ''}`.trim(),
-        action: 'Inbound Reply',
-        time: i.createdAt,
-        status: i.lead?.status?.replace('RESP_', '') || 'New'
-      })),
-      queue: callQueue.map(l => ({
-        id: l.id,
-        name: `${l.contact?.firstName ?? ''} ${l.contact?.lastName ?? ''}`.trim() || l.contact?.phoneE164 || 'Unknown',
-        status: 'Queued',
-        time: l.updatedAt
-      }))
-    };
-  } catch (err: any) {
-    console.warn('getDashboardStats failed', err);
-    return {
-      kpi: { total: 0, hot: 0, revenue: '$0', conversion: '0%' },
-      activity: [],
-      queue: []
-    };
-  }
+  return {
+    kpi: {
+      total: totalLeads.toLocaleString(),
+      hot: hotLeads,
+      revenue: "$1.2M",
+      conversion: "24%"
+    },
+    queue: (activeQueue as any).map((l: any) => ({
+      id: l.id,
+      name: `Contact ${l.contactId.slice(-4)}`,
+      status: "Waiting",
+      time: l.lastInteractionAt || new Date()
+    })),
+    activity: (recentActivity as any).map((i: any) => ({
+      id: i.id,
+      name: i.lead ? `Lead ${i.lead.contactId.slice(-4)}` : "Unknown",
+      action: "Inbound SMS",
+      status: i.lead?.status || "New",
+      time: i.createdAt
+    }))
+  };
 }

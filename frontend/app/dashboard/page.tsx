@@ -29,7 +29,7 @@ export default async function CommandCenterPage() {
         <StatCard
           label="Total Leads"
           value={data.kpi.total.toLocaleString()}
-          icon={Users}
+          iconName="Users"
           color="bg-slate-800"
           trend="Database"
           trendUp={true}
@@ -37,7 +37,7 @@ export default async function CommandCenterPage() {
         <StatCard
           label="Hot Leads"
           value={data.kpi.hot}
-          icon={Phone}
+          iconName="Phone"
           color="bg-slate-800"
           trend="Action Req."
           trendUp={true}
@@ -46,7 +46,7 @@ export default async function CommandCenterPage() {
         <StatCard
           label="Conversion"
           value={data.kpi.conversion}
-          icon={TrendingUp}
+          iconName="TrendingUp"
           color="bg-slate-800"
           trend="+2.4%"
           trendUp={true}
@@ -54,7 +54,7 @@ export default async function CommandCenterPage() {
         <StatCard
           label="Est. Revenue"
           value={data.kpi.revenue}
-          icon={DollarSign}
+          iconName="DollarSign"
           color="bg-slate-800"
           trend="Pipeline"
           trendUp={true}
@@ -71,7 +71,7 @@ export default async function CommandCenterPage() {
           </div>
           <div className="space-y-4">
             {data.activity.length === 0 && <p className="text-xs text-slate-500">No recent activity.</p>}
-            {data.activity.map((item) => (
+            {data.activity.map((item: any) => (
               <div key={item.id} className="flex items-center justify-between group cursor-pointer">
                 <div className="flex items-center gap-3">
                   <div className="h-8 w-8 rounded-full bg-slate-800 flex items-center justify-center text-xs text-slate-400 border border-slate-700 group-hover:border-indigo-500/50 transition-colors">
@@ -101,7 +101,7 @@ export default async function CommandCenterPage() {
           </div>
           <div className="space-y-4">
             {data.queue.length === 0 && <p className="text-xs text-slate-500">Queue is clear.</p>}
-            {data.queue.map((item) => (
+            {data.queue.map((item: any) => (
               <div key={item.id} className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 hover:border-emerald-500/30 transition-all cursor-pointer group">
                 <div className="flex items-center gap-3">
                   <Avatar name={item.name} />

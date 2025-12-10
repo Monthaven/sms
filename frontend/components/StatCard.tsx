@@ -1,28 +1,36 @@
 "use client";
 
 import React from "react";
-import type { LucideIcon } from "lucide-react";
+import { Users, Phone, TrendingUp, DollarSign } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface StatCardProps {
   label: string;
   value: string | number;
-  icon: LucideIcon;
+  iconName?: "Users" | "Phone" | "TrendingUp" | "DollarSign";
   color: string;
   trend: string;
   trendUp: boolean;
   variant?: "default" | "alert" | "status";
 }
 
+const ICONS: Record<string, any> = {
+  Users,
+  Phone,
+  TrendingUp,
+  DollarSign,
+};
+
 export function StatCard({
   label,
   value,
-  icon: Icon,
+  iconName,
   color,
   trend,
   trendUp,
   variant = "default",
 }: StatCardProps) {
+  const Icon = iconName ? ICONS[iconName] : null;
   
   // Base glass style
   const baseStyle = "relative overflow-hidden rounded-2xl border border-[#2A3449] bg-[#151B2D] p-6 transition-all hover:border-gray-700";
