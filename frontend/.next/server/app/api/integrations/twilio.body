@@ -1,1 +1,0 @@
-{"status":"pending","missingEnv":["TWILIO_FROM_NUMBER"],"webhookUrl":"https://your-project.vercel.app/api/webhooks/twilio","instructions":"Set env vars (Account SID, Auth Token, From Number) in both Vercel (Storefront) and local .env (Engine). After redeploy, Twilio status will refresh automatically."}

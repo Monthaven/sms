@@ -56,6 +56,13 @@ const config: Config = {
         "neon-blue": "0 0 20px rgba(99, 102, 241, 0.4)",
         "neon-green": "0 0 20px rgba(16, 185, 129, 0.4)",
       },
+      dropShadow: {
+        glow: '0 0 10px rgba(99, 102, 241, 0.5)',
+        'glow-white': '0 0 10px rgba(255, 255, 255, 0.5)'
+      },
+      animation: {
+        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+      },
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
       },
