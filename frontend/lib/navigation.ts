@@ -30,11 +30,19 @@ export const NAVIGATION_CONFIG = [
   },
 ];
 
-// Compatibility layer for components expecting `NAV_SECTIONS` and helper
+// Compatibility layer for components expecting `NAV_SECTIONS`
 export const NAV_SECTIONS = NAVIGATION_CONFIG.map((section) => ({
   label: section.title,
   items: section.items.map((it) => ({ href: it.id, name: it.label, icon: it.icon })),
 }));
+
+// --- MISSING EXPORT ADDED HERE ---
+export const PRIMARY_NAV = [
+  { label: "Inbox", href: "/dashboard/chat" },
+  { label: "Queue", href: "/dashboard/queue" },
+  { label: "Campaigns", href: "/dashboard/campaigns" },
+  { label: "Team", href: "/dashboard/admin/agents" },
+];
 
 export function buildBreadcrumbs(pathname: string | null | undefined) {
   if (!pathname) return [{ label: "Monthaven", href: "/dashboard" }];

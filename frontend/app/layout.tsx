@@ -15,16 +15,14 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} antialiased`}> 
+      <body className={`${inter.className} antialiased bg-[#0B0F19] text-slate-100`}>
+        {/* The grid background can stay global */}
         <div className="mae-grid" aria-hidden="true" />
+        
         <ReactQueryProvider>
           <AcceptingModeProvider>
-            <div className="layout-shell">
-              <main className="command-surface custom-scrollbar">
-                <div className="command-inner">{children}</div>
-              </main>
-              <AcceptingModeToggle />
-            </div>
+            {children}
+            <AcceptingModeToggle />
           </AcceptingModeProvider>
         </ReactQueryProvider>
       </body>

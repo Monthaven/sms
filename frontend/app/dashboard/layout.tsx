@@ -11,7 +11,7 @@ export default function DashboardLayout({
   return (
     <div className="flex h-screen w-full overflow-hidden bg-[#0B1120] text-slate-100 antialiased selection:bg-indigo-500/30">
       {/* 1. Permanent Sidebar Navigation */}
-      <aside className="hidden w-64 flex-col border-r border-white/5 bg-[#0F1629] md:flex">
+      <aside className="hidden w-72 flex-col border-r border-white/5 bg-[#0F1629] md:flex">
         <Sidebar />
         <div className="mt-auto border-t border-white/5 p-4">
           <AgentPresence />
