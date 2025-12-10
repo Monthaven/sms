@@ -1,0 +1,12 @@
+1:HL["/_next/static/css/cee5c6816110c15f.css","style",{"crossOrigin":""}]
+0:["eHpOYr-UTFeGy5CLEYdYx",[[["",{"children":["__PAGE__",{}]},"$undefined","$undefined",true],"$L2",[[["$","link","0",{"rel":"stylesheet","href":"/_next/static/css/cee5c6816110c15f.css","precedence":"next","crossOrigin":""}]],"$L3"]]]]
+4:I[5238,["417","static/chunks/417-e172b852a2db9675.js","185","static/chunks/app/layout-ac0d915fefd63eec.js"],""]
+5:I[3325,["417","static/chunks/417-e172b852a2db9675.js","185","static/chunks/app/layout-ac0d915fefd63eec.js"],""]
+6:I[6954,[],""]
+7:I[7264,[],""]
+8:I[3447,["946","static/chunks/946-9c42ac7c9ad57f50.js","160","static/chunks/app/not-found-1e10ffef4215e80f.js"],""]
+a:I[8297,[],""]
+b:I[4638,["417","static/chunks/417-e172b852a2db9675.js","185","static/chunks/app/layout-ac0d915fefd63eec.js"],""]
+2:[null,["$","html",null,{"lang":"en","children":["$","body",null,{"className":"__className_f367f3 antialiased bg-[#0B0F19] text-slate-100","children":[["$","div",null,{"className":"mae-grid","aria-hidden":"true"}],["$","$L4",null,{"children":["$","$L5",null,{"children":[["$","$L6",null,{"parallelRouterKey":"children","segmentPath":["children"],"loading":"$undefined","loadingStyles":"$undefined","loadingScripts":"$undefined","hasLoading":false,"error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L7",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":["$","$L8",null,{}],"notFoundStyles":[],"childProp":{"current":["$L9",["$","$La",null,{"propsForComponent":{"params":{}},"Component":"$8","isStaticGeneration":true}],null],"segment":"__PAGE__"},"styles":null}],["$","$Lb",null,{}]]}]}]]}]}],null]
+3:[["$","meta","0",{"name":"viewport","content":"width=device-width, initial-scale=1"}],["$","meta","1",{"charSet":"utf-8"}],["$","title","2",{"children":"Monthaven Acquisition Engine"}],["$","meta","3",{"name":"description","content":"Institutional Real Estate Acquisition Platform"}]]
+9:null

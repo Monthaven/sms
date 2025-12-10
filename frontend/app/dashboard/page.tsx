@@ -30,7 +30,7 @@ export default async function CommandCenterPage() {
           label="Total Leads"
           value={data.kpi.total.toLocaleString()}
           iconName="Users"
-          color="bg-slate-800"
+          color="indigo" // Blue Glow
           trend="Database"
           trendUp={true}
         />
@@ -38,7 +38,7 @@ export default async function CommandCenterPage() {
           label="Hot Leads"
           value={data.kpi.hot}
           iconName="Phone"
-          color="bg-slate-800"
+          color="rose" // Red Glow (Urgent)
           trend="Action Req."
           trendUp={true}
           variant="status"
@@ -47,7 +47,7 @@ export default async function CommandCenterPage() {
           label="Conversion"
           value={data.kpi.conversion}
           iconName="TrendingUp"
-          color="bg-slate-800"
+          color="emerald" // Green Glow (Success)
           trend="+2.4%"
           trendUp={true}
         />
@@ -55,7 +55,7 @@ export default async function CommandCenterPage() {
           label="Est. Revenue"
           value={data.kpi.revenue}
           iconName="DollarSign"
-          color="bg-slate-800"
+          color="amber" // Gold Glow (Money)
           trend="Pipeline"
           trendUp={true}
         />

@@ -30,42 +30,47 @@ export function StatCard({
   trendUp,
   variant = "default",
 }: StatCardProps) {
-  const Icon = iconName ? ICONS[iconName] : null;
-  
-  // Base glass style
-  const baseStyle = "relative overflow-hidden rounded-2xl border border-[#2A3449] bg-[#151B2D] p-6 transition-all hover:border-gray-700";
-  
-  // Variant styles
-  const variants = {
-    default: baseStyle,
-    alert: "relative overflow-hidden rounded-2xl border border-rose-500/30 bg-rose-500/5 p-6 shadow-[0_0_30px_rgba(244,63,94,0.1)]",
-    status: "relative overflow-hidden rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-6 hover:border-emerald-500/50 transition-colors"
+  const Icon = iconName ? ICONS[iconName] : Users;
+
+  // Map friendly color names to hex values for inline styling (avoids Tailwind safelist issues)
+  const COLOR_MAP: Record<string, string> = {
+    indigo: '#6366f1',
+    rose: '#fb7185',
+    emerald: '#10b981',
+    amber: '#f59e0b',
+    slate: '#0f172a'
   };
 
+  const hex = COLOR_MAP[color] || color || '#6366f1';
+  const glowStyle = { background: hex, filter: 'blur(40px)', opacity: 0.18 } as React.CSSProperties;
+  const iconStyle = { color: hex } as React.CSSProperties;
+
   return (
-    <div className={variants[variant]}>
-      {/* Background Glow Effect */}
-      <div className={`absolute -right-6 -top-6 h-24 w-24 rounded-full bg-opacity-10 blur-3xl ${color} opacity-0 transition-opacity group-hover:opacity-100`} />
+    <div className={`glass-panel relative overflow-hidden transition-all group`}>
+      {/* Dynamic Ambient Glow (using inline style to avoid dynamic Tailwind classes) */}
+      <div style={Object.assign({ position: 'absolute', right: '-2.5rem', top: '-2.5rem', height: '8rem', width: '8rem', borderRadius: '9999px', transition: 'opacity 200ms' }, glowStyle)} className="opacity-0 group-hover:opacity-100" />
 
       <div className="relative z-10 flex items-start justify-between">
-        <div className={`rounded-xl bg-opacity-10 p-3.5 text-white ${color.replace('bg-', 'bg-').replace('500', '500/10')}`}>
-          <Icon className={color.replace('bg-', 'text-')} size={24} />
+        <div className={`rounded-xl p-3 text-white bg-white/5 border border-white/10 ring-1 ring-white/5`}>
+          <Icon size={20} style={iconStyle} />
         </div>
-        
-        <span className={`flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-bold ${
-          variant === 'status' ? 'bg-emerald-500/10 text-emerald-400' :
-          trendUp ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'
-        }`}>
-          {variant === 'status' && <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse mr-1"/>}
-          {trend}
-        </span>
+
+        <div className="flex flex-col items-end">
+           <span className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide border ${
+             trendUp 
+               ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+               : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+           }`}>
+            {trend}
+          </span>
+        </div>
       </div>
 
-      <div className="relative z-10 mt-5">
-        <p className="text-sm font-medium uppercase tracking-wide text-gray-500">
+      <div className="relative z-10 mt-6">
+        <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
           {label}
         </p>
-        <p className="mt-1 text-3xl font-bold text-white tracking-tight">
+        <p className="mt-1 text-3xl font-bold text-white tracking-tight font-mono text-glow">
           {value}
         </p>
       </div>
