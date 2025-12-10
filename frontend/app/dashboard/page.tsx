@@ -1,170 +1,167 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
-import { 
-  Users, 
-  MessageSquare, 
-  Flame, 
-  Terminal, 
-  ArrowRight,
-  Clock 
+import {
+  Users,
+  Phone,
+  TrendingUp,
+  DollarSign,
+  Activity,
+  MoreHorizontal,
 } from "lucide-react";
-import { StatCard } from "../../components/StatCard";
-import { useLeads } from "../../lib/hooks/useLeads";
-import { THEME } from "../../lib/theme";
-import EmptyState from "../../components/EmptyState";
-import { Avatar, StatusBadge } from "../../components/Shared";
+import { StatCard } from "@/components/StatCard";
+import { Avatar, StatusBadge } from "@/components/Shared";
+import AgentPresence from "@/components/AgentPresence";
+
+// Mock data to match the visual reference exactly
+const RECENT_ACTIVITY = [
+  { id: 1, name: "Lead Solitus", action: "Lead interest", time: "3 days ago", status: "Hot" },
+  { id: 2, name: "Lead Stadius", action: "Lead interest", time: "3 days ago", status: "Warm" },
+  { id: 3, name: "Lead Status", action: "Lead interest", time: "1 day ago", status: "New" },
+  { id: 4, name: "Lead Stalius", action: "Lead interest", time: "3 days ago", status: "Hot" },
+];
+
+const LIVE_QUEUE = [
+  { id: 1, name: "John Caller", status: "Active caller", time: "2m 17s" },
+  { id: 2, name: "Renoon Sitiara", status: "Active caller", time: "3h 5m" },
+  { id: 3, name: "John Caller", status: "Active caller", time: "18.7m" },
+  { id: 4, name: "Mariss Corntmon", status: "Active caller", time: "28.7m" },
+];
 
 export default function CommandCenterPage() {
-  const { leads, isLoading } = useLeads({ 
-    statuses: ["RESP_HOT", "RESP_WARM", "CONVERSATION_ACTIVE"] 
-  });
-
-  const activeCount = leads?.length || 0;
-  const hotCount = leads?.filter(l => l.status === 'RESP_HOT').length || 0;
-
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="space-y-8">
+      {/* 1. Header Section */}
+      <div className="flex flex-col gap-1">
+        <h1 className="text-3xl font-bold text-white tracking-tight">Welcome back, Agent.</h1>
+        <p className="text-sm text-slate-400">Here is what is happening in your territory today.</p>
+      </div>
+
+      {/* 2. KPI Grid (Matches Image) */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          label="Inbox Radar"
-          value={activeCount}
-          icon={MessageSquare}
-          color="bg-indigo-500"
-          trend={activeCount > 0 ? "Live" : "Quiet"}
-          trendUp={activeCount > 0}
-        />
-        <StatCard
-          label="Hot Leads"
-          value={hotCount}
-          icon={Flame}
-          color="bg-rose-500"
-          trend="Immediate action"
-          trendUp={true}
-          variant={hotCount > 0 ? "alert" : "default"}
-        />
-        <StatCard
-          label="Total Database"
-          value="39.5k"
+          label="Total Leads"
+          value="1,245"
           icon={Users}
-          color="bg-slate-600"
-          trend="Static"
-          trendUp={false}
+          color="bg-slate-800"
+          trend="1,245 ↗"
+          trendUp={true}
         />
         <StatCard
-           label="Engine Status"
-           value="Standby"
-           icon={Terminal}
-           color="bg-emerald-500"
-           trend="Online"
-           trendUp={true}
-           variant="status"
+          label="Active Calls"
+          value="18"
+          icon={Phone}
+          color="bg-slate-800"
+          trend="Live"
+          trendUp={true}
+          variant="default"
+        />
+        <StatCard
+          label="Conversion Rate"
+          value="24%"
+          icon={TrendingUp}
+          color="bg-slate-800"
+          trend="+2.4%"
+          trendUp={true}
+        />
+        <StatCard
+          label="Revenue"
+          value="$1.2M"
+          icon={DollarSign}
+          color="bg-slate-800"
+          trend="On track"
+          trendUp={true}
         />
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-12">
-        <div className={`lg:col-span-8 ${THEME.surface} flex flex-col rounded-2xl border ${THEME.border} overflow-hidden min-h-[400px]`}>
-          <div className="flex items-center justify-between border-b border-white/5 p-6">
-            <h3 className="flex items-center gap-2 text-lg font-semibold text-white">
-              <Clock size={18} className="text-indigo-400" />
-              Response Feed
-            </h3>
-            <span className="text-xs text-slate-500">Real-time from Neon</span>
+      {/* 3. The "Cyberpunk" 3-Column Grid */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        {/* Column 1: Recent Activity */}
+        <div className="glass-panel p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="font-semibold text-white">Recent Activity</h3>
+            <MoreHorizontal size={16} className="text-slate-500" />
           </div>
-          
-          <div className="flex-1 divide-y divide-white/5">
-            {isLoading && (
-              <div className="flex h-full items-center justify-center p-10 text-slate-500">
-                Loading live feed...
-              </div>
-            )}
-
-            {!isLoading && activeCount === 0 && (
-              <EmptyState 
-                title="Inbox Zero"
-                description="No active conversations. Launch a campaign from the Admin tower to generate traffic."
-                actionLabel="Launch Campaign"
-                onAction={() => window.location.href = '/dashboard/admin/campaigns'}
-              />
-            )}
-
-            {leads?.map((lead) => (
-              <Link 
-                key={lead.id} 
-                href={`/dashboard/chat/${lead.id}`}
-                className="group flex items-center gap-4 p-4 transition-colors hover:bg-white/5"
-              >
-                <Avatar name={`${lead.contact.firstName || 'Unknown'} ${lead.contact.lastName || 'Lead'}`} />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between">
-                    <p className="truncate text-sm font-bold text-slate-200 group-hover:text-indigo-400">
-                      {lead.contact.firstName} {lead.contact.lastName}
-                    </p>
-                    <span className="text-[10px] text-slate-500">
-                      {new Date(lead.updatedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                    </span>
+          <div className="space-y-4">
+            {RECENT_ACTIVITY.map((item) => (
+              <div key={item.id} className="flex items-center justify-between group cursor-pointer">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-full bg-slate-800 flex items-center justify-center text-xs text-slate-400 border border-slate-700">
+                    <Users size={14} />
                   </div>
-                  <div className="mt-1 flex items-center gap-2">
-                    <StatusBadge status={lead.status.replace('RESP_', '')} />
-                    <span className="truncate text-xs text-slate-400">
-                      {lead.property?.addressLine1 || "No address data"}
-                    </span>
+                  <div>
+                    <p className="text-sm font-medium text-slate-200 group-hover:text-indigo-400 transition-colors">{item.name}</p>
+                    <p className="text-[10px] text-slate-500">{item.action} · {item.time}</p>
                   </div>
                 </div>
-                <ArrowRight size={16} className="text-slate-700 opacity-0 transition-all group-hover:translate-x-1 group-hover:opacity-100" />
-              </Link>
+                <StatusBadge status={item.status} />
+              </div>
             ))}
           </div>
         </div>
 
-        <div className="lg:col-span-4 space-y-6">
-          <div className={`${THEME.surface} rounded-2xl border ${THEME.border} p-6`}>
-            <h3 className="font-semibold text-white">Quick Actions</h3>
-            <div className="mt-4 space-y-2">
-              <Link href="/dashboard/queue" className="flex w-full items-center justify-between rounded-lg border border-white/10 bg-white/5 p-3 text-sm text-slate-300 hover:bg-white/10 hover:border-emerald-500/30 transition-all">
-                <span className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                  Start Call Queue
-                </span>
-                <ArrowRight size={14} />
-              </Link>
-              <Link href="/dashboard/admin/campaigns" className="flex w-full items-center justify-between rounded-lg border border-white/10 bg-white/5 p-3 text-sm text-slate-300 hover:bg-white/10 hover:border-amber-500/30 transition-all">
-                <span className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-amber-500" />
-                  Draft Blast
-                </span>
-                <ArrowRight size={14} />
-              </Link>
+        {/* Column 2: Live Queue */}
+        <div className="glass-panel p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="font-semibold text-white">Live Queue</h3>
+            <MoreHorizontal size={16} className="text-slate-500" />
+          </div>
+          <div className="space-y-4">
+            {LIVE_QUEUE.map((item) => (
+              <div key={item.id} className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 hover:border-white/10 transition-all">
+                <div className="flex items-center gap-3">
+                  <Avatar name={item.name} />
+                  <div>
+                    <p className="text-sm font-medium text-slate-200">{item.name}</p>
+                    <p className="text-[10px] text-emerald-400 flex items-center gap-1">
+                      <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
+                      {item.status}
+                    </p>
+                  </div>
+                </div>
+                <span className="text-xs font-mono text-slate-400">{item.time}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Column 3: System Status */}
+        <div className="glass-panel p-6 relative overflow-hidden">
+          <div className="flex items-center justify-between mb-6 relative z-10">
+            <h3 className="font-semibold text-white">System Status</h3>
+            <MoreHorizontal size={16} className="text-slate-500" />
+          </div>
+
+          <div className="relative z-10 space-y-6">
+            {/* The "Gauge" Visual */}
+            <div className="flex items-center gap-4">
+              <div className="relative h-20 w-20 rounded-full border-4 border-slate-800 flex items-center justify-center">
+                <div className="absolute inset-0 rounded-full border-4 border-indigo-500 border-t-transparent border-l-transparent rotate-45" />
+                <Activity size={24} className="text-indigo-400" />
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-widest text-slate-500">API Status</p>
+                <p className="text-xl font-bold text-emerald-400">Operational</p>
+              </div>
+            </div>
+
+            <div className="h-px bg-white/10" />
+
+            {/* Agent Stats */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-[10px] text-slate-500 uppercase">Active Agents</p>
+                <p className="text-2xl font-bold text-white">12/15</p>
+              </div>
+              <div>
+                <p className="text-[10px] text-slate-500 uppercase">Avg Response</p>
+                <p className="text-2xl font-bold text-white">1.2m</p>
+              </div>
             </div>
           </div>
 
-          <div className={`${THEME.surface} rounded-2xl border ${THEME.border} p-6`}>
-            <h3 className="font-semibold text-white">System Health</h3>
-            <div className="mt-4 space-y-4">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-400">Neon Database</span>
-                <div className="flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="uppercase text-slate-300">healthy</span>
-                </div>
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-400">EzTexting API</span>
-                <div className="flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                  <span className="uppercase text-slate-300">healthy</span>
-                </div>
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-400">Twilio Gateway</span>
-                <div className="flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-slate-700" />
-                  <span className="uppercase text-slate-500">disconnected</span>
-                </div>
-              </div>
-            </div>
-          </div>
+          {/* Decorative Glow for the 3rd panel */}
+          <div className="absolute top-0 right-0 -mt-10 -mr-10 h-32 w-32 rounded-full bg-emerald-500/10 blur-3xl" />
         </div>
       </div>
     </div>

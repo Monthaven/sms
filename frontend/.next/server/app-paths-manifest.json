@@ -1,6 +1,5 @@
 {
-  "/api/agents/route": "app/api/agents/route.js",
   "/not-found": "app/not-found.js",
-  "/dashboard/queue/page": "app/dashboard/queue/page.js",
+  "/api/agents/route": "app/api/agents/route.js",
   "/dashboard/page": "app/dashboard/page.js"
 }
