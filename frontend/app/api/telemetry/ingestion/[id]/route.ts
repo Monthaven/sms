@@ -11,8 +11,9 @@ export const dynamic = "force-dynamic";
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
+  const params = await context.params;
   const delegate = db?.ingestionJob;
   if (!delegate) {
     return NextResponse.json({ error: "Ingestion delegate unavailable" }, { status: 500 });
@@ -45,8 +46,9 @@ export async function GET(
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
+  const params = await context.params;
   const delegate = db?.ingestionJob;
   if (!delegate) {
     return NextResponse.json({ error: "Ingestion delegate unavailable" }, { status: 500 });

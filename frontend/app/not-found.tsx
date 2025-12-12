@@ -1,33 +1,22 @@
-"use client";
-
-import Link from "next/link";
-import { ArrowLeft, Compass, Home } from "lucide-react";
+import Link from 'next/link';
+import { AlertTriangle } from 'lucide-react';
 
 export default function NotFound() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center px-6 text-center text-slate-100">
-      <p className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-3 py-1 text-[11px] uppercase tracking-[0.35em] text-rose-200/80">
-        404 · Signal Lost
-      </p>
-      <h1 className="mt-4 text-4xl font-semibold text-white">We can’t find that route in the Storefront.</h1>
-      <p className="mt-2 max-w-md text-sm text-slate-400">
-        The Engine might not have synced this page yet. Accept a fallback below or jump back into the Command Center.
-      </p>
-
-      <div className="mt-6 flex flex-wrap items-center justify-center gap-3 text-sm">
-        <Link href="/dashboard" className="mae-button primary text-sm">
-          <Home className="h-4 w-4" />
-          Return to Dashboard
-        </Link>
-        <Link href="/dashboard/admin" className="mae-button ghost text-sm">
-          <Compass className="h-4 w-4" />
-          Open Control Tower
-        </Link>
-        <Link href="/" className="mae-button ghost text-sm">
-          <ArrowLeft className="h-4 w-4" />
-          Back to login
-        </Link>
+    <div className="h-screen w-full flex flex-col items-center justify-center bg-[#050b14] text-center p-4">
+      <div className="w-20 h-20 bg-rose-500/10 rounded-full flex items-center justify-center mb-6 border border-rose-500/20">
+        <AlertTriangle className="text-rose-500" size={40} />
       </div>
+      <h1 className="text-4xl font-bold text-white mb-2 tracking-tight">System Error 404</h1>
+      <p className="text-slate-400 max-w-md mb-8">
+        The requested resource is not available on this server. It may have been moved or deleted.
+      </p>
+      <Link 
+        href="/dashboard"
+        className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700 transition-all font-medium"
+      >
+        Return to Command Center
+      </Link>
     </div>
   );
 }

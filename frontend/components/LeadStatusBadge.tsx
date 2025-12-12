@@ -1,75 +1,29 @@
-import clsx from "clsx";
+import clsx from 'clsx';
 
-const STATUS_STYLES: Record<
-  string,
-  { label: string; ring: string; dot: string; text: string; bg: string }
-> = {
-  RESP_HOT: {
-    label: "HOT",
-    ring: "ring-amber-400/60",
-    dot: "bg-amber-300",
-    text: "text-amber-100",
-    bg: "bg-amber-400/10",
-  },
-  RESP_WARM: {
-    label: "WARM",
-    ring: "ring-emerald-400/60",
-    dot: "bg-emerald-300",
-    text: "text-emerald-100",
-    bg: "bg-emerald-500/10",
-  },
-  CONVERSATION_ACTIVE: {
-    label: "ACTIVE",
-    ring: "ring-sky-400/60",
-    dot: "bg-sky-300",
-    text: "text-sky-100",
-    bg: "bg-sky-500/10",
-  },
-  QUEUED_FOR_CALL: {
-    label: "CALL QUEUE",
-    ring: "ring-purple-400/50",
-    dot: "bg-purple-300",
-    text: "text-purple-100",
-    bg: "bg-purple-500/10",
-  },
-  SENT: {
-    label: "SENT",
-    ring: "ring-slate-400/40",
-    dot: "bg-white/70",
-    text: "text-slate-100",
-    bg: "bg-slate-500/10",
-  },
-  NEW: {
-    label: "NEW",
-    ring: "ring-cyan-400/50",
-    dot: "bg-cyan-300",
-    text: "text-cyan-100",
-    bg: "bg-cyan-500/10",
-  },
-  RESP_STOP: {
-    label: "STOPPED",
-    ring: "ring-rose-400/70",
-    dot: "bg-rose-300",
-    text: "text-rose-100",
-    bg: "bg-rose-500/15",
-  },
+const STATUS_STYLES: Record<string, string> = {
+  RESP_HOT: "bg-rose-500/10 text-rose-400 border-rose-500/20 shadow-[0_0_10px_rgba(244,63,94,0.2)]",
+  RESP_WARM: "bg-amber-500/10 text-amber-400 border-amber-500/20 shadow-[0_0_10px_rgba(251,191,36,0.2)]",
+  RESP_COLD: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+  DNC: "bg-slate-700/30 text-slate-400 border-slate-600/30",
+  SOLD: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.2)]",
+  NEW: "bg-purple-500/10 text-purple-400 border-purple-500/20",
 };
 
-export default function LeadStatusBadge({ status }: { status: string }) {
-  const meta =
-    STATUS_STYLES[status] || STATUS_STYLES.NEW;
+interface Props {
+  status: string;
+  className?: string;
+}
 
+export default function LeadStatusBadge({ status, className }: Props) {
+  const style = STATUS_STYLES[status] || "bg-slate-800 text-slate-400 border-slate-700";
+  
   return (
-    <span
-      className={clsx(
-        "inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold tracking-wide ring-1",
-        meta.ring,
-        meta.bg,
-        meta.text
-      )}
-    >
-      <span className={clsx("h-1.5 w-1.5 rounded-full", meta.dot)} />
-      {meta.label}
+    <span className={clsx(
+      "px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border backdrop-blur-sm transition-all",
+      style,
+      className
+    )}>
+      {status.replace('RESP_', '')}
     </span>
   );
 }

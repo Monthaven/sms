@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "functions": {
+    "/api/telemetry/webhooks": {},
+    "/api/telemetry/ingestion/[id]": {},
+    "/api/automations": {},
+    "/api/integrations": {},
+    "/api/telemetry/ingestion": {},
+    "/api/webhooks/eztexting": {}
+  }
+}

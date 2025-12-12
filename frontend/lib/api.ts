@@ -14,6 +14,12 @@ export interface Lead {
     firstName: string | null;
     lastName: string | null;
     phoneE164: string;
+    interactions?: Array<{
+      id: string;
+      body: string | null;
+      createdAt: string;
+      direction: string;
+    }>;
   };
   property: {
     addressLine1: string;
@@ -22,12 +28,6 @@ export interface Lead {
   } | null;
   updatedAt: string;
   assignedAgentId?: string | null;
-  interactions?: Array<{
-    id: string;
-    body: string | null;
-    createdAt: string;
-    direction: string;
-  }>;
 }
 
 export const fetchLeads = async (statuses?: string | string[]) => {

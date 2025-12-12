@@ -1,40 +1,39 @@
-import React from "react";
+"use client";
+
+import React, { useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import TopBar from "@/components/TopBar";
-import AgentPresence from "@/components/AgentPresence";
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <div className="flex h-screen w-full overflow-hidden bg-[#0B1120] text-slate-100 antialiased selection:bg-indigo-500/30">
-      {/* 1. Permanent Sidebar Navigation */}
-      <aside className="hidden w-72 flex-col border-r border-white/5 bg-[#0F1629] md:flex">
-        <Sidebar />
-        <div className="mt-auto border-t border-white/5 p-4">
-          <AgentPresence />
-        </div>
-      </aside>
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-      {/* 2. Main Content Area */}
-      <main className="flex flex-1 flex-col overflow-hidden relative">
+  return (
+    <div className="flex h-screen w-full bg-[#050b14] overflow-hidden">
+      
+      {/* 1. Sidebar */}
+      <Sidebar
+        collapsed={sidebarCollapsed}
+        onToggle={() => setSidebarCollapsed((v) => !v)}
+      />
+
+      {/* 2. Main Content Wrapper */}
+      <div className="flex-1 flex flex-col relative min-w-0">
         <TopBar />
         
-        {/* Scrollable Page Content */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden p-6 md:p-8 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-          <div className="mx-auto max-w-7xl space-y-8 pb-20">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-6 md:p-8 custom-scrollbar">
+          {/* Max width container to keep high-res screens looking good */}
+          <div className="mx-auto max-w-[1800px] space-y-8 pb-10">
             {children}
           </div>
-        </div>
+        </main>
 
-        {/* Background Ambient Glows */}
-        <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
-          <div className="absolute -left-1/4 -top-1/4 h-[500px] w-[500px] rounded-full bg-indigo-500/5 blur-[100px]" />
-          <div className="absolute -bottom-1/4 -right-1/4 h-[500px] w-[500px] rounded-full bg-emerald-500/5 blur-[100px]" />
-        </div>
-      </main>
+        {/* Subtle vignette effect for depth */}
+        <div className="pointer-events-none absolute inset-0 z-50 bg-[radial-gradient(transparent_0%,#050b14_100%)] opacity-40" />
+      </div>
     </div>
   );
 }

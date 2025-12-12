@@ -1,21 +1,20 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const PROTECTED_PATHS = ["/dashboard"];
-
 export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-  const session = request.cookies.get("mae_user")?.value;
-  const isProtected = PROTECTED_PATHS.some((path) => pathname.startsWith(path));
-  const isAuthPage = pathname === "/";
+  const hasSession = Boolean(request.cookies.get("mae_user")?.value);
+  const role = request.cookies.get("mae_role")?.value || "AGENT";
 
-  if (isProtected && !session) {
-    const loginUrl = new URL("/", request.url);
-    loginUrl.searchParams.set("from", pathname);
-    return NextResponse.redirect(loginUrl);
+  // Block non-admin access to admin routes
+  if (request.nextUrl.pathname.startsWith("/dashboard/admin") && role !== "ADMIN") {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  if (isAuthPage && session) {
+  if (request.nextUrl.pathname.startsWith("/dashboard") && !hasSession) {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
+
+  if (request.nextUrl.pathname === "/" && hasSession) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 

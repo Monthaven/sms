@@ -21,7 +21,13 @@ export async function GET(request: Request) {
   const leads = await prisma.lead.findMany({
     where: statuses && statuses.length > 0 ? { status: { in: statuses } } : undefined,
     include: {
-      contact: true,
+      contact: {
+        include: {
+          interactions: {
+            orderBy: { createdAt: "asc" },
+          },
+        },
+      },
       property: true,
     },
     orderBy: { updatedAt: "desc" },

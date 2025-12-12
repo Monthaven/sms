@@ -1,105 +1,72 @@
-"use client";
+'use client';
 
-import PageFooterRail from "@/components/PageFooterRail";
-import { useAutomations } from "@/lib/hooks/useAutomations";
-import { Loader2, Pause, Play, PlugZap, RefreshCw } from "lucide-react";
-
-const statusClasses: Record<string, string> = {
-  healthy: "text-emerald-300",
-  warning: "text-amber-300",
-  paused: "text-rose-300",
-};
+import React from 'react';
+import { GlassTable } from '@/components/ui/GlassTable';
+import { Zap, Clock, MessageSquare, Power } from 'lucide-react';
+import { useAutomations } from '@/lib/hooks/useAutomations';
 
 export default function AutomationsPage() {
-  const { data, isLoading, error } = useAutomations();
+  const { data: automations = [], isLoading } = useAutomations();
 
   return (
-    <div className="space-y-8 text-slate-100">
-      <header className="flex flex-col gap-3">
-        <p className="text-xs uppercase tracking-[0.4em] text-slate-500">Automations</p>
-        <h1 className="text-3xl font-semibold text-white">Engine + Storefront Schedules</h1>
-        <p className="text-sm text-slate-400">
-          Cron schedules, webhook monitors, and health pulses for ingestion + campaign coordination.
-        </p>
-      </header>
-
-      <div className="glass-panel border border-white/10">
-        {error && <p className="px-6 py-4 text-sm text-rose-200">Unable to load automations. {error.message}</p>}
-
-        <table className="min-w-full divide-y divide-white/10 text-sm">
-          <thead className="bg-white/5 text-left text-xs uppercase tracking-[0.3em] text-slate-500">
-            <tr>
-              <th className="px-6 py-3">Automation</th>
-              <th className="px-6 py-3">Cadence</th>
-              <th className="px-6 py-3">Owner</th>
-              <th className="px-6 py-3">Status</th>
-              <th className="px-6 py-3">Last run</th>
-              <th className="px-6 py-3">Action</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-white/5">
-            {isLoading && (
-              <tr>
-                <td colSpan={6} className="px-6 py-6 text-center">
-                  <Loader2 className="mx-auto h-5 w-5 animate-spin text-sky-300" />
-                </td>
-              </tr>
-            )}
-            {!isLoading &&
-              data?.map((auto) => (
-                <tr key={auto.id}>
-                  <td className="px-6 py-4 font-semibold text-white">{auto.name}</td>
-                  <td className="px-6 py-4 text-slate-400">{auto.cadence}</td>
-                  <td className="px-6 py-4">{auto.owner}</td>
-                  <td className={`px-6 py-4 capitalize ${statusClasses[auto.status]}`}>{auto.status}</td>
-                  <td className="px-6 py-4">{formatTimestamp(auto.lastRun)}</td>
-                  <td className="px-6 py-4">
-                    <div className="flex flex-wrap gap-2 text-xs">
-                      <button className="inline-flex items-center gap-2 rounded-full border border-emerald-400/40 px-4 py-1.5 text-emerald-200">
-                        <Play className="h-3.5 w-3.5" />
-                        Run now
-                      </button>
-                      <button className="inline-flex items-center gap-2 rounded-full border border-amber-400/40 px-4 py-1.5 text-amber-200">
-                        <Pause className="h-3.5 w-3.5" />
-                        Pause
-                      </button>
-                      <button className="inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-1.5 text-slate-200">
-                        <RefreshCw className="h-3.5 w-3.5" />
-                        View logs
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            {!isLoading && data && data.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-6 py-6 text-center text-slate-400">
-                  No automations recorded. Once ingestion jobs run, telemetry will populate here.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-white tracking-tight">Auto-Pilot Workflows</h2>
+          <p className="text-slate-400 text-sm">Configure system behaviors and triggers.</p>
+        </div>
+        <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-[0_0_15px_rgba(37,99,235,0.3)] transition-all">
+          <Zap size={16} />
+          New Workflow
+        </button>
       </div>
 
-      <PageFooterRail
-        kicker="Automation Links"
-        title="Need webhook insight or to tweak campaigns?"
-        description="Access integration health or edit blasts directly once you verify the event cadence."
-        actions={[
-          { label: "Integrations", href: "/dashboard/admin/integrations", icon: PlugZap },
-          { label: "Campaigns", href: "/dashboard/admin/campaigns", icon: RefreshCw },
+      <GlassTable 
+        columns={[
+          { header: 'Workflow', accessor: 'name', cell: (row: any) => (
+             <div className="font-medium text-white">{row.name}</div>
+          )},
+          { header: 'Trigger', accessor: 'cadence', cell: (row: any) => (
+             <div className="flex items-center gap-2 text-slate-300 text-xs">
+                <Clock size={14} className="text-slate-500" />
+                {row.cadence}
+             </div>
+          )},
+          { header: 'Owner', accessor: 'owner', cell: (row: any) => (
+             <div className="flex items-center gap-2 text-slate-300 text-xs">
+                <MessageSquare size={14} className="text-slate-500" />
+                {row.owner}
+             </div>
+          )},
+          { header: 'Status', accessor: 'status', cell: (row: any) => (
+            <div className={`flex items-center gap-2 text-xs font-bold ${
+              row.status === 'healthy' ? 'text-emerald-400' :
+              row.status === 'warning' ? 'text-amber-400' : 'text-slate-500'
+            }`}>
+               <div className={`w-2 h-2 rounded-full ${
+                 row.status === 'healthy' ? 'bg-emerald-500 shadow-[0_0_8px_#10b981]' :
+                 row.status === 'warning' ? 'bg-amber-500' : 'bg-slate-600'
+               }`} />
+               {row.status?.toUpperCase()}
+            </div>
+          )}
         ]}
+        data={isLoading ? [] : automations}
+        actions={(row: any) => (
+           <button className={`p-2 rounded transition-colors ${
+             row.status === 'healthy'
+               ? 'text-emerald-400 hover:bg-emerald-500/10'
+               : 'text-slate-500 hover:text-white hover:bg-slate-700'
+           }`}>
+              <Power size={16} />
+           </button>
+        )}
       />
+
+      {isLoading && <div className="text-slate-500 text-sm">Loading automations…</div>}
+      {!isLoading && automations.length === 0 && (
+        <div className="text-slate-500 text-sm">No automations found.</div>
+      )}
     </div>
   );
-}
-
-function formatTimestamp(value: string) {
-  if (!value || value === "never" || value === "queued") return value ?? "unknown";
-  try {
-    return new Date(value).toLocaleString();
-  } catch {
-    return value;
-  }
 }

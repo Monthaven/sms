@@ -1,157 +1,171 @@
-import React from "react";
-import {
-  Users,
-  Phone,
-  TrendingUp,
-  DollarSign,
-  Activity,
-  MoreHorizontal,
-} from "lucide-react";
-import { StatCard } from "@/components/StatCard";
-import { Avatar, StatusBadge } from "@/components/Shared";
-import { getDashboardStats } from "@/app/actions";
-import { formatDistanceToNow } from "date-fns";
+"use client";
 
-// Make the component async to fetch data on the server
-export default async function CommandCenterPage() {
-  const data = await getDashboardStats();
+import React from 'react';
+import { useDashboardStats } from '@/lib/hooks/useDashboardStats';
+import { KPICard } from '@/components/dashboard/KPICard';
+import { SystemGauge } from '@/components/dashboard/SystemGauge';
+import { Phone, DollarSign, Activity, Users } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
+
+export default function DashboardPage() {
+  const { stats, agents, isLoading } = useDashboardStats();
+
+  if (isLoading) {
+    return <div className="text-slate-500 animate-pulse">Initializing Command Center...</div>;
+  }
 
   return (
-    <div className="space-y-8">
-      {/* 1. Header */}
-      <div className="flex flex-col gap-1">
-        <h1 className="text-3xl font-bold text-white tracking-tight">Welcome back, Agent.</h1>
-        <p className="text-sm text-slate-400">System status: <span className="text-emerald-400 font-mono">ONLINE</span></p>
+    <div className="space-y-8 fade-in-up">
+      
+      {/* 1. WELCOME HEADER */}
+      <div className="flex items-end justify-between">
+        <div>
+           <h2 className="text-3xl font-bold text-white tracking-tight">Welcome back, Agent.</h2>
+           <p className="text-slate-400 text-sm mt-1">System status is nominal. <span className="text-emerald-400">{stats.hotLeads} leads</span> require attention.</p>
+        </div>
+        <div className="flex gap-2">
+           {/* Quick Actions could go here */}
+        </div>
       </div>
 
-      {/* 2. Live KPI Grid */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          label="Total Leads"
-          value={data.kpi.total.toLocaleString()}
-          iconName="Users"
-          color="indigo" // Blue Glow
-          trend="Database"
-          trendUp={true}
+      {/* 2. KPI METRICS ROW */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <KPICard 
+          title="Total Leads" 
+          value={stats.totalLeads.toLocaleString()} 
+          trend={stats.leadGrowth}
+          trendUp={Number(stats.leadGrowth) >= 0}
+          data={stats.sparkTotal}
+          delay={0}
         />
-        <StatCard
-          label="Hot Leads"
-          value={data.kpi.hot}
-          iconName="Phone"
-          color="rose" // Red Glow (Urgent)
-          trend="Action Req."
+        <KPICard 
+          title="Active Calls" 
+          value={stats.activeAgents.toString()} 
+          icon={<Phone size={18} />}
+          trend={`${stats.totalAgents} Agents Online`}
           trendUp={true}
-          variant="status"
+          data={stats.sparkHot}
+          delay={100}
         />
-        <StatCard
-          label="Conversion"
-          value={data.kpi.conversion}
-          iconName="TrendingUp"
-          color="emerald" // Green Glow (Success)
-          trend="+2.4%"
+        <KPICard 
+          title="Conversion Rate" 
+          value={stats.hotLeads ? `${Math.min(100, Math.round((stats.hotLeads / Math.max(stats.totalLeads, 1)) * 100))}%` : "0%"} 
+          trend={`${stats.hotLeads} Hot`} 
           trendUp={true}
+          data={stats.sparkHot}
+          delay={200}
         />
-        <StatCard
-          label="Est. Revenue"
-          value={data.kpi.revenue}
-          iconName="DollarSign"
-          color="amber" // Gold Glow (Money)
-          trend="Pipeline"
+        <KPICard 
+          title="Revenue" 
+          value="$1.2M" 
+          icon={<DollarSign size={18} />}
+          trend="+8.1%" 
           trendUp={true}
+          data={stats.sparkTotal}
+          delay={300}
         />
       </div>
 
-      {/* 3. The 3-Column Grid */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Recent Activity Feed */}
-        <div className="glass-panel p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="font-semibold text-white">Recent Activity</h3>
-            <MoreHorizontal size={16} className="text-slate-500" />
-          </div>
-          <div className="space-y-4">
-            {data.activity.length === 0 && <p className="text-xs text-slate-500">No recent activity.</p>}
-            {data.activity.map((item: any) => (
-              <div key={item.id} className="flex items-center justify-between group cursor-pointer">
-                <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-full bg-slate-800 flex items-center justify-center text-xs text-slate-400 border border-slate-700 group-hover:border-indigo-500/50 transition-colors">
-                    <Users size={14} />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-200 group-hover:text-indigo-400 transition-colors">{item.name}</p>
-                    <p className="text-[10px] text-slate-500">{item.action} · {formatDistanceToNow(item.time)} ago</p>
-                  </div>
-                </div>
-                <StatusBadge status={item.status} />
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Live Call Queue */}
-        <div className="glass-panel p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="font-semibold text-white">Call Queue</h3>
-            <div className="flex items-center gap-2">
-               <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                </span>
-            </div>
-          </div>
-          <div className="space-y-4">
-            {data.queue.length === 0 && <p className="text-xs text-slate-500">Queue is clear.</p>}
-            {data.queue.map((item: any) => (
-              <div key={item.id} className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 hover:border-emerald-500/30 transition-all cursor-pointer group">
-                <div className="flex items-center gap-3">
-                  <Avatar name={item.name} />
-                  <div>
-                    <p className="text-sm font-medium text-slate-200 group-hover:text-white">{item.name}</p>
-                    <p className="text-[10px] text-slate-400">
-                      Waiting {formatDistanceToNow(item.time)}
-                    </p>
-                  </div>
-                </div>
-                <Phone size={14} className="text-slate-600 group-hover:text-emerald-400 transition-colors" />
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* System Status (Visual Only) */}
-        <div className="glass-panel p-6 relative overflow-hidden">
-          <div className="flex items-center justify-between mb-6 relative z-10">
-            <h3 className="font-semibold text-white">System Health</h3>
-            <MoreHorizontal size={16} className="text-slate-500" />
+      {/* 3. MAIN CONTENT GRID (Activity & Live Queue) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        {/* RECENT ACTIVITY (Left - 5 cols) */}
+        <div className="lg:col-span-5 glass-panel rounded-2xl p-6 flex flex-col h-[400px]">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-white font-semibold flex items-center gap-2">
+              <Activity size={16} className="text-blue-400"/> Recent Activity
+            </h3>
+            <button className="text-[10px] text-slate-400 hover:text-white uppercase tracking-wider">View All</button>
           </div>
           
-          <div className="relative z-10 space-y-6">
-            {/* The Gauge */}
-            <div className="flex items-center gap-4">
-               <div className="relative h-20 w-20 rounded-full border-4 border-slate-800 flex items-center justify-center">
-                 <div className="absolute inset-0 rounded-full border-4 border-indigo-500 border-t-transparent border-l-transparent rotate-[45deg]" />
-                 <Activity size={24} className="text-indigo-400" />
-               </div>
-               <div>
-                 <p className="text-xs uppercase tracking-widest text-slate-500">Engine</p>
-                 <p className="text-xl font-bold text-emerald-400">100%</p>
-               </div>
-            </div>
-
-            <div className="h-px bg-white/10" />
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-[10px] text-slate-500 uppercase">Latency</p>
-                <p className="text-2xl font-bold text-white">24ms</p>
-              </div>
-              <div>
-                <p className="text-[10px] text-slate-500 uppercase">Error Rate</p>
-                <p className="text-2xl font-bold text-white">0.0%</p>
-              </div>
-            </div>
+          <div className="flex-1 overflow-y-auto pr-2 space-y-1 custom-scrollbar">
+            {stats.recentActivity.length === 0 ? (
+               <div className="text-slate-500 text-xs text-center mt-10">No recent activity</div>
+            ) : (
+               stats.recentActivity.map((lead: any, i: number) => (
+                <div key={lead.id || i} className="group flex items-center gap-4 p-3 rounded-xl hover:bg-slate-800/50 border border-transparent hover:border-slate-700/50 transition-all cursor-pointer">
+                  <div className={`w-2 h-2 rounded-full ${lead.status === 'RESP_HOT' ? 'bg-rose-500 shadow-[0_0_8px_#f43f5e]' : 'bg-slate-600'}`} />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-slate-200 group-hover:text-blue-400 transition-colors">
+                      {lead.contact?.firstName} {lead.contact?.lastName}
+                    </div>
+                    <div className="text-xs text-slate-500 truncate">
+                      {lead.property?.addressLine1 || "No Address"}
+                    </div>
+                  </div>
+                  <div className="text-[10px] text-slate-500 font-mono">
+                    {formatDistanceToNow(new Date(lead.updatedAt), { addSuffix: true })}
+                  </div>
+                </div>
+               ))
+            )}
           </div>
-          <div className="absolute top-0 right-0 -mt-10 -mr-10 h-32 w-32 rounded-full bg-indigo-500/10 blur-3xl" />
+        </div>
+
+        {/* LIVE QUEUE (Middle - 4 cols) */}
+        <div className="lg:col-span-4 glass-panel rounded-2xl p-6 flex flex-col h-[400px]">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-white font-semibold flex items-center gap-2">
+              <Users size={16} className="text-emerald-400"/> Live Queue
+            </h3>
+            <span className="px-2 py-1 rounded bg-emerald-500/10 text-emerald-400 text-[10px] border border-emerald-500/20">
+              {stats.activeAgents} Active
+            </span>
+          </div>
+
+          <div className="flex-1 overflow-y-auto pr-2 space-y-2 custom-scrollbar">
+             {agents.map((agent: any) => (
+               <div key={agent.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-800/20 border border-slate-700/30">
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                       <div className="w-8 h-8 rounded-lg bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-300">
+                         {agent.name.substring(0,2).toUpperCase()}
+                       </div>
+                       <div className={`absolute -bottom-1 -right-1 w-2.5 h-2.5 rounded-full border-2 border-[#0B1120] ${
+                         agent.status === 'online' ? 'bg-emerald-500' : 'bg-slate-500'
+                       }`} />
+                    </div>
+                    <div>
+                      <div className="text-xs font-medium text-white">{agent.name}</div>
+                      <div className="text-[10px] text-slate-400 uppercase">{agent.status}</div>
+                    </div>
+                  </div>
+                  <div className="text-[10px] font-mono text-slate-500">
+                    4h 20m
+                  </div>
+               </div>
+             ))}
+          </div>
+        </div>
+
+        {/* SYSTEM STATUS (Right - 3 cols) */}
+        <div className="lg:col-span-3 flex flex-col gap-6 h-[400px]">
+           <div className="flex-1">
+              <SystemGauge value={82} />
+           </div>
+           
+           <div className="glass-panel rounded-2xl p-5 flex-1 relative overflow-hidden flex flex-col justify-center">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 to-transparent pointer-events-none" />
+              <h4 className="text-xs text-slate-400 uppercase tracking-widest mb-3">API Health</h4>
+              
+              <div className="space-y-3 relative z-10">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-slate-300">Latency</span>
+                  <span className="text-xs font-mono text-emerald-400">24ms</span>
+                </div>
+                <div className="w-full bg-slate-800 rounded-full h-1.5">
+                   <div className="bg-emerald-500 h-1.5 rounded-full w-[24%] shadow-[0_0_10px_#10b981]"></div>
+                </div>
+                
+                <div className="flex justify-between items-center mt-4">
+                  <span className="text-sm text-slate-300">Success Rate</span>
+                  <span className="text-xs font-mono text-blue-400">99.9%</span>
+                </div>
+                <div className="w-full bg-slate-800 rounded-full h-1.5">
+                   <div className="bg-blue-500 h-1.5 rounded-full w-[99%] shadow-[0_0_10px_#3b82f6]"></div>
+                </div>
+              </div>
+           </div>
         </div>
 
       </div>

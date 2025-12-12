@@ -13,7 +13,8 @@ export type CurrentUser = {
 };
 
 export async function getCurrentUser(): Promise<CurrentUser | null> {
-  const session = cookies().get("mae_user")?.value;
+  const cookieStore = await cookies();
+  const session = cookieStore.get("mae_user")?.value;
   if (!session) return null;
 
   const user = await prisma.user.findUnique({

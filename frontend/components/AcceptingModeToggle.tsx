@@ -7,19 +7,17 @@ export default function AcceptingModeToggle() {
   const { mode, toggle } = useAcceptingMode();
 
   return (
-    <div style={{ position: "fixed", right: 16, top: 16, zIndex: 60 }}>
+    <div className="fixed right-6 bottom-6 z-50">
       <button
         onClick={toggle}
         aria-pressed={mode === "dialing"}
         title="Toggle accepting mode"
-        className="inline-flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium shadow-sm transition-colors"
-        style={{
-          background: mode === "dialing" ? "#0f172a" : "#0b1220",
-          color: "#fff",
-          border: "1px solid rgba(255,255,255,0.06)",
-        }}
+        className="inline-flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium shadow-sm transition-colors border border-white/10 bg-slate-900/90 text-white backdrop-blur"
       >
-        <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 999, background: mode === "dialing" ? "#10b981" : "#60a5fa" }} />
+        <span
+          style={{ display: "inline-block", width: 8, height: 8, borderRadius: 999 }}
+          className={mode === "dialing" ? "bg-emerald-500" : "bg-blue-400"}
+        />
         <span>{mode === "dialing" ? "Dialing Mode" : "Campaign Mode"}</span>
       </button>
     </div>

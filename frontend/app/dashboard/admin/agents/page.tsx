@@ -1,92 +1,79 @@
-"use client";
+'use client';
 
-import PageFooterRail from "@/components/PageFooterRail";
-import { useAgents } from "@/lib/hooks/useAgents";
-import { Check, Circle, Loader2, Mail, PhoneCall, UserPlus, Activity } from "lucide-react";
-
-const statusColors: Record<string, string> = {
-  online: "text-emerald-300",
-  away: "text-amber-300",
-  offline: "text-slate-500",
-};
+import React from 'react';
+import { useAgents } from '@/lib/hooks/useAgents';
+import { GlassTable } from '@/components/ui/GlassTable';
+import { UserPlus, Shield, Mail } from 'lucide-react';
 
 export default function AgentsPage() {
-  const { data: agents, isLoading, error } = useAgents();
+  const { data: agents, isLoading } = useAgents();
 
   return (
-    <div className="space-y-8 text-slate-100">
-      <header className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs uppercase tracking-[0.4em] text-slate-500">Team Directory</p>
-          <h1 className="text-3xl font-semibold text-white">Agents & Presence</h1>
-          <p className="text-sm text-slate-400">
-            Track availability, lead load, and quickly reach out across SMS/call workflows.
-          </p>
+          <h2 className="text-2xl font-bold text-white tracking-tight">Team Management</h2>
+          <p className="text-slate-400 text-sm">Manage access and assignment roles.</p>
         </div>
-        <button className="mae-button primary text-xs">
-          <UserPlus className="h-4 w-4" />
-          Invite agent
+        <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-[0_0_15px_rgba(37,99,235,0.3)] transition-all">
+          <UserPlus size={16} />
+          Invite Agent
         </button>
-      </header>
-
-      {error && <p className="text-sm text-rose-200">Unable to load agents. {error.message}</p>}
-
-      <div className="grid gap-4 md:grid-cols-2">
-        {isLoading && (
-          <div className="col-span-2 flex items-center justify-center rounded-2xl border border-white/10 p-10 text-slate-400">
-            <Loader2 className="mr-2 h-4 w-4 animate-spin text-sky-300" />
-            Loading roster
-          </div>
-        )}
-        {!isLoading &&
-          agents?.map((agent) => (
-            <article key={agent.id} className="glass-panel border border-white/10 p-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-lg font-semibold text-white">{agent.name}</p>
-                  <p className="text-sm text-slate-400">{agent.role}</p>
-                </div>
-                <div className={`text-xs uppercase tracking-[0.3em] ${statusColors[agent.status]}`}>
-                  <Circle className="mr-1 inline h-2 w-2" />
-                  {agent.status}
-                </div>
-              </div>
-              <div className="mt-4 flex flex-wrap gap-2 text-xs">
-                <button className="mae-button ghost text-xs">
-                  <Mail className="h-4 w-4" />
-                  Message
-                </button>
-                <button className="mae-button ghost text-xs">
-                  <PhoneCall className="h-4 w-4" />
-                  Call
-                </button>
-                <button className="mae-button ghost text-xs">
-                  <Check className="h-4 w-4" />
-                  Assign lead
-                </button>
-              </div>
-              <p className="mt-3 text-xs text-slate-500">
-                Live leads: <span className="text-white">{agent.leadsAssigned}</span>
-              </p>
-              <p className="text-[11px] text-slate-500">Updated {new Date().toLocaleTimeString()}</p>
-            </article>
-          ))}
-        {!isLoading && agents && agents.length === 0 && (
-          <div className="col-span-2 rounded-2xl border border-dashed border-white/20 p-8 text-center text-slate-400">
-            No agents yet. Invite teammates from here once they exist in Prisma.
-          </div>
-        )}
       </div>
 
-      <PageFooterRail
-        kicker="Team Ops"
-        title="Align staffing with campaign volume"
-        description="Need to see which campaigns or automations need more humans? Jump straight from here."
-        actions={[
-          { label: "Campaigns", href: "/dashboard/admin/campaigns", icon: Activity },
-          { label: "Automations", href: "/dashboard/admin/automations", icon: Check },
+      <GlassTable 
+        columns={[
+          { header: 'Agent', accessor: 'name', cell: (agent: any) => (
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-slate-700 flex items-center justify-center font-bold text-xs text-slate-300">
+                {agent.name.substring(0, 2).toUpperCase()}
+              </div>
+              <div>
+                <div className="text-white font-medium">{agent.name}</div>
+                <div className="text-xs text-slate-500">{agent.email}</div>
+              </div>
+            </div>
+          )},
+          { header: 'Role', accessor: 'role', cell: (agent: any) => (
+            <div className="flex items-center gap-1.5 text-slate-300">
+              <Shield size={14} className="text-blue-400" />
+              <span className="capitalize">{agent.role}</span>
+            </div>
+          )},
+          { header: 'Status', accessor: 'status', cell: (agent: any) => (
+            <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold border ${
+              agent.status === 'online' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+              agent.status === 'busy' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+              'bg-slate-700/30 text-slate-400 border-slate-600/30'
+            }`}>
+              {agent.status}
+            </span>
+          )},
+          { header: 'Performance', accessor: 'leadsAssigned', cell: (agent: any) => (
+             <div className="flex flex-col gap-1 w-24">
+                <div className="flex justify-between text-[10px] text-slate-400">
+                   <span>Capacity</span>
+                   <span>{agent.leadsAssigned}/50</span>
+                </div>
+                <div className="h-1 bg-slate-800 rounded-full overflow-hidden">
+                   <div 
+                     className="h-full bg-blue-500" 
+                     style={{ width: `${(agent.leadsAssigned / 50) * 100}%` }} 
+                   />
+                </div>
+             </div>
+          )}
         ]}
+        data={agents || []}
+        actions={(row: any) => (
+           <div className="flex gap-2 justify-end">
+              <button className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-colors">
+                 <Mail size={16} />
+              </button>
+           </div>
+        )}
       />
     </div>
   );
 }
+

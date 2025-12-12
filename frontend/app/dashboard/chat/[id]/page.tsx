@@ -1,3 +1,4 @@
+
 import { getLeadDetails } from "@/app/actions";
 import LeadActionButtons from "@/components/LeadActionButtons";
 import { Avatar, StatusBadge } from "@/components/Shared";
@@ -18,9 +19,10 @@ import { notFound } from "next/navigation";
 export default async function ChatThread({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  const lead = await getLeadDetails(params.id);
+  const { id } = await params;
+  const lead = await getLeadDetails(id);
   if (!lead) {
     notFound();
   }

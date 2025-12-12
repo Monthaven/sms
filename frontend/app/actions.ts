@@ -31,13 +31,17 @@ export async function loginAction(
     return { error: 'User not found. Ask admin for access.' }
   }
 
-  // Set a simple session cookie
-  cookies().set('mae_user', user.id)
+  // Set a simple session cookie and role (non-HttpOnly, mock auth)
+  const cookieStore = await cookies()
+  cookieStore.set('mae_user', user.id)
+  cookieStore.set('mae_role', user.role)
   redirect('/dashboard')
 }
 
 export async function logoutAction() {
-  cookies().delete('mae_user')
+  const cookieStore = await cookies()
+  cookieStore.delete('mae_user')
+  cookieStore.delete('mae_role')
   redirect('/')
 }
 
