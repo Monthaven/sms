@@ -11,40 +11,37 @@ npx prisma generate
 
 ## 2. Local Development
 ```powershell
-# Start Next.js dev server
+# Start Next.js dev server (Next 15.x)
 npm run dev
 # Runs on http://localhost:3000
 ```
 
-The app connects to the database defined in `frontend/.env`.
+The app connects to the database defined in `frontend/.env` (`DATABASE_URL` pooled Neon, `DIRECT_URL` direct Neon).
 
 ## 3. Deployment (Vercel)
-This project is optimized for Vercel.
+1. Import the repo; set Root Directory to `frontend` if prompted.
+2. Environment variables:
+   - `DATABASE_URL` — pooled Neon URL (e.g. `...-pooler...&pgbouncer=true`)
+   - `DIRECT_URL` — direct Neon URL (Prisma needs this for generate/migrate)
+   - `NEXT_PUBLIC_SITE_URL` — your deployed URL
+   - `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER` — Twilio office-line creds (text/call) used for health checks and future outbound wiring
+3. Build/install: defaults are fine (`npm install`, `next build`).
+4. Important: run `npm run db:sync` from repo root after schema changes so `frontend/prisma/schema.prisma` stays in sync.
 
-1. Push the `frontend/` folder (or monorepo root) to GitHub.
-2. Import the project in Vercel.
-   - If prompted, set the Root Directory to `frontend`.
-3. Environment Variables in Vercel:
-   - `DATABASE_URL` — MUST use the Neon Pooled URL (e.g. `...-pooler.us-east-2...&pgbouncer=true`).
-   - `NEXT_PUBLIC_API_URL` — Optional, if you have external APIs.
-4. Build & Install commands: use Vercel defaults (`npm install`, `next build`).
+## 4. Data Plumbing & Hooks (live)
+- API routes (`/api/leads`, `/api/agents`, `/api/campaigns`, `/api/automations`, `/api/integrations`, `/api/telemetry/*`, `/api/webhooks/eztexting`) hit Prisma/Neon.
+- React Query hooks (`useLeads`, `useAgents`, `useCampaigns`, `useAutomations`, `useIntegrations`, `useTelemetry`) power `/dashboard`, `/queue`, `/inbox`, `/campaigns`, `/admin/*`, `/intelligence`.
+- Live: chat threads, inbox, queue filters, campaigns, automations, integrations, telemetry cards. Remaining: `/dashboard/reports` is a stub; `/dashboard/intelligence` charts are static until telemetry rows exist.
+- Pattern: add an API route → `lib/api.ts` fetch helper → `useX` hook → page.
 
-Important: Run `npm run db:sync` from the repo root locally after any schema changes so `frontend/prisma/schema.prisma` is up to date before deploying.
+## 5. Auth & Roles
+- `loginAction` / `logoutAction` set `mae_user` and `mae_role`; `lib/auth.getCurrentUser` reads Prisma users.
+- `middleware.ts` redirects unauthenticated users from `/dashboard*` and blocks `/dashboard/admin/*` unless `mae_role=ADMIN`.
+- Sidebar hides admin links for agents; profile link sends admins to `/dashboard/admin/agents`, agents to `/dashboard`.
 
-## 4. Data Plumbing & Hooks
-- `/app/api/leads`, `/api/agents`, `/api/campaigns`, `/api/automations`, and `/api/integrations` are Prisma-backed and return live Neon data.
-- React Query hooks (`useLeads`, `useAgents`, `useCampaigns`, `useAutomations`, `useIntegrations`, `useTelemetry`, `useTwilioStatus`) power pages so the UI updates automatically as ingestion scripts run.
-- Admin pages are client components that render loading/error states based on these hooks; no mock data remains in the Storefront.
-- When adding a new dashboard module, expose a typed API route first, export a `fetchX` helper from `lib/api.ts`, then wrap it in a `useX` hook for consistency.
+## 6. UX & Navigation
+- Design language (dark command-center, glass panels) lives in `app/globals.css` + Tailwind.
+- Navigation: Sidebar + TopBar; breadcrumbs/account dropdowns remain light. Keep footer/breadcrumbs in sync when adding routes.
+- Known warning: Recharts emits a size warning during SSG for small sparklines—harmless; add `minHeight/minWidth` if you want silence.
 
-## 5. UX & Navigation Plan
-- The design language (dark “command center” palette, glass panels, footer pill) is defined in `app/globals.css`. Components should either reuse those classes or consume Tailwind utilities that reference the `mae` color tokens.
-- Navigation is a two-layer system: primary nav (Command ▸ Queue ▸ Admin ▸ Reports) in `TopBar`/`BottomNav`, and contextual pill nav derived from `lib/navigation.ts`. Keep breadcrumbs and footer pill metadata in sync with any new route.
-- Upcoming work (mirrors the root README roadmap):
-  1. **Data plumbing:** ensure `/api/{leads,campaigns,agents,automations,integrations}` proxy Neon via Prisma—no mocks in production.
-  2. **Auth & role gating:** middleware must redirect anonymous users; admin routes require `User.role === ADMIN`.
-  3. **Twilio integration:** once credentials exist, wire `/api/webhooks/twilio`, outbound messaging actions, and Integrations UI health states.
-  4. **Telemetry:** Reports page should display live ingestion jobs and webhook logs; NotificationsPanel pulls from `/api/telemetry/*`.
-  5. **Navigation polish:** top bar + bottom pill must follow the “cutting-edge CRM” spec (breadcrumbs, CTA pills, notifications rail).
-
-For detailed mockups/tasks see [`docs/ui-ux-plan.md`](docs/ui-ux-plan.md). Coordinate any schema or API changes with `/backend/README.md` and the root README “Storefront Upgrade Roadmap.”
+For detailed polish tasks see [`docs/ui-ux-plan.md`](docs/ui-ux-plan.md). Coordinate schema/API changes with `/backend/README.md` and the root README.
