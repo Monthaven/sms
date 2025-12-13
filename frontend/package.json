@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "npm run css:build && next dev",
-    "build": "npm run css:build && next build",
+    "build": "npm run css:build && npm run prisma:generate && next build",
+    "prisma:generate": "prisma generate",
     "start": "next start",
     "css:build": "tailwindcss -c tailwind.config.js -i ./app/globals.css -o ./app/generated.css",
     "lint": "next lint"

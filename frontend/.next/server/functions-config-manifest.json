@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "functions": {
+    "/api/integrations": {},
+    "/api/webhooks/twilio": {},
+    "/api/telemetry/ingestion/[id]": {},
+    "/api/webhooks/eztexting": {},
+    "/api/telemetry/ingestion": {},
+    "/api/telemetry/webhooks": {},
+    "/api/automations": {}
+  }
+}
