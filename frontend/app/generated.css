@@ -1820,6 +1820,15 @@ body {
   background-size: 40px 40px;
 }
 
+.object-contain {
+  -o-object-fit: contain;
+     object-fit: contain;
+}
+
+.p-1 {
+  padding: 0.25rem;
+}
+
 .p-10 {
   padding: 2.5rem;
 }
@@ -2457,6 +2466,10 @@ body {
   --tw-ring-color: rgb(251 191 36 / 0.4);
 }
 
+.ring-blue-500\/30 {
+  --tw-ring-color: rgb(59 130 246 / 0.3);
+}
+
 .ring-rose-400\/50 {
   --tw-ring-color: rgb(251 113 133 / 0.5);
 }
@@ -2473,6 +2486,11 @@ body {
   --tw-ring-color: rgb(255 255 255 / 0.2);
 }
 
+.blur-sm {
+  --tw-blur: blur(4px);
+  filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
+}
+
 .blur-xl {
   --tw-blur: blur(24px);
   filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
@@ -2480,6 +2498,11 @@ body {
 
 .drop-shadow-\[0_0_10px_rgba\(59\2c 130\2c 246\2c 0\.5\)\] {
   --tw-drop-shadow: drop-shadow(0 0 10px rgba(59,130,246,0.5));
+  filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
+}
+
+.drop-shadow-\[0_0_14px_rgba\(59\2c 130\2c 246\2c 0\.6\)\] {
+  --tw-drop-shadow: drop-shadow(0 0 14px rgba(59,130,246,0.6));
   filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
 }
 

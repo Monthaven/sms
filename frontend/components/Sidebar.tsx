@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import clsx from "clsx";
 import React, { useState } from "react";
+import Image from "next/image";
 
 type Role = "ADMIN" | "AGENT";
 
@@ -82,15 +83,18 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
         )}
       >
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-cyan-400 flex items-center justify-center shadow-lg shadow-blue-500/20">
-            <span className="text-white font-bold text-lg">M</span>
+          <div className="relative w-10 h-10 flex items-center justify-center">
+            <div className="absolute inset-0 rounded-full ring-1 ring-blue-500/30 blur-sm" />
+            <Image
+              src="/white-logo.svg"
+              alt="Monthaven"
+              fill
+              className="p-1 drop-shadow-[0_0_14px_rgba(59,130,246,0.6)] object-contain"
+            />
           </div>
           {!collapsed && (
             <div>
               <h1 className="text-white font-bold tracking-wide text-sm">MONTHAVEN</h1>
-              <p className="text-[10px] text-blue-400 tracking-widest uppercase">
-                Acquisition Engine
-              </p>
             </div>
           )}
         </div>
