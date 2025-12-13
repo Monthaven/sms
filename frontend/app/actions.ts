@@ -21,7 +21,13 @@ export async function loginAction(
   formData: FormData
 ) {
   const email = formData.get('email') as string
-  
+  const passkey = (formData.get('passkey') as string | null) ?? ""
+  const requiredSecret = process.env.LOGIN_SECRET
+
+  if (requiredSecret && passkey !== requiredSecret) {
+    return { error: 'Invalid passkey.' }
+  }
+
   // Simple "exists" check for V1
   const user = await prisma.user.findUnique({
     where: { email }
@@ -33,8 +39,8 @@ export async function loginAction(
 
   // Set a simple session cookie and role (non-HttpOnly, mock auth)
   const cookieStore = await cookies()
-  cookieStore.set('mae_user', user.id)
-  cookieStore.set('mae_role', user.role)
+  cookieStore.set('mae_user', user.id, { httpOnly: true, secure: true, path: '/', maxAge: 60 * 60 * 24 })
+  cookieStore.set('mae_role', user.role, { httpOnly: true, secure: true, path: '/', maxAge: 60 * 60 * 24 })
   redirect('/dashboard')
 }
 
@@ -44,6 +50,8 @@ export async function logoutAction() {
   cookieStore.delete('mae_role')
   redirect('/')
 }
+
+// Note: Set LOGIN_SECRET in your env to require a shared passkey for login.
 
 // --- DASHBOARD DATA ---
 

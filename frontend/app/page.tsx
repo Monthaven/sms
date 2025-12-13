@@ -1,28 +1,25 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React from 'react';
 import { Lock, ChevronRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
+import { useFormState, useFormStatus } from 'react-dom';
+import { loginAction } from './actions';
+
+const initialState = { error: "" };
+
+function SubmitButton() {
+  const { pending } = useFormStatus();
+  return (
+    <Button disabled={pending} className="w-full mt-2" icon={!pending ? <ChevronRight size={16} /> : undefined}>
+      {pending ? <Loader2 className="animate-spin" size={18} /> : "Authenticate"}
+    </Button>
+  );
+}
 
 export default function LoginPage() {
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    // Set a simple session cookie so middleware passes (mock auth)
-    document.cookie = "mae_user=mock_user; path=/; max-age=86400; SameSite=Lax";
-
-    // Redirect after a brief delay
-    setTimeout(() => {
-      router.push('/dashboard');
-      router.refresh(); // Forces the middleware to re-run and see the cookie
-    }, 1000);
-  };
+  const [state, formAction] = useFormState(loginAction, initialState);
 
   return (
     <div className="h-screen w-full flex items-center justify-center bg-[#050b14] relative overflow-hidden">
@@ -41,12 +38,13 @@ export default function LoginPage() {
             <p className="text-slate-400 text-sm mt-2">Secure Access Gateway</p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form action={formAction} className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Agent ID</label>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Agent Email</label>
               <input 
+                name="email"
                 type="email" 
-                defaultValue="admin@monthaven.com"
+                required
                 className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition-all"
               />
             </div>
@@ -54,15 +52,20 @@ export default function LoginPage() {
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Passkey</label>
               <input 
+                name="passkey"
                 type="password" 
-                defaultValue="password"
+                required
                 className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition-all"
               />
             </div>
 
-            <Button disabled={loading} className="w-full mt-2" icon={!loading ? <ChevronRight size={16} /> : undefined}>
-              {loading ? <Loader2 className="animate-spin" size={18} /> : "Authenticate"}
-            </Button>
+            {state?.error && (
+              <div className="text-rose-400 text-sm bg-rose-500/10 border border-rose-500/30 rounded-lg px-3 py-2">
+                {state.error}
+              </div>
+            )}
+
+            <SubmitButton />
           </form>
 
           <div className="mt-6 text-center">

@@ -8,7 +8,105 @@ const db = prisma as any;
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function POST(req: Request) {
+type Payload = {
+  fromNumber: string | null;
+  message: string | null;
+  id?: string | null;
+  type?: string | null;
+  raw: any;
+};
+
+const INBOUND_CAMPAIGN_ID = process.env.INBOUND_CAMPAIGN_ID;
+
+async function ensureContactAndLead(phone: string) {
+  const contact =
+    (await prisma.contact.findUnique({
+      where: { phoneE164: phone },
+      include: { leads: { orderBy: { createdAt: "desc" }, take: 1 } },
+    })) ||
+    (await prisma.contact.create({
+      data: { phoneE164: phone, source: "INBOUND" },
+    }));
+
+  const leadCandidate =
+    "leads" in contact && Array.isArray((contact as any).leads)
+      ? (contact as any).leads[0] || null
+      : null;
+
+  let lead = leadCandidate;
+
+  if (!lead) {
+    if (!INBOUND_CAMPAIGN_ID) {
+      throw new Error("Missing INBOUND_CAMPAIGN_ID env for inbound auto-intake");
+    }
+    lead = await prisma.lead.create({
+      data: {
+        campaignId: INBOUND_CAMPAIGN_ID,
+        contactId: contact.id,
+        status: LeadStatus.RESP_HOT,
+      },
+    });
+  }
+
+  return { contactId: contact.id, leadId: lead.id };
+}
+
+async function parsePayload(req: Request): Promise<Payload> {
+  if (req.method === "GET") {
+    const url = new URL(req.url);
+    const params = url.searchParams;
+    const raw: any = Object.fromEntries(params.entries());
+    return {
+      fromNumber:
+        raw.fromNumber ||
+        raw.from ||
+        raw.From ||
+        raw.phone ||
+        raw.Phone ||
+        null,
+      message: raw.message || raw.body || raw.Body || null,
+      id: raw.id || raw.ID || raw.MessageSid || null,
+      type: raw.type || "inbound_text",
+      raw,
+    };
+  }
+
+  const ct = req.headers.get("content-type") || "";
+  if (ct.includes("application/json")) {
+    const body = await req.json();
+    return {
+      fromNumber:
+        body.fromNumber ||
+        body.from ||
+        body.From ||
+        body.phone ||
+        body.Phone ||
+        null,
+      message: body.message || body.body || body.Body || null,
+      id: body.id || body.ID || body.MessageSid || null,
+      type: body.type || "inbound_text",
+      raw: body,
+    };
+  }
+
+  const form = await req.formData();
+  const raw: any = Object.fromEntries(form.entries());
+  return {
+    fromNumber:
+      raw.fromNumber ||
+      raw.from ||
+      raw.From ||
+      raw.phone ||
+      raw.Phone ||
+      null,
+    message: raw.message || raw.body || raw.Body || null,
+    id: raw.id || raw.ID || raw.MessageSid || null,
+    type: raw.type || "inbound_text",
+    raw,
+  };
+}
+
+async function handle(req: Request) {
   let body: any = null;
   const logDelegate = db?.webhookLog;
 
@@ -29,8 +127,9 @@ export async function POST(req: Request) {
   };
 
   try {
-    body = await req.json();
-    const { fromNumber, message, type, id } = body;
+    const payload = await parsePayload(req);
+    body = payload.raw;
+    const { fromNumber, message, type, id } = payload;
 
     if (id) {
       const existing = await prisma.interaction.findFirst({ where: { externalId: id } });
@@ -47,31 +146,24 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Invalid Phone" }, { status: 400 });
       }
 
-      const contact = await prisma.contact.findUnique({
-        where: { phoneE164: normalized },
-        include: { leads: { orderBy: { createdAt: "desc" }, take: 1 } },
+      let { contactId, leadId } = await ensureContactAndLead(normalized);
+
+      let status: LeadStatus = LeadStatus.RESP_WARM;
+      const lower = (message || "").toLowerCase();
+      if (["stop", "cancel", "unsubscribe"].some((w) => lower.includes(w))) status = LeadStatus.RESP_STOP;
+      if (["price", "offer", "selling", "how much"].some((w) => lower.includes(w))) status = LeadStatus.RESP_HOT;
+
+      await prisma.lead.update({ where: { id: leadId }, data: { status } });
+
+      await prisma.interaction.create({
+        data: {
+          contactId,
+          channel: "EZTEXTING",
+          direction: "INBOUND",
+          body: message || "(no body)",
+          externalId: id || `sim_${Date.now()}`,
+        },
       });
-
-      if (contact) {
-        let status: LeadStatus = LeadStatus.RESP_WARM;
-        const lower = (message || "").toLowerCase();
-        if (["stop", "cancel", "unsubscribe"].some((w) => lower.includes(w))) status = LeadStatus.RESP_STOP;
-        if (["price", "offer", "selling", "how much"].some((w) => lower.includes(w))) status = LeadStatus.RESP_HOT;
-
-        if (contact.leads && contact.leads[0]) {
-          await prisma.lead.update({ where: { id: contact.leads[0].id }, data: { status } });
-        }
-
-        await prisma.interaction.create({
-          data: {
-            contactId: contact.id,
-            channel: "EZTEXTING",
-            direction: "INBOUND",
-            body: message,
-            externalId: id || `sim_${Date.now()}`,
-          },
-        });
-      }
     }
 
     await recordLog({ status: "success", statusCode: 200 });
@@ -85,4 +177,12 @@ export async function POST(req: Request) {
     });
     return NextResponse.json({ error: "Internal Error" }, { status: 500 });
   }
+}
+
+export async function POST(req: Request) {
+  return handle(req);
+}
+
+export async function GET(req: Request) {
+  return handle(req);
 }

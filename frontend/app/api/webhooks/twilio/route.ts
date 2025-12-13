@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, LeadStatus } from "@prisma/client";
+import { normalizePhone } from "@/lib/utils";
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 const prisma = globalForPrisma.prisma || new PrismaClient();
@@ -8,13 +9,39 @@ if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function normalizePhone(input: string | null): string | null {
-  if (!input) return null;
-  const digits = input.replace(/\D/g, "");
-  if (digits.length === 10) return `+1${digits}`;
-  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
-  if (digits.startsWith("+") && digits.length > 1) return digits;
-  return null;
+const INBOUND_CAMPAIGN_ID = process.env.INBOUND_CAMPAIGN_ID;
+
+async function ensureContactAndLead(phone: string) {
+  const contact =
+    (await prisma.contact.findUnique({
+      where: { phoneE164: phone },
+      include: { leads: { orderBy: { createdAt: "desc" }, take: 1 } },
+    })) ||
+    (await prisma.contact.create({
+      data: { phoneE164: phone, source: "INBOUND" },
+    }));
+
+  const leadCandidate =
+    "leads" in contact && Array.isArray((contact as any).leads)
+      ? (contact as any).leads[0] || null
+      : null;
+
+  let lead = leadCandidate;
+
+  if (!lead) {
+    if (!INBOUND_CAMPAIGN_ID) {
+      throw new Error("Missing INBOUND_CAMPAIGN_ID env for inbound auto-intake");
+    }
+    lead = await prisma.lead.create({
+      data: {
+        campaignId: INBOUND_CAMPAIGN_ID,
+        contactId: contact.id,
+        status: LeadStatus.RESP_HOT,
+      },
+    });
+  }
+
+  return { contactId: contact.id, leadId: lead.id };
 }
 
 export async function POST(request: Request) {
@@ -46,27 +73,15 @@ export async function POST(request: Request) {
         payload: Object.fromEntries(
           Array.from(form.entries()).map(([k, v]) => [k, typeof v === "string" ? v : `${v}`])
         ),
-        errorMessage: contact ? null : "Contact not found",
       },
     });
 
-    if (!contact) {
-      return new NextResponse("<Response/>", {
-        status: 200,
-        headers: { "Content-Type": "text/xml" },
-      });
-    }
-
-    // Locate the latest lead for this contact (if any)
-    const lead = await prisma.lead.findFirst({
-      where: { contactId: contact.id },
-      orderBy: { updatedAt: "desc" },
-    });
+    const { contactId, leadId } = await ensureContactAndLead(from);
 
     // Insert interaction
     await prisma.interaction.create({
       data: {
-        contactId: contact.id,
+        contactId,
         channel: "TWILIO",
         direction: "INBOUND",
         body: body || "(no body)",
@@ -74,15 +89,12 @@ export async function POST(request: Request) {
       },
     });
 
-    // Nudge lead status if present
-    if (lead) {
-      await prisma.lead.update({
-        where: { id: lead.id },
-        data: {
-          status: "CONVERSATION_ACTIVE",
-        },
-      });
-    }
+    await prisma.lead.update({
+      where: { id: leadId },
+      data: {
+        status: "CONVERSATION_ACTIVE",
+      },
+    });
 
     return new NextResponse("<Response/>", {
       status: 200,
