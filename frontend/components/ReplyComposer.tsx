@@ -1,9 +1,9 @@
 "use client";
 
+import React, { useEffect, useMemo, useState } from "react";
 import { sendReplyAction } from "@/app/actions";
 import { Loader2, MessageCircle, Sparkles } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import { useFormState, useFormStatus } from "react-dom";
+import { useFormStatus } from "react-dom";
 
 const initialState = {
   success: false,
@@ -53,7 +53,7 @@ export default function ReplyComposer({
   macros?: MacroTemplate[];
 }) {
   const [message, setMessage] = useState("");
-  const [state, formAction] = useFormState(sendReplyAction, initialState);
+  const [state, formAction] = React.useActionState(sendReplyAction, initialState as any);
   const [toast, setToast] = useState<ToastState>(null);
 
   const macroTemplates = useMemo<MacroTemplate[]>(() => {

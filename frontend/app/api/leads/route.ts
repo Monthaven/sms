@@ -22,7 +22,16 @@ export async function GET(request: Request) {
     where: statuses && statuses.length > 0 ? { status: { in: statuses } } : undefined,
     include: {
       contact: {
-        include: {
+          select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          phoneE164: true,
+          phoneType: true,
+          email: true,
+          score: true,
+            // ownerMatch excluded to avoid Prisma conversion issues
+          // ownerMatch is excluded due to mixed DB types; normalize at runtime if needed
           interactions: {
             orderBy: { createdAt: "asc" },
             take: 50,

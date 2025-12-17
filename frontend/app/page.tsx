@@ -4,7 +4,7 @@ import React from 'react';
 import { Lock, ChevronRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
 import { loginAction } from './actions';
 
 const initialState = { error: "" };
@@ -19,7 +19,7 @@ function SubmitButton() {
 }
 
 export default function LoginPage() {
-  const [state, formAction] = useFormState(loginAction, initialState);
+  const [state, formAction] = React.useActionState(loginAction, initialState as any);
 
   return (
     <div className="h-screen w-full flex items-center justify-center bg-[#050b14] relative overflow-hidden">

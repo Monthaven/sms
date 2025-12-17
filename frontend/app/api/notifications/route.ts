@@ -15,7 +15,9 @@ export async function GET() {
         updatedAt: { gte: twoHoursAgo },
       },
       include: {
-        contact: true,
+        contact: {
+          select: { id: true, firstName: true, lastName: true, phoneE164: true, score: true },
+        },
         property: true,
       },
       orderBy: { updatedAt: "desc" },
@@ -31,10 +33,15 @@ export async function GET() {
       },
       include: {
         contact: {
-          include: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            phoneE164: true,
             leads: {
               take: 1,
               orderBy: { updatedAt: "desc" },
+              select: { id: true },
             },
           },
         },

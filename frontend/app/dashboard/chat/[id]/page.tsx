@@ -5,6 +5,10 @@ import { Avatar, StatusBadge } from "@/components/Shared";
 import PageFooterRail from "@/components/PageFooterRail";
 import ReplyComposer from "@/components/ReplyComposer";
 import CallLogButton from "@/components/CallLogButton";
+import PropertyIntelligence from "@/components/PropertyIntelligence";
+import ContactScoreBreakdown from "@/components/ContactScoreBreakdown";
+import AlternativeContacts from "@/components/AlternativeContacts";
+import { getContactFlags } from "@/lib/propertyUtils";
 import {
   Activity,
   ArrowLeft,
@@ -202,8 +206,28 @@ export default async function ChatThread({
           </div>
         </div>
 
-        <div className="glass-panel border border-white/10 p-6">
-          <ReplyComposer leadId={lead.id} macros={macroTemplates} />
+        <div className="space-y-4">
+          <div className="glass-panel border border-white/10 p-4">
+            <PropertyIntelligence rawDetails={(lead.property as any)?.rawDetails ?? null} />
+          </div>
+
+          <div className="glass-panel border border-white/10 p-4">
+            <ContactScoreBreakdown
+              score={lead.contact.score ?? 0}
+              priority={lead.contact.priority ?? 'LOW'}
+              ownerMatch={Boolean((lead.contact as any).ownerMatch)}
+              phoneType={lead.contact.phoneType}
+              contactFlags={getContactFlags((lead.property as any)?.rawDetails ?? null, lead.contact.phoneE164) || []}
+            />
+          </div>
+
+          <div className="glass-panel border border-white/10 p-4">
+            <AlternativeContacts propertyId={lead.property?.id ?? ''} currentContactId={lead.contact.id} />
+          </div>
+
+          <div className="glass-panel border border-white/10 p-4">
+            <ReplyComposer leadId={lead.id} macros={macroTemplates} />
+          </div>
         </div>
       </section>
 

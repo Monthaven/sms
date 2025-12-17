@@ -59,9 +59,21 @@ export async function getLeadDetails(leadId: string) {
   const lead = await prisma.lead.findUnique({
     where: { id: leadId },
     include: {
-      contact: true,
-      property: true
-    }
+      contact: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          phoneE164: true,
+          phoneType: true,
+          email: true,
+          score: true,
+          priority: true,
+          // ownerMatch intentionally excluded to avoid Prisma type conversion errors
+        },
+      },
+      property: true,
+    },
   })
   if (!lead) return null
 
@@ -97,7 +109,14 @@ export async function sendReplyAction(
 
   const lead = await prisma.lead.findUnique({
     where: { id: leadId },
-    include: { contact: true },
+    include: {
+      contact: {
+        select: {
+          id: true,
+          phoneE164: true,
+        },
+      },
+    },
   });
 
   if (!lead) {
@@ -337,7 +356,14 @@ export async function getDashboardStats() {
       take: 5,
       orderBy: { createdAt: 'desc' },
       include: {
-        contact: true
+        contact: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            phoneE164: true,
+          }
+        }
       }
     }) as any)
   ]);
