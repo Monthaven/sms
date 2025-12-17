@@ -872,6 +872,10 @@ body {
   height: 5rem;
 }
 
+.h-24 {
+  height: 6rem;
+}
+
 .h-3\.5 {
   height: 0.875rem;
 }
@@ -882,6 +886,10 @@ body {
 
 .h-5 {
   height: 1.25rem;
+}
+
+.h-6 {
+  height: 1.5rem;
 }
 
 .h-8 {
@@ -914,6 +922,10 @@ body {
 
 .max-h-32 {
   max-height: 8rem;
+}
+
+.max-h-\[600px\] {
+  max-height: 600px;
 }
 
 .min-h-0 {
@@ -956,6 +968,10 @@ body {
   width: 3rem;
 }
 
+.w-16 {
+  width: 4rem;
+}
+
 .w-2 {
   width: 0.5rem;
 }
@@ -980,8 +996,20 @@ body {
   width: 0.875rem;
 }
 
+.w-32 {
+  width: 8rem;
+}
+
+.w-36 {
+  width: 9rem;
+}
+
 .w-4 {
   width: 1rem;
+}
+
+.w-48 {
+  width: 12rem;
 }
 
 .w-5 {
@@ -1619,6 +1647,11 @@ body {
 
 .bg-sky-400\/5 {
   background-color: rgb(56 189 248 / 0.05);
+}
+
+.bg-sky-500 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(14 165 233 / var(--tw-bg-opacity, 1));
 }
 
 .bg-sky-500\/10 {
@@ -2693,6 +2726,11 @@ body {
 
 .hover\:bg-sky-400\/10:hover {
   background-color: rgb(56 189 248 / 0.1);
+}
+
+.hover\:bg-sky-600:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgb(2 132 199 / var(--tw-bg-opacity, 1));
 }
 
 .hover\:bg-slate-700:hover {
