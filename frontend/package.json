@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "npm run css:build && next dev",
-    "build": "npm run css:build && npm run prisma:generate && next build",
+    "dev": "npm run css:build && node --max-old-space-size=4096 node_modules/next/dist/bin/next dev",
+    "build": "npm run css:build && npm run prisma:generate && node --max-old-space-size=4096 node_modules/next/dist/bin/next build",
     "prisma:generate": "prisma generate",
     "start": "next start",
     "css:build": "tailwindcss -c tailwind.config.js -i ./app/globals.css -o ./app/generated.css",

@@ -28,9 +28,10 @@ export function ChatList() {
       <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
         {leads.map((lead: any) => {
           const isActive = pathname?.includes(lead.id);
-          // Mocking last message data for visual completion
-          const lastMessage = "Hey, I'm interested in the property on Main St...";
-          const isUnread = Math.random() > 0.8; 
+          // Get actual last message from interactions
+          const lastInteraction = lead.contact?.interactions?.[lead.contact.interactions.length - 1];
+          const lastMessage = lastInteraction?.body || "No messages yet";
+          const isUnread = lead.status === 'RESP_HOT' || lead.status === 'RESP_WARM'; 
 
           return (
             <Link 

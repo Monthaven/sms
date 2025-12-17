@@ -16,6 +16,9 @@ import {
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+export const revalidate = 60;
+export const dynamic = 'force-dynamic';
+
 export default async function ChatThread({
   params,
 }: {
@@ -154,7 +157,7 @@ export default async function ChatThread({
             <Activity className="h-4 w-4 text-sky-300" />
           </div>
 
-          <div className="mt-6 space-y-5">
+          <div className="mt-6 space-y-5 max-h-[600px] overflow-y-auto">
             {interactions.length === 0 && (
               <div className="rounded-2xl border border-dashed border-white/15 p-6 text-sm text-slate-400">
                 No interaction logs yet. Once EzTexting hits the webhook, replies render here chronologically.

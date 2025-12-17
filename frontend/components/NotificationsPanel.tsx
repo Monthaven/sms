@@ -2,36 +2,41 @@
 
 import { PRIMARY_NAV } from "@/lib/navigation";
 import Link from "next/link";
-import { Bell, MessageSquare, SignalHigh, Users } from "lucide-react";
+import { Bell, Flame, MessageCircle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { formatDistanceToNow } from "date-fns";
 
-const notifications = [
-  {
-    id: "note-1",
-    title: "Hot reply · Legacy 2024",
-    body: "Owner asked for pricing details. Assign closer within 15m.",
-    time: "2m ago",
-    icon: MessageSquare,
-    href: "/dashboard/chat",
-  },
-  {
-    id: "note-2",
-    title: "Agent load high",
-    body: "Jordan Pace is handling 12 leads. Rebalance queue.",
-    time: "9m ago",
-    icon: Users,
-    href: "/dashboard/admin/agents",
-  },
-  {
-    id: "note-3",
-    title: "Ingestion job finished",
-    body: "11-10 MF new contacts imported. Review job metrics.",
-    time: "27m ago",
-    icon: SignalHigh,
-    href: "/dashboard/reports",
-  },
-];
+type Notification = {
+  id: string;
+  type: "hot_lead" | "new_response";
+  title: string;
+  body: string;
+  href: string;
+  time: Date;
+};
 
 export default function NotificationsPanel() {
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const res = await fetch("/api/notifications");
+        const data = await res.json();
+        setNotifications(data);
+      } catch (error) {
+        console.error("Failed to fetch notifications:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 30000); // Refresh every 30s
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <aside className="space-y-4 rounded-3xl border border-white/10 bg-slate-950/40 p-5 text-sm text-slate-100">
       <div className="flex items-center justify-between">
@@ -42,20 +47,30 @@ export default function NotificationsPanel() {
         <Bell className="h-5 w-5 text-sky-300" />
       </div>
       <div className="space-y-4">
-        {notifications.map((note) => (
-          <Link
-            key={note.id}
-            href={note.href}
-            className="block rounded-2xl border border-white/10 bg-white/[0.03] p-3 transition hover:border-sky-400/40 hover:bg-white/[0.06]"
-          >
-            <div className="flex items-center gap-2 text-xs text-slate-400">
-              <note.icon className="h-3.5 w-3.5 text-sky-300" />
-              {note.time}
-            </div>
-            <p className="mt-2 font-semibold text-white">{note.title}</p>
-            <p className="text-xs text-slate-400">{note.body}</p>
-          </Link>
-        ))}
+        {isLoading ? (
+          <div className="text-xs text-slate-500">Loading notifications...</div>
+        ) : notifications.length === 0 ? (
+          <div className="text-xs text-slate-500">No new notifications</div>
+        ) : (
+          notifications.map((note) => (
+            <Link
+              key={note.id}
+              href={note.href}
+              className="block rounded-2xl border border-white/10 bg-white/[0.03] p-3 transition hover:border-sky-400/40 hover:bg-white/[0.06]"
+            >
+              <div className="flex items-center gap-2 text-xs text-slate-400">
+                {note.type === "hot_lead" ? (
+                  <Flame className="h-3.5 w-3.5 text-orange-400" />
+                ) : (
+                  <MessageCircle className="h-3.5 w-3.5 text-sky-300" />
+                )}
+                {formatDistanceToNow(new Date(note.time), { addSuffix: true })}
+              </div>
+              <p className="mt-2 font-semibold text-white">{note.title}</p>
+              <p className="text-xs text-slate-400">{note.body}</p>
+            </Link>
+          ))
+        )}
       </div>
       <div className="mt-6 space-y-2 text-[11px] uppercase tracking-[0.3em] text-slate-500">
         <p>Quick nav</p>

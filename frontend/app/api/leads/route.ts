@@ -25,12 +25,14 @@ export async function GET(request: Request) {
         include: {
           interactions: {
             orderBy: { createdAt: "asc" },
+            take: 50,
           },
         },
       },
       property: true,
     },
     orderBy: { updatedAt: "desc" },
+    take: 500,
   });
 
   return NextResponse.json(leads);

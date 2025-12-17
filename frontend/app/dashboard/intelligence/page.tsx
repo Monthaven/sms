@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { TrendingUp, ServerCrash, Activity, Clock3 } from 'lucide-react';
+import { TrendingUp, ServerCrash, Activity, Clock3, Plus } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useIngestionJobs, useWebhookLogs } from '@/lib/hooks/useTelemetry';
 import Card from '@/components/ui/Card';
+import Link from 'next/link';
 
 export default function IntelligencePage() {
   const { data: jobs = [], isLoading: loadingJobs } = useIngestionJobs();
@@ -22,7 +23,16 @@ export default function IntelligencePage() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-white">Intelligence</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-white">Intelligence</h2>
+        <Link
+          href="/dashboard/campaigns"
+          className="inline-flex items-center gap-2 rounded-lg bg-sky-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-600"
+        >
+          <Plus className="h-4 w-4" />
+          New Campaign
+        </Link>
+      </div>
 
       <div className="grid gap-4 md:grid-cols-3">
         <StatTile

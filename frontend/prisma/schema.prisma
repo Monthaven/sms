@@ -40,6 +40,17 @@ model Contact {
   email       String?
   source      String   @default("DEALMACHINE")
   
+  // Scoring and prioritization
+  score       Float?
+  priority    String?
+  ownerMatch  String?
+  
+  // Contact preferences
+  smsAllowed  Boolean  @default(true)
+  callOnly    Boolean  @default(false)
+  doNotContact Boolean @default(false)
+  blockReason String?
+  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

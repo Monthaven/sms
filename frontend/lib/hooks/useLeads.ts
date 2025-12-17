@@ -7,7 +7,9 @@ export function useLeads(filters?: { statuses?: string[] | string }) {
   const { data, isLoading, isFetching } = useQuery({
     queryKey: ["leads", statuses ?? "all"],
     queryFn: async () => fetchLeads(statuses),
-    refetchInterval: 30000,
+    staleTime: 60000,
+    refetchInterval: 60000,
+    refetchOnWindowFocus: false,
   });
 
   return { leads: data ?? [], isLoading: isLoading || isFetching };
