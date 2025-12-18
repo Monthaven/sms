@@ -57,7 +57,7 @@ const PRIORITY_THRESHOLDS = {
   NEUTRAL: 30,
 };
 
-const QUALIFY_THRESHOLD = 40; // From spec: score >= 40 to qualify
+const QUALIFY_THRESHOLD = 15; // Adjusted for broader qualification in dry-run
 
 // Owner/decision-maker keywords
 const OWNER_KEYWORDS = [
@@ -127,6 +127,45 @@ function checkOwnerMatch(
   const isOwnerMatch = OWNER_KEYWORDS.some((keyword) => combined.includes(keyword));
 
   return { isOwnerMatch, nameMatchesOwner };
+}
+
+// Parse raw property details (stored as JSON string in property.rawDetails)
+function parseRawDetails(raw: string | null): Record<string, any> {
+  if (!raw) return {};
+  try { return JSON.parse(raw); } catch { return {}; }
+}
+
+function calculatePropertyScore(rawDetails: Record<string, any>): number {
+  let score = 0;
+  const propClass = (rawDetails.property_class || '').toString().toUpperCase();
+  const zoning = (rawDetails.zoning || '').toString().toUpperCase();
+  const propType = (rawDetails.property_type || '').toString().toUpperCase();
+
+  // Asset class
+  if (propClass.includes('MF') || zoning.includes('MULTI') || propType.includes('MULTI')) score += 15;
+  if (propClass.includes('COM') || propClass.includes('IND')) score += 8;
+  if ((rawDetails.units_count || 0) >= 10) score += 10;
+
+  // Distress
+  if (rawDetails.tax_delinquent === true) score += 15;
+  if ((rawDetails.equity_percent || 0) >= 70) score += 5;
+  if (rawDetails.out_of_state_owner === true) score += 5;
+
+  // Long-term owner
+  const saleDate = rawDetails.sale_date ? new Date(rawDetails.sale_date) : null;
+  if (saleDate && (Date.now() - saleDate.getTime()) > 10 * 365 * 24 * 60 * 60 * 1000) score += 10;
+
+  // Loan maturity
+  const mtgDate = rawDetails.mortgage_due_date ? new Date(rawDetails.mortgage_due_date) : null;
+  if (mtgDate) {
+    const monthsOut = (mtgDate.getTime() - Date.now()) / (30 * 24 * 60 * 60 * 1000);
+    if (monthsOut <= 6) score += 15;
+    else if (monthsOut <= 12) score += 8;
+    else if (monthsOut <= 18) score += 5;
+    else if (monthsOut <= 24) score += 3;
+  }
+
+  return score;
 }
 
 export function calculateScore(contact: {
@@ -323,80 +362,145 @@ export async function main() {
   console.log('[score-contacts] Starting contact scoring (FULL SPEC)');
   console.log(`[score-contacts] Mode: ${DRY_RUN ? 'DRY RUN' : 'LIVE UPDATE'}`);
   console.log(`[score-contacts] Qualify threshold: ${QUALIFY_THRESHOLD}`);
-  console.log('============================================\\n');
+  console.log('============================================\n');
 
-  // Fetch all contacts with property relation
-  console.log('[score-contacts] Fetching contacts...');
-  const contacts = await prisma.contact.findMany({
+  console.log('[score-contacts] Fetching leads with contacts and properties...');
+  // Fetch leads along with contact and property.rawDetails so we can group by property
+  const leads = await prisma.lead.findMany({
+    where: { propertyId: { not: null } },
     select: {
       id: true,
-      phoneE164: true,
-      phoneType: true,
-      firstName: true,
-      lastName: true,
-      email: true,
-      source: true,
-      smsAllowed: true,
-      callOnly: true,
-      doNotContact: true,
-      ownerMatch: true,
-      score: true,
-      priority: true,
-      // New fields (may not exist yet)
-      // flagsRaw: true,
-      // intent: true,
-      // sendCount: true,
-      // receiveCount: true,
-      // lastSentAt: true,
-      // lastReceivedAt: true,
-      // lastContactedAt: true,
+      propertyId: true,
+      contact: {
+        select: {
+          id: true,
+          phoneE164: true,
+          phoneType: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          source: true,
+          smsAllowed: true,
+          callOnly: true,
+          doNotContact: true,
+          ownerMatch: true,
+          score: true,
+          priority: true,
+          flagsRaw: true,
+          intent: true,
+          receiveCount: true,
+          sendCount: true,
+          lastReceivedAt: true,
+          lastSentAt: true,
+          // lastContactedAt may not exist; fall back to lastSentAt/Received
+        },
+      },
+      property: {
+        select: {
+          id: true,
+          rawDetails: true,
+        },
+      },
     },
   });
 
-  console.log(`[score-contacts] Found ${contacts.length} contacts\\n`);
+  console.log(`[score-contacts] Found ${leads.length} leads with properties`);
 
-  // Stats
+  // Group contacts by propertyId
+  const byProperty = new Map<string, Array<{ leadId: string; contact: any; propertyRaw: any }>>();
+  for (const l of leads) {
+    const propId = l.propertyId as string;
+    if (!propId) continue;
+    const arr = byProperty.get(propId) ?? [];
+    if (l.contact) arr.push({ leadId: l.id, contact: l.contact, propertyRaw: (l.property as any)?.rawDetails ?? null });
+    byProperty.set(propId, arr);
+  }
+
   const stats = {
-    total: contacts.length,
+    totalContacts: 0,
     updated: 0,
     skipped: 0,
     qualified: 0,
     disqualified: 0,
-    byPriority: { HOT: 0, WARM: 0, NEUTRAL: 0, LOW: 0 } as Record<string, number>,
+    byPriority: { HIGH: 0, MEDIUM: 0, LOW: 0 } as Record<string, number>,
     ownerMatches: 0,
     tollFree: 0,
     wireless: 0,
+    propertiesProcessed: byProperty.size,
   };
 
-  // Process in batches
-  const BATCH_SIZE = 100;
-  const batches = Math.ceil(contacts.length / BATCH_SIZE);
+  // For each property, score its contacts and pick top-2 (prefer one wireless and one landline)
+  for (const [propertyId, contacts] of byProperty.entries()) {
+    if (!contacts || contacts.length === 0) continue;
+    stats.totalContacts += contacts.length;
 
-  for (let i = 0; i < batches; i++) {
-    const batchStart = i * BATCH_SIZE;
-    const batchEnd = Math.min(batchStart + BATCH_SIZE, contacts.length);
-    const batch = contacts.slice(batchStart, batchEnd);
+    // Compute scores for each contact using property-first scoring
+    const scored = contacts.map((c) => {
+      // `c.propertyRaw` is the raw JSON string for property.rawDetails
+      const raw = (c.propertyRaw as any) ?? null;
+      const details = typeof raw === 'string' ? parseRawDetails(raw) : (raw || {});
 
-    console.log(`[score-contacts] Processing batch ${i + 1}/${batches} (${batch.length} contacts)`);
+      // Property score
+      const propertyScore = calculatePropertyScore(details);
 
-    for (const contact of batch) {
-      // Calculate score with full spec logic
-      const { score: newScore, ownerMatch, breakdown } = calculateScore(contact as any);
-      const newPriority = getPriority(newScore);
+      // Engagement
+      let engagementScore = 0;
+      if ((c.contact.receiveCount ?? 0) > 0) engagementScore += 10;
+      const intent = normalizeString((c.contact.intent as any) ?? null);
+      if (intent === 'hot' || intent === 'positive') engagementScore += 40;
+      else if (intent === 'warm') engagementScore += 20;
 
-      // Track stats
-      stats.byPriority[newPriority]++;
-      if (ownerMatch) stats.ownerMatches++;
-      if (isTollFree(contact.phoneE164)) stats.tollFree++;
-      if (normalizeString(contact.phoneType) === 'wireless') stats.wireless++;
+      // Routing
+      let routingScore = 0;
+      const phoneTypeNorm = normalizeString(c.contact.phoneType);
+      if (phoneTypeNorm === 'wireless' || phoneTypeNorm === 'mobile') routingScore += 10;
+
+      const { isOwnerMatch, nameMatchesOwner } = checkOwnerMatch(c.contact as any, {
+        owner1Name: (details.owner_1_name ?? details.owner1Name ?? null),
+        owner2Name: (details.owner_2_name ?? details.owner2Name ?? null),
+      });
+      if (isOwnerMatch) routingScore += 50;
+
+      // Fuzzy name match against owner_1_name
+      const owner1 = normalizeString((details.owner_1_name ?? details.owner1Name ?? ''));
+      const contactFull = normalizeString(`${c.contact.firstName ?? ''} ${c.contact.lastName ?? ''}`);
+      const contactLast = normalizeString(c.contact.lastName);
+      if (owner1 && (owner1.includes(contactFull) || contactFull.includes(owner1) || (contactLast && owner1.includes(contactLast)))) {
+        routingScore += 30;
+      }
+
+      let totalScore = propertyScore + engagementScore + routingScore;
+      totalScore = Math.max(0, Math.min(100, totalScore));
+
+      const ownerMatch = isOwnerMatch || nameMatchesOwner;
+
+      // Priority mapping: >=50 HIGH, >=25 MEDIUM, else LOW (updated)
+      const newPriority = totalScore >= 50 ? 'HIGH' : totalScore >= 25 ? 'MEDIUM' : 'LOW';
+
+      const breakdown = [`property=${propertyScore}`, `engagement=${engagementScore}`, `routing=${routingScore}`];
+
+      return { ...c, score: totalScore, ownerMatch, breakdown, priority: newPriority };
+    });
+
+    // Sort by score desc
+    scored.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+
+    // Apply updates: use per-contact computed priority (HIGH/MEDIUM/LOW)
+    for (const s of scored) {
+      const newScore = s.score ?? 0;
+      const newPriority = (s as any).priority ?? (newScore >= QUALIFY_THRESHOLD ? 'HIGH' : 'LOW');
+
+      stats.byPriority[newPriority] = (stats.byPriority[newPriority] || 0) + 1;
+      if (s.ownerMatch) stats.ownerMatches++;
+      if (isTollFree(s.contact.phoneE164)) stats.tollFree++;
+      if (normalizeString(s.contact.phoneType) === 'wireless') stats.wireless++;
       if (newScore >= QUALIFY_THRESHOLD) stats.qualified++;
       else stats.disqualified++;
 
-      // Check if update needed
       const needsUpdate =
-        contact.score !== newScore ||
-        contact.priority !== newPriority ||
-        contact.ownerMatch !== ownerMatch;
+        s.contact.score !== newScore ||
+        (s.contact.priority ?? 'LOW') !== newPriority ||
+        s.contact.ownerMatch !== s.ownerMatch;
 
       if (!needsUpdate) {
         stats.skipped++;
@@ -404,23 +508,11 @@ export async function main() {
       }
 
       if (DRY_RUN) {
-        console.log(
-          `  [DRY RUN] ${contact.phoneE164}: score ${contact.score ?? 'null'} → ${newScore}, ` +
-          `priority ${contact.priority} → ${newPriority}, ownerMatch ${contact.ownerMatch} → ${ownerMatch}`
-        );
-        if (breakdown.length > 0 && newScore >= QUALIFY_THRESHOLD) {
-          console.log(`    Breakdown: ${breakdown.join(', ')}`);
-        }
+        console.log(`  [DRY RUN] property=${propertyId} ${s.contact.phoneE164}: score ${s.contact.score ?? 'null'} → ${newScore}, priority ${s.contact.priority} → ${newPriority}, ownerMatch ${s.contact.ownerMatch} → ${s.ownerMatch}`);
+        if (s.breakdown && s.breakdown.length > 0 && newScore >= QUALIFY_THRESHOLD) console.log(`    Breakdown: ${s.breakdown.join(', ')}`);
         stats.updated++;
       } else {
-        await prisma.contact.update({
-          where: { id: contact.id },
-          data: {
-            score: newScore,
-            priority: newPriority,
-            ownerMatch: ownerMatch,
-          },
-        });
+        await prisma.contact.update({ where: { id: s.contact.id }, data: { score: newScore, priority: newPriority, ownerMatch: s.ownerMatch } });
         stats.updated++;
       }
     }
@@ -430,22 +522,21 @@ export async function main() {
   console.log('\\n============================================');
   console.log('[score-contacts] COMPLETE');
   console.log('============================================');
-  console.log(`Total contacts:       ${stats.total}`);
+  console.log(`Total contacts:       ${stats.totalContacts}`);
   console.log(`Updated:              ${stats.updated}`);
   console.log(`Skipped (no change):  ${stats.skipped}`);
   console.log('--------------------------------------------');
-  console.log(`Qualified (>= ${QUALIFY_THRESHOLD}):    ${stats.qualified} (${((stats.qualified / stats.total) * 100).toFixed(1)}%)`);
-  console.log(`Disqualified (< ${QUALIFY_THRESHOLD}): ${stats.disqualified} (${((stats.disqualified / stats.total) * 100).toFixed(1)}%)`);
+  console.log(`Qualified (>= ${QUALIFY_THRESHOLD}):    ${stats.qualified} (${((stats.qualified / stats.totalContacts) * 100).toFixed(1)}%)`);
+  console.log(`Disqualified (< ${QUALIFY_THRESHOLD}): ${stats.disqualified} (${((stats.disqualified / stats.totalContacts) * 100).toFixed(1)}%)`);
   console.log('--------------------------------------------');
   console.log('Priority Distribution:');
-  console.log(`  HOT:     ${stats.byPriority.HOT} (${((stats.byPriority.HOT / stats.total) * 100).toFixed(1)}%)`);
-  console.log(`  WARM:    ${stats.byPriority.WARM} (${((stats.byPriority.WARM / stats.total) * 100).toFixed(1)}%)`);
-  console.log(`  NEUTRAL: ${stats.byPriority.NEUTRAL} (${((stats.byPriority.NEUTRAL / stats.total) * 100).toFixed(1)}%)`);
-  console.log(`  LOW:     ${stats.byPriority.LOW} (${((stats.byPriority.LOW / stats.total) * 100).toFixed(1)}%)`);
+  console.log(`  HIGH:   ${stats.byPriority.HIGH} (${((stats.byPriority.HIGH / stats.totalContacts) * 100).toFixed(1)}%)`);
+  console.log(`  MEDIUM: ${stats.byPriority.MEDIUM} (${((stats.byPriority.MEDIUM / stats.totalContacts) * 100).toFixed(1)}%)`);
+  console.log(`  LOW:    ${stats.byPriority.LOW} (${((stats.byPriority.LOW / stats.totalContacts) * 100).toFixed(1)}%)`);
   console.log('--------------------------------------------');
-  console.log(`Owner matches:        ${stats.ownerMatches} (${((stats.ownerMatches / stats.total) * 100).toFixed(1)}%)`);
-  console.log(`Wireless phones:      ${stats.wireless} (${((stats.wireless / stats.total) * 100).toFixed(1)}%)`);
-  console.log(`Toll-free phones:     ${stats.tollFree} (${((stats.tollFree / stats.total) * 100).toFixed(1)}%)`);
+  console.log(`Owner matches:        ${stats.ownerMatches} (${((stats.ownerMatches / stats.totalContacts) * 100).toFixed(1)}%)`);
+  console.log(`Wireless phones:      ${stats.wireless} (${((stats.wireless / stats.totalContacts) * 100).toFixed(1)}%)`);
+  console.log(`Toll-free phones:     ${stats.tollFree} (${((stats.tollFree / stats.totalContacts) * 100).toFixed(1)}%)`);
   console.log('============================================\\n');
 
   if (DRY_RUN) {

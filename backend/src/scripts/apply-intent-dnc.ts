@@ -193,25 +193,16 @@ async function applyIntents(intentMap: Map<string, IntentInfo>) {
       stats.callOnlySet++;
     }
 
-    // Calculate updated score and ownerMatch and include in same update
+    // Calculate updated score and ownerMatch via helper, then update
     try {
       const now = new Date();
-      const contactWithIntent = { ...contact, intent: info.intent, lastReceivedAt: now } as any;
-      const { score, ownerMatch } = calculateScore(contactWithIntent);
-      data.score = score;
-      data.priority = getPriority(score);
-      data.ownerMatch = ownerMatch;
-      data.intent = info.intent;
-      data.lastReceivedAt = now;
+      // Update contact fields and increment receiveCount
+      const updated = await updateContactScore(phone, info.intent, { smsAllowed: data.smsAllowed, callOnly: data.callOnly, dncData: data, now });
+      if (updated) stats.contactsUpdated++;
+      else stats.contactsNotFound++;
     } catch (err) {
-      console.warn('[apply-intent-dnc] calculateScore failed, skipping score update', err);
+      console.warn('[apply-intent-dnc] updateContactScore failed', err);
     }
-
-    await prisma.contact.update({
-      where: { phoneE164: phone },
-      data,
-    });
-    stats.contactsUpdated++;
   }
 
   return stats;
@@ -233,6 +224,51 @@ async function main() {
   console.log(`- Priority raised: ${stats.priorityRaised}`);
   console.log(`- smsAllowed set: ${stats.smsAllowedSet}`);
   console.log(`- callOnly set: ${stats.callOnlySet}`);
+}
+
+export async function updateContactScore(phoneE164: string, intent: string, opts?: { smsAllowed?: boolean; callOnly?: boolean; dncData?: any; now?: Date }) {
+  const contact = await prisma.contact.findUnique({ where: { phoneE164 } });
+  if (!contact) return null;
+
+  const now = opts?.now ?? new Date();
+
+  // Build a contact-like object for scoring
+  const contactForScore = {
+    ...contact,
+    intent,
+    lastReceivedAt: now,
+  } as any;
+
+  const { score, ownerMatch } = calculateScore(contactForScore);
+  const priority = getPriority(score);
+
+  const updateData: any = {
+    score,
+    priority,
+    ownerMatch,
+    intent,
+    lastReceivedAt: now,
+  };
+
+  // apply optional sms/call flags
+  if (typeof opts?.smsAllowed === 'boolean') updateData.smsAllowed = opts?.smsAllowed;
+  if (typeof opts?.callOnly === 'boolean') updateData.callOnly = opts?.callOnly;
+
+  // increment receiveCount if field exists
+  try {
+    await prisma.contact.update({
+      where: { phoneE164 },
+      data: {
+        ...updateData,
+        receiveCount: { increment: 1 } as any,
+      },
+    });
+  } catch (e) {
+    // Fallback if receiveCount doesn't exist yet
+    await prisma.contact.update({ where: { phoneE164 }, data: updateData });
+  }
+
+  return true;
 }
 
 main()

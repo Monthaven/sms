@@ -7,21 +7,699 @@ datasource db {
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
-// --- USERS & AUTH (New for Command Center) ---
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  role      UserRole @default(AGENT)
-  
-  // Relations
+  id            String         @id @default(cuid())
+  email         String         @unique
+  name          String?
+  role          UserRole       @default(AGENT)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  ingestionJobs IngestionJob[] @relation("IngestionStartedBy")
   assignedLeads Lead[]
   auditLogs     LeadAudit[]
-  ingestionJobs IngestionJob[] @relation("IngestionStartedBy")
+}
 
+model Contact {
+  id              String        @id @default(cuid())
+  phoneE164       String        @unique
+  phoneType       String?
+  firstName       String?
+  lastName        String?
+  email           String?
+  source          String        @default("DEALMACHINE")
+  priority        String        @default("LOW")
+  score           Int?
+  smsAllowed      Boolean       @default(false)
+  callOnly        Boolean       @default(false)
+  doNotContact    Boolean       @default(false)
+  ownerMatch      Boolean       @default(false)
+  blockReason     String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  intent          String?
+  intentSource    String?
+  sendCount       Int?          @default(0)
+  receiveCount    Int?          @default(0)
+  lastSentAt      DateTime?     @db.Timestamp(6)
+  lastReceivedAt  DateTime?     @db.Timestamp(6)
+  lastContactedAt DateTime?     @db.Timestamp(6)
+  flagsRaw        String?
+  blockDate       DateTime?     @db.Timestamp(6)
+  archived        Boolean?      @default(false)
+  sourceFile      String?
+  interactions    Interaction[]
+  leads           Lead[]
+  properties      Property[]
+
+  @@index([phoneE164])
+}
+
+model Property {
+  id           String   @id @default(cuid())
+  ownerId      String?
+  addressLine1 String
+  city         String
+  state        String
+  postalCode   String
+  rawDetails   Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  leads        Lead[]
+  owner        Contact? @relation(fields: [ownerId], references: [id])
+
+  @@unique([addressLine1, city, state])
+}
+
+model DncList {
+  id        String   @id @default(cuid())
+  phoneE164 String   @unique
+  reason    String?
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+}
+
+model Campaign {
+  id               String         @id @default(cuid())
+  name             String
+  ezTextingGroupId String?
+  status           String         @default("DRAFT")
+  createdAt        DateTime       @default(now())
+  ingestionJobs    IngestionJob[] @relation("CampaignIngestionJobs")
+  leads            Lead[]
+}
+
+model Lead {
+  id             String      @id @default(cuid())
+  campaignId     String
+  contactId      String
+  propertyId     String?
+  status         LeadStatus  @default(NEW)
+  sentimentScore Int         @default(0)
+  assignedToId   String?
+  isFlagged      Boolean     @default(false)
+  notes          String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  assignedTo     User?       @relation(fields: [assignedToId], references: [id])
+  campaign       Campaign    @relation(fields: [campaignId], references: [id])
+  contact        Contact     @relation(fields: [contactId], references: [id])
+  property       Property?   @relation(fields: [propertyId], references: [id])
+  audits         LeadAudit[]
+
+  @@unique([campaignId, contactId, propertyId])
+  @@index([status])
+  @@index([assignedToId])
+}
+
+model LeadAudit {
+  id        String   @id @default(cuid())
+  leadId    String
+  userId    String?
+  action    String
+  details   String?
+  createdAt DateTime @default(now())
+  lead      Lead     @relation(fields: [leadId], references: [id])
+  user      User?    @relation(fields: [userId], references: [id])
+}
+
+model Interaction {
+  id         String    @id @default(cuid())
+  contactId  String
+  channel    Channel
+  direction  Direction
+  body       String
+  externalId String?
+  createdAt  DateTime  @default(now())
+  contact    Contact   @relation(fields: [contactId], references: [id])
+
+  @@index([contactId])
+}
+
+model IngestionJob {
+  id              String             @id @default(cuid())
+  fileName        String
+  campaignId      String?
+  status          IngestionJobStatus @default(PENDING)
+  rowsProcessed   Int                @default(0)
+  contactsCreated Int                @default(0)
+  leadsCreated    Int                @default(0)
+  startedById     String?
+  startedAt       DateTime           @default(now())
+  finishedAt      DateTime?
+  durationSeconds Int?
+  errorMessage    String?
+  campaign        Campaign?          @relation("CampaignIngestionJobs", fields: [campaignId], references: [id])
+  startedBy       User?              @relation("IngestionStartedBy", fields: [startedById], references: [id])
+}
+
+model WebhookLog {
+  id           String    @id @default(cuid())
+  provider     String
+  direction    Direction
+  status       String
+  statusCode   Int?
+  payload      Json?
+  errorMessage String?
+  createdAt    DateTime  @default(now())
+}
+
+model access_grants {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String?   @db.Uuid
+  deal_slug  String?
+  scope      String?   @default("teaser")
+  granted_at DateTime? @default(now()) @db.Timestamp(6)
+  expires_at DateTime? @db.Timestamp(6)
+  users      users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model audit_logs {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id     String?   @db.Uuid
+  action      String?
+  target_type String?
+  target_id   String?
+  metadata    Json?
+  created_at  DateTime? @default(now()) @db.Timestamp(6)
+  users       users?    @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+}
+
+model capital_requests {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String?   @db.Uuid
+  deal_slug  String?
+  amount     Float?    @db.Real
+  status     String?   @default("pending")
+  notes      String?
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  users      users?    @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+}
+
+model deals {
+  id                          String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  notion_id                   String                     @unique
+  slug                        String                     @unique
+  created_at                  DateTime?                  @default(now()) @db.Timestamp(6)
+  updated_at                  DateTime?                  @default(now()) @db.Timestamp(6)
+  property_name               String?
+  status                      String?
+  asset_type                  String?
+  product_type                String?
+  region                      Json?
+  market                      String?
+  submarket                   String?
+  property_address            String?
+  property_location           Json?
+  asking_price                Float?                     @db.Real
+  price_per_unit              Float?                     @db.Real
+  cap_rate                    Float?                     @db.Real
+  gpr                         Float?                     @db.Real
+  other_income                Float?                     @db.Real
+  total_ltl                   Float?                     @db.Real
+  occupancy                   Float?                     @db.Real
+  current_occupancy           Float?                     @db.Real
+  current_opex_ratio          Float?                     @db.Real
+  avg_in_place                Float?                     @db.Real
+  avg_market                  Float?                     @db.Real
+  target_equity               Float?                     @db.Real
+  units                       Float?                     @db.Real
+  nrsf                        Float?                     @db.Real
+  nra_sf                      Float?                     @db.Real
+  year_built                  Float?                     @db.Real
+  tags                        Json?
+  posture                     Json?
+  median_household_income     Float?                     @db.Real
+  loan_amount                 Float?                     @db.Real
+  loan_balance                Float?                     @db.Real
+  interest_rate               Float?                     @db.Real
+  amortization_years          Float?                     @db.Real
+  io_months                   Float?                     @db.Real
+  maturity_date               DateTime?                  @db.Date
+  prepay_penalty              String?
+  is_assumable                Boolean?
+  hero_image                  String?
+  hero_title                  String?
+  hero_subtitle               String?
+  summary                     String?
+  teaser_summary              String?
+  section_executive_overview  String?
+  section_strategic_rationale String?
+  section_investment_snapshot String?
+  section_property_overview   String?
+  section_financials          String?
+  section_market_analysis     String?
+  section_pro_forma           String?
+  section_risk_timeline       String?
+  section_recommendation      String?
+  section_capex_strategy      String?
+  section_sales_comps         String?
+  section_opex_analysis       String?
+  stat_1_label                String?
+  stat_1_value                String?
+  stat_2_label                String?
+  stat_2_value                String?
+  stat_3_label                String?
+  stat_3_value                String?
+  stat_4_label                String?
+  stat_4_value                String?
+  highlight_1_icon            String?
+  highlight_1_title           String?
+  highlight_1_text            String?
+  highlight_2_icon            String?
+  highlight_2_title           String?
+  highlight_2_text            String?
+  highlight_3_icon            String?
+  highlight_3_title           String?
+  highlight_3_text            String?
+  specifications              Json?
+  investment_returns          Json?
+  value_add_plan              Json?
+  unit_mix_json               Json?
+  access_routes               Json?
+  employment_centers          Json?
+  recommendation_title        String?
+  recommendation_score        String?
+  recommendation_reasons      Json?
+  footer_contact_name         String?
+  footer_contact_email        String?
+  footer_contact_company      String?
+  footer_disclaimer           String?
+  website                     String?
+  data_room_url               String?
+  om_pdf_url                  String?
+  rent_roll                   String?
+  t12                         String?
+  gallery_urls                String?
+  nda_level                   String?
+  ic_status                   String?
+  ic_date                     DateTime?                  @db.Date
+  approved_at                 DateTime?                  @db.Date
+  rr_as_of                    String?
+  is_featured                 Boolean?                   @default(false)
+  hero_stats                  Json?
+  highlights_json             Json?
+  value_add_plan_json         Json?
+  notion_page_id              String?
+  om_assumptions              om_assumptions[]
+  om_employment_anchors       om_employment_anchors[]
+  om_gallery_images           om_gallery_images[]
+  om_investment_highlights    om_investment_highlights[]
+  om_observations             om_observations[]
+  om_opex_analysis            om_opex_analysis[]
+  om_points_of_interest       om_points_of_interest[]
+  om_pricing_guidance         om_pricing_guidance[]
+  om_pro_forma                om_pro_forma[]
+  om_recommendation_items     om_recommendation_items[]
+  om_rent_comps               om_rent_comps[]
+  om_returns_summary          om_returns_summary[]
+  om_risks                    om_risks[]
+  om_sales_comps              om_sales_comps[]
+  om_sensitivity_matrix       om_sensitivity_matrix[]
+  om_strategic_rationale      om_strategic_rationale[]
+  om_t12_financials           om_t12_financials[]
+  om_timeline                 om_timeline[]
+  om_unit_mix                 om_unit_mix[]
+  om_value_add_phases         om_value_add_phases[]
+
+  @@index([market])
+  @@index([slug])
+  @@index([status])
+}
+
+model engagement_events {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String?   @db.Uuid
+  event_type String?
+  deal_slug  String?
+  metadata   Json?
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  users      users?    @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+}
+
+model ndas {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id     String?   @db.Uuid
+  envelope_id String?   @unique
+  status      String?   @default("pending")
+  signed_at   DateTime? @db.Timestamp(6)
+  created_at  DateTime? @default(now()) @db.Timestamp(6)
+  users       users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model om_assumptions {
+  id         String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  notion_id  String  @unique
+  deal_id    String  @db.Uuid
+  assumption String?
+  sort_order Float?  @db.Real
+  deals      deals   @relation(fields: [deal_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([deal_id], map: "om_assumptions_deal_idx")
+}
+
+model om_employment_anchors {
+  id              String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  notion_id       String  @unique
+  deal_id         String  @db.Uuid
+  employer_name   String?
+  sector          String?
+  employees_count Float?  @db.Real
+  distance_miles  Float?  @db.Real
+  commute_minutes Float?  @db.Real
+  stability_note  String?
+  sort_order      Float?  @db.Real
+  deals           deals   @relation(fields: [deal_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([deal_id], map: "om_employment_anchors_deal_idx")
+}
+
+model om_gallery_images {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  notion_id     String    @unique
+  deal_id       String    @db.Uuid
+  image_name    String?
+  image_url     String?
+  category      String?
+  alt_text      String?
+  source_url    String?
+  width         Float?    @db.Real
+  height        Float?    @db.Real
+  file_size     Float?    @db.Real
+  quality_score Float?    @db.Real
+  status        String?
+  sort_order    Float?    @db.Real
+  scraped_at    DateTime? @db.Date
+  deals         deals     @relation(fields: [deal_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([category])
+  @@index([deal_id], map: "om_gallery_images_deal_idx")
+}
+
+model om_investment_highlights {
+  id         String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  notion_id  String  @unique
+  deal_id    String  @db.Uuid
+  highlight  String?
+  sort_order Float?  @db.Real
+  deals      deals   @relation(fields: [deal_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([deal_id], map: "om_investment_highlights_deal_idx")
+}
+
+model om_observations {
+  id               String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  notion_id        String  @unique
+  deal_id          String  @db.Uuid
+  observation_text String?
+  sort_order       Float?  @db.Real
+  deals            deals   @relation(fields: [deal_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([deal_id], map: "om_observations_deal_idx")
+}
+
+model om_opex_analysis {
+  id                  String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  notion_id           String  @unique
+  deal_id             String  @db.Uuid
+  category            String?
+  current_value       Float?  @db.Real
+  market_benchmark    String?
+  savings_opportunity String?
+  sort_order          Float?  @db.Real
+  current             Float?
+  deals               deals   @relation(fields: [deal_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([deal_id], map: "om_opex_analysis_deal_idx")
+}
+
+model om_points_of_interest {
+  id                 String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  notion_id          String  @unique
+  deal_id            String  @db.Uuid
+  poi_name           String?
+  category           String?
+  distance_miles     Float?  @db.Real
+  drive_time_minutes Float?  @db.Real
+  description        String?
+  importance         String?
+  sort_order         Float?  @db.Real
+  deals              deals   @relation(fields: [deal_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([deal_id], map: "om_points_of_interest_deal_idx")
+}
+
+model om_pricing_guidance {
+  id         String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  notion_id  String  @unique
+  deal_id    String  @db.Uuid
+  label      String?
+  price      String?
+  sub_line_1 String?
+  sub_line_2 String?
+  variant    String?
+  sort_order Float?  @db.Real
+  deals      deals   @relation(fields: [deal_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([deal_id], map: "om_pricing_guidance_deal_idx")
+}
+
+model om_pro_forma {
+  id         String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  notion_id  String  @unique
+  deal_id    String  @db.Uuid
+  period     String?
+  egi        Float?  @db.Real
+  opex       Float?  @db.Real
+  noi        Float?  @db.Real
+  growth     String?
+  sort_order Float?  @db.Real
+  deals      deals   @relation(fields: [deal_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([deal_id], map: "om_pro_forma_deal_idx")
+}
+
+model om_recommendation_items {
+  id         String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  notion_id  String  @unique
+  deal_id    String  @db.Uuid
+  item       String?
+  type       String?
+  sort_order Float?  @db.Real
+  deals      deals   @relation(fields: [deal_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([deal_id], map: "om_recommendation_items_deal_idx")
+}
+
+model om_rent_comps {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  notion_id           String   @unique
+  deal_id             String   @db.Uuid
+  property_name       String?
+  year_built          Float?   @db.Real
+  occupancy           Float?   @db.Real
+  one_br_avg          Float?   @db.Real
+  two_br_avg          Float?   @db.Real
+  renovation_status   String?
+  is_subject_property Boolean? @default(false)
+  is_average_row      Boolean? @default(false)
+  sort_order          Float?   @db.Real
+  deals               deals    @relation(fields: [deal_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([deal_id], map: "om_rent_comps_deal_idx")
+}
+
+model om_returns_summary {
+  id         String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  notion_id  String  @unique
+  deal_id    String  @db.Uuid
+  label      String?
+  value      String?
+  sort_order Float?  @db.Real
+  deals      deals   @relation(fields: [deal_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([deal_id], map: "om_returns_summary_deal_idx")
+}
+
+model om_risks {
+  id          String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  notion_id   String  @unique
+  deal_id     String  @db.Uuid
+  risk_factor String?
+  likelihood  String?
+  impact      String?
+  mitigation  String?
+  residual    String?
+  sort_order  Float?  @db.Real
+  deals       deals   @relation(fields: [deal_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([deal_id], map: "om_risks_deal_idx")
+}
+
+model om_sales_comps {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  notion_id           String   @unique
+  deal_id             String   @db.Uuid
+  property_name       String?
+  location            String?
+  units               Float?   @db.Real
+  year_built          Float?   @db.Real
+  price_per_unit      Float?   @db.Real
+  cap_rate            Float?   @db.Real
+  is_subject_property Boolean? @default(false)
+  is_average_row      Boolean? @default(false)
+  sort_order          Float?   @db.Real
+  deals               deals    @relation(fields: [deal_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([deal_id], map: "om_sales_comps_deal_idx")
+}
+
+model om_sensitivity_matrix {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  notion_id  String   @unique
+  deal_id    String   @db.Uuid
+  row_label  String?
+  col_1      String?
+  col_2      String?
+  col_3      String?
+  is_header  Boolean? @default(false)
+  sort_order Float?   @db.Real
+  deals      deals    @relation(fields: [deal_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([deal_id], map: "om_sensitivity_matrix_deal_idx")
+}
+
+model om_strategic_rationale {
+  id         String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  notion_id  String  @unique
+  deal_id    String  @db.Uuid
+  point      String?
+  sort_order Float?  @db.Real
+  deals      deals   @relation(fields: [deal_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([deal_id], map: "om_strategic_rationale_deal_idx")
+}
+
+model om_t12_financials {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  notion_id  String   @unique
+  deal_id    String   @db.Uuid
+  line_item  String?
+  annual     Float?   @db.Real
+  per_unit   Float?   @db.Real
+  pct_of_egi Float?   @db.Real
+  category   String?
+  opex_type  String?
+  is_bold    Boolean? @default(false)
+  is_green   Boolean? @default(false)
+  is_red     Boolean? @default(false)
+  sort_order Float?   @db.Real
+  deals      deals    @relation(fields: [deal_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([deal_id], map: "om_t12_financials_deal_idx")
+}
+
+model om_ti_sensitivity {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  notion_page_id     String    @unique
+  t12_taxes          Float?    @db.Real
+  t12_insurance      Float?    @db.Real
+  t12_ti_total       Float?    @db.Real
+  t12_ti_pct_egi     Float?    @db.Real
+  tax_reset_pct      Float?    @db.Real
+  tax_reset_amount   Float?    @db.Real
+  insurance_adjusted Float?    @db.Real
+  ti_adjusted_noi    Float?    @db.Real
+  ti_adjusted_cap    Float?    @db.Real
+  ti_adjusted_irr    Float?    @db.Real
+  ti_adjusted_em     Float?    @db.Real
+  ti_adjusted_dscr   Float?    @db.Real
+  synced_at          DateTime? @default(now()) @db.Timestamp(6)
+
+  @@index([notion_page_id], map: "om_ti_sensitivity_notion_page_idx")
+}
+
+model om_timeline {
+  id          String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  notion_id   String  @unique
+  deal_id     String  @db.Uuid
+  phase       String?
+  time_period String?
+  milestone   String?
+  sort_order  Float?  @db.Real
+  time        String?
+  deals       deals   @relation(fields: [deal_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([deal_id], map: "om_timeline_deal_idx")
+}
+
+model om_unit_mix {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  notion_id     String   @unique
+  deal_id       String   @db.Uuid
+  unit_type     String?
+  beds          Float?   @db.Real
+  baths         Float?   @db.Real
+  unit_count    Float?   @db.Real
+  avg_sf        Float?   @db.Real
+  market_rent   Float?   @db.Real
+  in_place_rent Float?   @db.Real
+  loss_to_lease Float?   @db.Real
+  ltl_percent   Float?   @db.Real
+  is_total_row  Boolean? @default(false)
+  sort_order    Float?   @db.Real
+  deals         deals    @relation(fields: [deal_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([deal_id], map: "om_unit_mix_deal_idx")
+}
+
+model om_value_add_phases {
+  id           String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  notion_id    String  @unique
+  deal_id      String  @db.Uuid
+  title        String?
+  focus        String?
+  scope        String?
+  items        String?
+  impact       String?
+  phase_number Float?  @db.Real
+  deals        deals   @relation(fields: [deal_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([deal_id], map: "om_value_add_phases_deal_idx")
+}
+
+model support_tickets {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String?   @db.Uuid
+  subject    String?
+  body       String?
+  status     String?   @default("open")
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  users      users?    @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+}
+
+model users {
+  id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email             String              @unique
+  name              String?
+  company           String?
+  role              String?             @default("investor")
+  created_at        DateTime?           @default(now()) @db.Timestamp(6)
+  updated_at        DateTime?           @default(now()) @db.Timestamp(6)
+  access_grants     access_grants[]
+  audit_logs        audit_logs[]
+  capital_requests  capital_requests[]
+  engagement_events engagement_events[]
+  ndas              ndas[]
+  support_tickets   support_tickets[]
+}
+
+model webhook_events {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  source       String?
+  event_type   String?
+  payload      Json?
+  processed_at DateTime? @db.Timestamp(6)
+  created_at   DateTime? @default(now()) @db.Timestamp(6)
 }
 
 enum UserRole {
@@ -29,194 +707,19 @@ enum UserRole {
   AGENT
 }
 
-// --- CORE ENTITIES ---
-
-model Contact {
-  id          String   @id @default(cuid())
-  phoneE164   String   @unique // Normalized +1XXXXXXXXXX
-  phoneType   String?  // "Mobile", "Landline", "VoIP"
-  firstName   String?
-  lastName    String?
-  email       String?
-  source      String   @default("DEALMACHINE")
-  
-  // Scoring and prioritization
-  score       Float?
-  priority    String?
-  ownerMatch  String?
-  
-  // Contact preferences
-  smsAllowed  Boolean  @default(true)
-  callOnly    Boolean  @default(false)
-  doNotContact Boolean @default(false)
-  blockReason String?
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  properties   Property[]
-  leads        Lead[]
-  interactions Interaction[]
-  
-  @@index([phoneE164])
-}
-
-model Property {
-  id             String   @id @default(cuid())
-  
-  // Owner is optional because Deep Trace might have multiple contacts per property
-  ownerId        String?  
-  owner          Contact? @relation(fields: [ownerId], references: [id])
-
-  addressLine1   String
-  city           String
-  state          String
-  postalCode     String
-  
-  // Stores the entire CSV row as JSON so we never lose data (Equity, Roof, etc.)
-  rawDetails     Json?    
-
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  leads          Lead[]
-
-  // Unique Identifier for a Property
-  @@unique([addressLine1, city, state])
-}
-
-model DncList {
-  id        String   @id @default(cuid())
-  phoneE164 String   @unique
-  reason    String?  // e.g. "STOP Keyword", "Litigator Scrub"
-  createdAt DateTime @default(now())
-}
-
-// --- PIPELINE & WORKFLOW ---
-
-model Campaign {
-  id               String   @id @default(cuid())
-  name             String
-  ezTextingGroupId String? 
-  status           String   @default("DRAFT") 
-
-  createdAt        DateTime @default(now())
-  leads            Lead[]
-  ingestionJobs    IngestionJob[] @relation("CampaignIngestionJobs")
-}
-
-model Lead {
-  id             String      @id @default(cuid())
-  
-  // Context
-  campaignId     String
-  campaign       Campaign    @relation(fields: [campaignId], references: [id])
-  
-  contactId      String
-  contact        Contact     @relation(fields: [contactId], references: [id])
-  
-  propertyId     String?
-  property       Property?   @relation(fields: [propertyId], references: [id])
-
-  // Workflow State
-  status         LeadStatus  @default(NEW)
-  sentimentScore Int         @default(0) 
-  
-  // Agent Workflow (The "Command Center" Logic)
-  assignedToId   String?
-  assignedTo     User?       @relation(fields: [assignedToId], references: [id])
-  
-  isFlagged      Boolean     @default(false) // For "Review Needed"
-  notes          String?     @db.Text        // Internal notes
-
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
-  
-  audits         LeadAudit[] // History of changes
-
-  @@unique([campaignId, contactId, propertyId])
-  @@index([status])
-  @@index([assignedToId])
-}
-
-// Audit Trail: Tracks WHO did WHAT (Compliance)
-model LeadAudit {
-  id        String   @id @default(cuid())
-  leadId    String
-  lead      Lead     @relation(fields: [leadId], references: [id])
-  
-  userId    String?  // If Null, it was a System/Bot action
-  user      User?    @relation(fields: [userId], references: [id])
-  
-  action    String   // e.g. "STATUS_CHANGE", "CLAIMED", "NOTE_ADDED"
-  details   String?  // e.g. "Changed status from NEW to RESP_HOT"
-  
-  createdAt DateTime @default(now())
-}
-
-model Interaction {
-  id          String   @id @default(cuid())
-  contactId   String
-  contact     Contact  @relation(fields: [contactId], references: [id])
-
-  channel     Channel  
-  direction   Direction
-  
-  body        String   @db.Text
-  externalId  String?  // Twilio/EzTexting Message SID
-  
-  createdAt   DateTime @default(now())
-  
-  @@index([contactId])
-}
-
-model IngestionJob {
-  id              String              @id @default(cuid())
-  fileName        String
-  campaignId      String?
-  campaign        Campaign?           @relation("CampaignIngestionJobs", fields: [campaignId], references: [id])
-  status          IngestionJobStatus  @default(PENDING)
-  rowsProcessed   Int                 @default(0)
-  contactsCreated Int                 @default(0)
-  leadsCreated    Int                 @default(0)
-  startedById     String?
-  startedBy       User?               @relation("IngestionStartedBy", fields: [startedById], references: [id])
-  startedAt       DateTime            @default(now())
-  finishedAt      DateTime?
-  durationSeconds Int?
-  errorMessage    String?
-}
-
-model WebhookLog {
-  id           String     @id @default(cuid())
-  provider     String
-  direction    Direction
-  status       String
-  statusCode   Int?
-  payload      Json?
-  errorMessage String?
-  createdAt    DateTime   @default(now())
-}
-
-// --- ENUMS ---
-
 enum LeadStatus {
-  NEW             // Mobile: Ready for Blast
-  QUEUED_FOR_CALL // Landline: Needs manual call
-  QUEUED          // Waiting for API
-  SENT            // Blast successful
-  
-  // Responses
-  RESP_STOP       // DNC
-  RESP_BOUNCE     // Bad Number
-  RESP_COLD       // "Not interested"
-  RESP_WARM       // "Who is this?" / "Maybe"
-  RESP_HOT        // "Price?" / "Yes"
-  
-  // Human Work
-  CONVERSATION_ACTIVE // Agent is chatting
-  CONVERTED       // Appointment Set
-  ARCHIVED        // Dead Lead
+  NEW
+  QUEUED_FOR_CALL
+  QUEUED
+  SENT
+  RESP_STOP
+  RESP_BOUNCE
+  RESP_COLD
+  RESP_WARM
+  RESP_HOT
+  CONVERSATION_ACTIVE
+  CONVERTED
+  ARCHIVED
 }
 
 enum Channel {
