@@ -12,10 +12,11 @@
   },
   "dependencies": {
     "@prisma/client": "5.22.0",
-    "swr": "^2.2.0",
     "@tanstack/react-query": "^5.0.0",
     "axios": "^1.6.0",
     "clsx": "^2.1.1",
+    "csv-parse": "^6.1.0",
+    "csv-stringify": "^6.6.0",
     "date-fns": "^4.1.0",
     "framer-motion": "^10.12.16",
     "lucide-react": "^0.290.0",
@@ -25,7 +26,8 @@
     "recharts": "^3.5.1",
     "swr": "^2.3.8",
     "tailwind-merge": "^2.0.0",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "twilio": "^5.11.1"
   },
   "devDependencies": {
     "@types/node": "^20",

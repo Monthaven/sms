@@ -8,6 +8,56 @@ const db = prisma as any;
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+// Intent keywords (case-insensitive)
+const INTENT_KEYWORDS = {
+  HOT: [
+    "interested",
+    "yes",
+    "call me",
+    "send info",
+    "what price",
+    "how much",
+    "make offer",
+    "ready to sell",
+    "let's talk",
+    "send details",
+    "more info",
+    "tell me more",
+  ],
+  WARM: [
+    "maybe",
+    "depends",
+    "not sure",
+    "thinking",
+    "possibly",
+    "what are you offering",
+    "who is this",
+    "how did you get my number",
+  ],
+  NEGATIVE: [
+    "stop",
+    "remove",
+    "unsubscribe",
+    "not interested",
+    "no thanks",
+    "don't contact",
+    "wrong number",
+    "not selling",
+    "take me off",
+    "leave me alone",
+    "do not contact",
+    "sold already",
+  ],
+};
+
+function classifyIntent(messageText: string): "HOT" | "WARM" | "NEGATIVE" | "NEUTRAL" {
+  const text = (messageText || "").toLowerCase();
+  if (INTENT_KEYWORDS.NEGATIVE.some((kw) => text.includes(kw))) return "NEGATIVE";
+  if (INTENT_KEYWORDS.HOT.some((kw) => text.includes(kw))) return "HOT";
+  if (INTENT_KEYWORDS.WARM.some((kw) => text.includes(kw))) return "WARM";
+  return "NEUTRAL";
+}
+
 type Payload = {
   fromNumber: string | null;
   message: string | null;
@@ -152,6 +202,7 @@ async function handle(req: Request) {
       const lower = (message || "").toLowerCase();
       if (["stop", "cancel", "unsubscribe"].some((w) => lower.includes(w))) status = LeadStatus.RESP_STOP;
       if (["price", "offer", "selling", "how much"].some((w) => lower.includes(w))) status = LeadStatus.RESP_HOT;
+      const intent = classifyIntent(message || "");
 
       await prisma.lead.update({ where: { id: leadId }, data: { status } });
 
@@ -164,6 +215,28 @@ async function handle(req: Request) {
           externalId: id || `sim_${Date.now()}`,
         },
       });
+
+      await prisma.message.create({
+        data: {
+          phone: normalized,
+          direction: "INBOUND",
+          body: message || "(no body)",
+          status: status,
+          provider: "EZTEXTING",
+          external_id: id || `sim_${Date.now()}`,
+          campaign_id: INBOUND_CAMPAIGN_ID || null,
+          contactId,
+          intent,
+        },
+      });
+
+      if (intent === "NEGATIVE") {
+        await prisma.phoneFlag.upsert({
+          where: { phone: normalized },
+          update: { opt_out: true, intent: "NEGATIVE", intent_updated: new Date() },
+          create: { phone: normalized, opt_out: true, intent: "NEGATIVE", intent_updated: new Date() },
+        });
+      }
     }
 
     await recordLog({ status: "success", statusCode: 200 });

@@ -1,0 +1,6 @@
+Address,AnnualRent,AskingPrice,City,DelinquentTaxes,Expenses,FirstName,LastName,OutOfState,Owner Name,OwnershipType,Phone,PropertyAddress,PropertyType,SquareFootage,State,VacancyIssues,YearsOwned,Zip,Zoning,_phoneNormalized,_source
+123 Main St,450000,3500000,Anytown,false,180000,John,Smith,false,John Doe,llc,(555) 123-4567,123 Main St Office Building,office,25000,CA,false,8,90210,C-2,+15551234567,sample-dealmachine.csv
+,890000,8900000,Houston,false,220000,Sarah,Johnson,true,,corporation,5552345678,456 Industrial Dr,industrial,75000,TX,false,12,77001,M-1,+15552345678,sample-commercial.csv
+,285000,2200000,Austin,false,95000,Mike,Davis,false,,individual,5553456789,789 Retail Plaza,retail,15000,TX,true,5,78701,C-1,+15553456789,sample-commercial.csv
+,720000,6700000,San Antonio,true,290000,Lisa,Wilson,false,,llc,5554567890,321 Apartment Complex,multifamily,45000,TX,false,15,78201,R-4,+15554567890,sample-commercial.csv
+,520000,4200000,Fort Worth,false,210000,Robert,Brown,true,,trust,5555678901,654 Mixed Use Building,mixed-use,35000,TX,false,6,76101,C-3,+15555678901,sample-commercial.csv
