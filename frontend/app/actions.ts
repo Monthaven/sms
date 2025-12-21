@@ -1,6 +1,7 @@
 "use server"
 
 import { PrismaClient, LeadStatus, Prisma } from "@prisma/client";
+import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
@@ -59,7 +60,7 @@ export async function getLeadDetails(leadId: string) {
   const lead = await prisma.lead.findUnique({
     where: { id: leadId },
     include: {
-      contact: {
+      Contact: {
         select: {
           id: true,
           firstName: true,
@@ -72,7 +73,7 @@ export async function getLeadDetails(leadId: string) {
           // ownerMatch intentionally excluded to avoid Prisma type conversion errors
         },
       },
-      property: true,
+      Property: true,
     },
   })
   if (!lead) return null
@@ -110,7 +111,7 @@ export async function sendReplyAction(
   const lead = await prisma.lead.findUnique({
     where: { id: leadId },
     include: {
-      contact: {
+      Contact: {
         select: {
           id: true,
           phoneE164: true,
@@ -165,11 +166,11 @@ export async function updateLeadStatus(
       if (!user) {
         return { error: "Authentication required to assign lead." };
       }
-      updateData.assignedTo = { connect: { id: user.id } };
+      updateData.User = { connect: { id: user.id } };
     } else if (options?.assignTo) {
-      updateData.assignedTo = { connect: { id: options.assignTo } };
+      updateData.User = { connect: { id: options.assignTo } };
     } else if (options?.assignTo === null) {
-      updateData.assignedTo = { disconnect: true };
+      updateData.User = { disconnect: true };
     }
 
     await prisma.lead.update({
@@ -179,6 +180,7 @@ export async function updateLeadStatus(
 
     await prisma.leadAudit.create({
       data: {
+        id: randomUUID(),
         leadId,
         userId: user?.id ?? null,
         action: "STATUS_CHANGE",
@@ -220,7 +222,7 @@ export async function assignLeadAction(
     await prisma.lead.update({
       where: { id: leadId },
       data: {
-        assignedTo: { connect: { id: agentId } },
+        User: { connect: { id: agentId } },
         ...(options?.note ? { notes: updatedNotes } : {}),
       },
     });
@@ -233,6 +235,7 @@ export async function assignLeadAction(
 
     await prisma.leadAudit.create({
       data: {
+        id: randomUUID(),
         leadId,
         userId: actingUser?.id ?? null,
         action: "ASSIGNED",
@@ -280,6 +283,7 @@ export async function logCallOutcomeAction(
 
     await prisma.leadAudit.create({
       data: {
+        id: randomUUID(),
         leadId,
         userId: actingUser?.id ?? null,
         action: "CALL_LOG",

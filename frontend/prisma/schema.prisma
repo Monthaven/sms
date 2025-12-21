@@ -9,17 +9,18 @@ datasource db {
 }
 
 model Campaign {
-  id               String         @id
+  id               String         @id @default(cuid())
   name             String
   ezTextingGroupId String?
   status           String         @default("DRAFT")
   createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
   IngestionJob     IngestionJob[]
   Lead             Lead[]
 }
 
 model Contact {
-  id                                    String        @id
+  id                                    String        @id @default(cuid())
   phoneE164                             String        @unique
   phoneType                             String?
   firstName                             String?
@@ -34,7 +35,7 @@ model Contact {
   ownerMatch                            Boolean       @default(false)
   blockReason                           String?
   createdAt                             DateTime      @default(now())
-  updatedAt                             DateTime
+  updatedAt                             DateTime      @updatedAt
   intent                                String?
   intentSource                          String?
   sendCount                             Int?          @default(0)
@@ -77,14 +78,15 @@ model Contact {
 }
 
 model DncList {
-  id        String   @id
+  id        String   @id @default(cuid())
   phoneE164 String   @unique
   reason    String?
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model IngestionJob {
-  id              String             @id
+  id              String             @id @default(cuid())
   fileName        String
   campaignId      String?
   status          IngestionJobStatus @default(PENDING)
@@ -96,12 +98,13 @@ model IngestionJob {
   finishedAt      DateTime?
   durationSeconds Int?
   errorMessage    String?
+  updatedAt       DateTime           @updatedAt
   Campaign        Campaign?          @relation(fields: [campaignId], references: [id])
   User            User?              @relation(fields: [startedById], references: [id])
 }
 
 model Interaction {
-  id         String    @id
+  id         String    @id @default(cuid())
   contactId  String
   channel    Channel
   direction  Direction
@@ -114,7 +117,7 @@ model Interaction {
 }
 
 model Lead {
-  id             String      @id
+  id             String      @id @default(cuid())
   campaignId     String
   contactId      String
   propertyId     String?
@@ -124,7 +127,7 @@ model Lead {
   isFlagged      Boolean     @default(false)
   notes          String?
   createdAt      DateTime    @default(now())
-  updatedAt      DateTime
+  updatedAt      DateTime    @updatedAt
   User           User?       @relation(fields: [assignedToId], references: [id])
   Campaign       Campaign    @relation(fields: [campaignId], references: [id])
   Contact        Contact     @relation(fields: [contactId], references: [id])
@@ -137,18 +140,19 @@ model Lead {
 }
 
 model LeadAudit {
-  id        String   @id
+  id        String   @id @default(cuid())
   leadId    String
   userId    String?
   action    String
   details   String?
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   Lead      Lead     @relation(fields: [leadId], references: [id])
   User      User?    @relation(fields: [userId], references: [id])
 }
 
 model Message {
-  id          String   @id
+  id          String   @id @default(cuid())
   phone       String
   direction   String
   body        String
@@ -158,6 +162,7 @@ model Message {
   campaign_id String?
   contactId   String?
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
   intent      String?
   Contact     Contact? @relation(fields: [contactId], references: [id])
 
@@ -167,7 +172,7 @@ model Message {
 }
 
 model PhoneFlag {
-  id              String    @id
+  id              String    @id @default(cuid())
   phone           String    @unique
   dnc             Boolean   @default(false)
   opt_out         Boolean   @default(false)
@@ -180,7 +185,7 @@ model PhoneFlag {
   source          String?
   contactId       String?
   createdAt       DateTime  @default(now())
-  updatedAt       DateTime
+  updatedAt       DateTime  @updatedAt
   Contact         Contact?  @relation(fields: [contactId], references: [id])
 
   @@index([dnc])
@@ -198,7 +203,7 @@ model Portfolio {
 }
 
 model Property {
-  id                                   String    @id
+  id                                   String    @id @default(cuid())
   ownerId                              String?
   addressLine1                         String
   city                                 String?
@@ -206,7 +211,7 @@ model Property {
   postalCode                           String
   rawDetails                           Json?
   createdAt                            DateTime  @default(now())
-  updatedAt                            DateTime
+  updatedAt                            DateTime  @updatedAt
   address                              String?
   mailing_address                      String?
   owner_1_name                         String?
@@ -275,19 +280,19 @@ model Settings {
 }
 
 model User {
-  id           String         @id
+  id           String         @id @default(cuid())
   email        String         @unique
   name         String?
   role         UserRole       @default(AGENT)
   createdAt    DateTime       @default(now())
-  updatedAt    DateTime
+  updatedAt    DateTime       @updatedAt
   IngestionJob IngestionJob[]
   Lead         Lead[]
   LeadAudit    LeadAudit[]
 }
 
 model WebhookLog {
-  id           String    @id
+  id           String    @id @default(cuid())
   provider     String
   direction    Direction
   status       String

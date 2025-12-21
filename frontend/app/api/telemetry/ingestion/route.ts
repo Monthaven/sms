@@ -17,8 +17,8 @@ export async function GET() {
     orderBy: { startedAt: "desc" },
     take: 25,
     include: {
-      campaign: { select: { name: true } },
-      startedBy: { select: { name: true, email: true } },
+      Campaign: { select: { name: true } },
+      User: { select: { name: true, email: true } },
     },
   });
   return NextResponse.json(jobs);

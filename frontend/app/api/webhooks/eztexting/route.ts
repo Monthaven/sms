@@ -72,15 +72,15 @@ async function ensureContactAndLead(phone: string) {
   const contact =
     (await prisma.contact.findUnique({
       where: { phoneE164: phone },
-      include: { leads: { orderBy: { createdAt: "desc" }, take: 1 } },
+      include: { Lead: { orderBy: { createdAt: "desc" }, take: 1 } },
     })) ||
     (await prisma.contact.create({
       data: { phoneE164: phone, source: "INBOUND" },
     }));
 
   const leadCandidate =
-    "leads" in contact && Array.isArray((contact as any).leads)
-      ? (contact as any).leads[0] || null
+    "Lead" in contact && Array.isArray((contact as any).Lead)
+      ? (contact as any).Lead[0] || null
       : null;
 
   let lead = leadCandidate;

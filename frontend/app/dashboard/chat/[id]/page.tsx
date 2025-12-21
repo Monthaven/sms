@@ -36,13 +36,13 @@ export default async function ChatThread({
 
   const interactions = lead.interactions || [];
   const displayName =
-    `${lead.contact.firstName ?? ""} ${lead.contact.lastName ?? ""}`.trim() || lead.contact.phoneE164;
+    `${lead.Contact.firstName ?? ""} ${lead.Contact.lastName ?? ""}`.trim() || lead.Contact.phoneE164;
 
   const macroTemplates = [
     {
       id: "confirm",
       label: "Confirm property",
-      body: `Hi ${lead.contact.firstName ?? "there"}, thanks for the quick response. I wanted to confirm we're talking about ${lead.property?.addressLine1 ?? "your property"} — are you open to reviewing an offer if it looks good?`,
+      body: `Hi ${lead.Contact.firstName ?? "there"}, thanks for the quick response. I wanted to confirm we're talking about ${lead.Property?.addressLine1 ?? "your property"} — are you open to reviewing an offer if it looks good?`,
       description: "Friendly confirmation + open-ended question",
     },
     {
@@ -97,13 +97,13 @@ export default async function ChatThread({
       <section className="glass-panel border border-white/10 p-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-4">
-            <Avatar name={`${lead.contact.firstName ?? ''} ${lead.contact.lastName ?? ''}`.trim() || lead.contact.phoneE164} />
+            <Avatar name={`${lead.Contact.firstName ?? ''} ${lead.Contact.lastName ?? ''}`.trim() || lead.Contact.phoneE164} />
             <div>
               <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Lead Profile</p>
               <h1 className="text-3xl font-semibold text-white">
-                {lead.contact.firstName} {lead.contact.lastName}
+                {lead.Contact.firstName} {lead.Contact.lastName}
               </h1>
-              <p className="text-sm text-slate-400">{lead.contact.phoneE164}</p>
+              <p className="text-sm text-slate-400">{lead.Contact.phoneE164}</p>
             </div>
           </div>
           <div className="flex flex-col items-start gap-3 md:items-end">
@@ -119,10 +119,10 @@ export default async function ChatThread({
               Property
             </div>
             <p className="mt-2 text-sm text-white">
-              {lead.property?.addressLine1 ?? "No address on file"}
+              {lead.Property?.addressLine1 ?? "No address on file"}
             </p>
             <p className="text-xs text-slate-400">
-              {lead.property?.city ?? "N/A"}, {lead.property?.state ?? "--"}
+              {lead.Property?.city ?? "N/A"}, {lead.Property?.state ?? "--"}
             </p>
             <MapPin className="mt-3 h-4 w-4 text-sky-300" />
           </div>
@@ -208,21 +208,21 @@ export default async function ChatThread({
 
         <div className="space-y-4">
           <div className="glass-panel border border-white/10 p-4">
-            <PropertyIntelligence rawDetails={(lead.property as any)?.rawDetails ?? null} />
+            <PropertyIntelligence rawDetails={(lead.Property as any)?.rawDetails ?? null} />
           </div>
 
           <div className="glass-panel border border-white/10 p-4">
             <ContactScoreBreakdown
-              score={lead.contact.score ?? 0}
-              priority={lead.contact.priority ?? 'LOW'}
-              ownerMatch={Boolean((lead.contact as any).ownerMatch)}
-              phoneType={lead.contact.phoneType}
-              contactFlags={getContactFlags((lead.property as any)?.rawDetails ?? null, lead.contact.phoneE164) || []}
+              score={lead.Contact.score ?? 0}
+              priority={lead.Contact.priority ?? 'LOW'}
+              ownerMatch={Boolean((lead.Contact as any).ownerMatch)}
+              phoneType={lead.Contact.phoneType}
+              contactFlags={getContactFlags((lead.Property as any)?.rawDetails ?? null, lead.Contact.phoneE164) || []}
             />
           </div>
 
           <div className="glass-panel border border-white/10 p-4">
-            <AlternativeContacts propertyId={lead.property?.id ?? ''} currentContactId={lead.contact.id} />
+            <AlternativeContacts propertyId={lead.Property?.id ?? ''} currentContactId={lead.Contact.id} />
           </div>
 
           <div className="glass-panel border border-white/10 p-4">

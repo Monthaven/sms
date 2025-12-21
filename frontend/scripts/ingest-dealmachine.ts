@@ -134,13 +134,19 @@ async function ingest(csvPath: string) {
   console.log(`Created/updated ${propertiesCreated} properties, ${contactsCreated} contacts`);
 
   console.log("Selecting primary contacts...");
-  const properties = await prisma.property.findMany({
-    include: { contacts: true },
-  });
+      const properties = await prisma.property.findMany(); // NO include
 
-  for (const property of properties) {
-    if (!property.contacts.length) continue;
-    const primaryIds = selectPrimaryContacts(property.contacts as any);
+    for (const property of properties) {
+      const contacts = await prisma.contact.findMany({
+        where: { propertyId: property.id },
+      });
+      
+      if (!contacts.length) continue;  // Use contacts, not property.Contacts
+      
+      const primaryIds = selectPrimaryContacts(contacts as any);  // Use contacts
+      
+      // ... rest stays the same
+    
 
     await prisma.contact.updateMany({
       where: { propertyId: property.id },

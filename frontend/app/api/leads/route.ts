@@ -21,8 +21,8 @@ export async function GET(request: Request) {
   const leads = await prisma.lead.findMany({
     where: statuses && statuses.length > 0 ? { status: { in: statuses } } : undefined,
     include: {
-      contact: {
-          select: {
+      Contact: {
+        select: {
           id: true,
           firstName: true,
           lastName: true,
@@ -30,15 +30,13 @@ export async function GET(request: Request) {
           phoneType: true,
           email: true,
           score: true,
-            // ownerMatch excluded to avoid Prisma conversion issues
-          // ownerMatch is excluded due to mixed DB types; normalize at runtime if needed
-          interactions: {
+          Interaction: {
             orderBy: { createdAt: "asc" },
             take: 50,
           },
         },
       },
-      property: true,
+      Property: true,
     },
     orderBy: { updatedAt: "desc" },
     take: 500,

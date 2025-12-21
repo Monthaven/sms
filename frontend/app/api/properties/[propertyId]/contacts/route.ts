@@ -8,7 +8,7 @@ export async function GET(request: Request, context: any) {
     const leads = await prisma.lead.findMany({
       where: { propertyId },
       include: {
-        contact: {
+        Contact: {
           select: {
             id: true,
             firstName: true,
@@ -27,7 +27,7 @@ export async function GET(request: Request, context: any) {
 
     // Map to unique contacts by contactId and sort by score desc
     const contacts = leads
-      .map((l) => ({ leadId: l.id, contact: l.contact }))
+      .map((l) => ({ leadId: l.id, contact: l.Contact }))
       .filter((c) => c.contact)
       .map((c) => ({ leadId: c.leadId, ...c.contact }))
       .sort((a, b) => (b.score ?? 0) - (a.score ?? 0));

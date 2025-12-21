@@ -13,7 +13,10 @@ const prisma = new PrismaClient();
 const INTENT_KEYWORDS = {
   HOT: ["interested", "sell", "price", "offer", "call me", "contact me", "ready"],
   WARM: ["maybe", "thinking", "tell me more", "information", "how much"],
-  NEGATIVE: ["stop", "remove", "unsubscribe", "not interested", "no", "quit", "spam", "harassing"],
+  NEGATIVE: ["stop", "remove", "unsubscribe", "not interested", "no", "quit", "spam", "harassing", "do not contact", "don't contact", "block", "hate", "annoying", "unwanted", "cease", "decline", "refuse", "discontinue", "opt out", "opt-out", "optout", "cancel", 
+    "end", "terminate", "reject", "deny", "dismiss", "avoid", "shut down", "shut off", "leave me alone", "get lost", "go away", "stop messaging", "stop texts", "stop text messages", "stop sms", "no more messages", "no more texts", "no more text messages", "no more sms",
+    "please stop", "please no", "please do not", "never contact", "never contact me", "do not text", "do not text me", "Report", "report spam"
+  ],
 };
 
 type Intent = "HOT" | "WARM" | "NEUTRAL" | "NEGATIVE";
@@ -31,16 +34,17 @@ async function buildPhoneFlags() {
 
   // Get all unique phones from contacts
   const contacts = await prisma.contact.findMany({
-    select: { id: true, phone_1: true, phone_2: true, doNotContact: true },
+    select: { id: true, phoneE164: true, doNotContact: true },
   });
 
   const allPhones = new Map<string, { contactId?: string; doNotContact?: boolean }>();
+
   for (const c of contacts) {
-    const p1 = normalizePhone(c.phone_1);
-    const p2 = normalizePhone(c.phone_2);
-    if (p1) allPhones.set(p1, { contactId: c.id, doNotContact: c.doNotContact });
-    if (p2) allPhones.set(p2, { contactId: c.id, doNotContact: c.doNotContact });
+    if (c.phoneE164) {
+      allPhones.set(c.phoneE164, { contactId: c.id, doNotContact: c.doNotContact ?? false });
+    }
   }
+
   console.log(`Found ${allPhones.size} unique phone numbers from contacts`);
 
   // DNC list phones

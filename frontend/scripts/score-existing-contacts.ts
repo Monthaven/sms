@@ -13,7 +13,7 @@ async function scoreExisting() {
 
   const contacts = await prisma.contact.findMany({
     include: {
-      property: {
+      Property_Contact_propertyIdToProperty: {
         select: {
           owner_1_name: true,
           owner_2_name: true,
@@ -26,7 +26,7 @@ async function scoreExisting() {
 
   let scored = 0;
   for (const contact of contacts) {
-    const ownerNames = [contact.property?.owner_1_name, contact.property?.owner_2_name].filter(Boolean) as string[];
+    const ownerNames = [contact.Property_Contact_propertyIdToProperty?.owner_1_name, contact.Property_Contact_propertyIdToProperty?.owner_2_name].filter(Boolean) as string[];
 
     const scoring = scoreContact(
       {
@@ -69,32 +69,36 @@ async function scoreExisting() {
   }
 
   // Select primaries per property
-  console.log("\nSelecting primary contacts per property...");
-  const properties = await prisma.property.findMany({
-    include: { contacts: true },
+// Select primaries per property
+console.log("\nSelecting primary contacts per property...");
+
+const properties = await prisma.property.findMany();
+
+let primaries = 0;
+for (const prop of properties) {
+  const contacts = await prisma.contact.findMany({
+    where: { propertyId: prop.id },
   });
-
-  let primaries = 0;
-  for (const prop of properties) {
-    if (!prop.contacts.length) continue;
-    const primaryIds = selectPrimaryContacts(prop.contacts as any);
-
+  
+  if (!contacts.length) continue;
+  
+  const primaryIds = selectPrimaryContacts(contacts as any);
+  
+  await prisma.contact.updateMany({
+    where: { propertyId: prop.id },
+    data: { is_primary: false },
+  });
+  
+  if (primaryIds.length) {
     await prisma.contact.updateMany({
-      where: { propertyId: prop.id },
-      data: { is_primary: false },
+      where: { id: { in: primaryIds } },
+      data: { is_primary: true },
     });
-
-    if (primaryIds.length) {
-      await prisma.contact.updateMany({
-        where: { id: { in: primaryIds } },
-        data: { is_primary: true },
-      });
-      primaries += primaryIds.length;
-    }
+    primaries += primaryIds.length;
   }
-
-  console.log(`✅ Marked ${primaries} contacts as primary`);
 }
+
+console.log(`✅ Marked ${primaries} contacts as primary`)
 
 scoreExisting()
   .catch((err) => {
@@ -104,3 +108,4 @@ scoreExisting()
   .finally(async () => {
     await prisma.$disconnect();
   });
+}

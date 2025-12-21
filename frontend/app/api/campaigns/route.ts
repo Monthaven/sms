@@ -9,8 +9,8 @@ export async function GET() {
   const campaigns = await prisma.campaign.findMany({
     orderBy: { createdAt: "desc" },
     include: {
-      _count: { select: { leads: true } },
-      leads: {
+      _count: { select: { Lead: true } },
+      Lead: {
         select: { status: true, updatedAt: true },
         orderBy: { updatedAt: "desc" },
         take: 1,
@@ -20,14 +20,14 @@ export async function GET() {
 
   const payload = campaigns.map((campaign) => {
     const lastActivity =
-      campaign.leads[0]?.updatedAt ?? campaign.createdAt;
+      campaign.Lead[0]?.updatedAt ?? campaign.createdAt;
 
     return {
       id: campaign.id,
       name: campaign.name,
       status: campaign.status,
       channel: campaign.ezTextingGroupId ? "EzTexting" : "MAE Engine",
-      messages: campaign._count.leads,
+      messages: campaign._count.Lead,
       eta: campaign.status === "DRAFT" ? "Awaiting launch" : "Live",
       owner: campaign.ezTextingGroupId ? "EzTexting" : "CLI",
       lastActivity: lastActivity.toISOString(),
