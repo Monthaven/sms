@@ -37,6 +37,8 @@ export default async function ChatThread({
   const interactions = lead.interactions || [];
   const displayName =
     `${lead.Contact.firstName ?? ""} ${lead.Contact.lastName ?? ""}`.trim() || lead.Contact.phoneE164;
+  const contactFlags =
+    getContactFlags((lead.Property as any)?.rawDetails ?? null, lead.Contact.phoneE164) || [];
 
   const macroTemplates = [
     {
@@ -85,7 +87,7 @@ export default async function ChatThread({
   }
 
   return (
-    <div className="space-y-8 text-slate-100">
+    <div className="space-y-8 text-slate-100 h-full overflow-y-auto">
       <Link
         href="/dashboard"
         className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-slate-100"
@@ -217,15 +219,15 @@ export default async function ChatThread({
               priority={lead.Contact.priority ?? 'LOW'}
               ownerMatch={Boolean((lead.Contact as any).ownerMatch)}
               phoneType={lead.Contact.phoneType}
-              contactFlags={getContactFlags((lead.Property as any)?.rawDetails ?? null, lead.Contact.phoneE164) || []}
+              contactFlags={contactFlags}
             />
           </div>
 
-          <div className="glass-panel border border-white/10 p-4">
+          <div className="glass-panel border border-white/10 p-4 max-h-[600px] overflow-y-auto">
             <AlternativeContacts propertyId={lead.Property?.id ?? ''} currentContactId={lead.Contact.id} />
           </div>
 
-          <div className="glass-panel border border-white/10 p-4">
+          <div className="glass-panel border border-white/10 p-4 max-h-[600px] overflow-y-auto">
             <ReplyComposer leadId={lead.id} macros={macroTemplates} />
           </div>
         </div>

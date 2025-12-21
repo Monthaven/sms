@@ -42,5 +42,15 @@ export async function GET(request: Request) {
     take: 500,
   });
 
-  return NextResponse.json(leads);
+  // Normalize PascalCase relations to camelCase for the frontend
+  const normalizedLeads = leads.map((lead) => {
+    const { Contact, Property, ...rest } = lead;
+    return {
+      ...rest,
+      contact: Contact,
+      property: Property,
+    };
+  });
+
+  return NextResponse.json(normalizedLeads);
 }

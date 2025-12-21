@@ -1,91 +1,102 @@
 "use client";
 
-import { PRIMARY_NAV } from "@/lib/navigation";
-import Link from "next/link";
-import { Bell, Flame, MessageCircle } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Flame, MessageCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 type Notification = {
   id: string;
   type: "hot_lead" | "new_response";
   title: string;
-  body: string;
-  href: string;
-  time: Date;
+  body?: string;
+  leadId: string;
+  createdAt: string | Date;
 };
 
 export default function NotificationsPanel() {
+  const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let active = true;
     const fetchNotifications = async () => {
       try {
         const res = await fetch("/api/notifications");
+        if (!res.ok) return;
         const data = await res.json();
-        setNotifications(data);
-      } catch (error) {
-        console.error("Failed to fetch notifications:", error);
+        if (active) setNotifications(data ?? []);
+      } catch (err) {
+        console.error("Failed to load notifications", err);
       } finally {
-        setIsLoading(false);
+        if (active) setLoading(false);
       }
     };
 
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 30000); // Refresh every 30s
-    return () => clearInterval(interval);
+    const intervalId = setInterval(fetchNotifications, 30000);
+    return () => {
+      active = false;
+      clearInterval(intervalId);
+    };
   }, []);
 
+  const handleClick = (leadId: string) => {
+    router.push(`/dashboard/chat/${leadId}`);
+  };
+
   return (
-    <aside className="space-y-4 rounded-3xl border border-white/10 bg-slate-950/40 p-5 text-sm text-slate-100">
-      <div className="flex items-center justify-between">
+    <div className="glass-panel absolute right-0 mt-3 w-96 rounded-2xl border border-white/10 bg-slate-950/90 p-4 shadow-xl shadow-black/40 backdrop-blur-lg">
+      <div className="mb-3 flex items-center justify-between">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.4em] text-slate-500">Notifications</p>
-          <h3 className="text-lg font-semibold text-white">Ops feed</h3>
+          <p className="text-[11px] uppercase tracking-[0.3em] text-slate-500">
+            Notifications
+          </p>
+          <h3 className="text-sm font-semibold text-white">Live feed</h3>
         </div>
-        <Bell className="h-5 w-5 text-sky-300" />
       </div>
-      <div className="space-y-4">
-        {isLoading ? (
-          <div className="text-xs text-slate-500">Loading notifications...</div>
+
+      <div className="space-y-3">
+        {loading ? (
+          <div className="text-xs text-slate-500">Loading…</div>
         ) : notifications.length === 0 ? (
-          <div className="text-xs text-slate-500">No new notifications</div>
+          <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3 text-xs text-slate-500">
+            No new notifications
+          </div>
         ) : (
           notifications.map((note) => (
-            <Link
+            <button
               key={note.id}
-              href={note.href}
-              className="block rounded-2xl border border-white/10 bg-white/[0.03] p-3 transition hover:border-sky-400/40 hover:bg-white/[0.06]"
+              onClick={() => handleClick(note.leadId)}
+              className="w-full rounded-xl border border-white/10 bg-white/[0.03] p-3 text-left transition hover:border-sky-400/50 hover:bg-white/[0.06]"
             >
-              <div className="flex items-center gap-2 text-xs text-slate-400">
+              <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.25em] text-slate-400">
                 {note.type === "hot_lead" ? (
-                  <Flame className="h-3.5 w-3.5 text-orange-400" />
+                  <span className="flex items-center gap-1 text-orange-300">
+                    <Flame className="h-3.5 w-3.5" /> Hot lead
+                  </span>
                 ) : (
-                  <MessageCircle className="h-3.5 w-3.5 text-sky-300" />
+                  <span className="flex items-center gap-1 text-sky-300">
+                    <MessageCircle className="h-3.5 w-3.5" /> New response
+                  </span>
                 )}
-                {formatDistanceToNow(new Date(note.time), { addSuffix: true })}
+                <span className="ml-auto lowercase text-slate-500">
+                  {formatDistanceToNow(new Date(note.createdAt), {
+                    addSuffix: true,
+                  })}
+                </span>
               </div>
-              <p className="mt-2 font-semibold text-white">{note.title}</p>
-              <p className="text-xs text-slate-400">{note.body}</p>
-            </Link>
+              <p className="mt-2 text-sm font-semibold text-white">
+                {note.title}
+              </p>
+              {note.body ? (
+                <p className="text-xs text-slate-400 line-clamp-2">{note.body}</p>
+              ) : null}
+            </button>
           ))
         )}
       </div>
-      <div className="mt-6 space-y-2 text-[11px] uppercase tracking-[0.3em] text-slate-500">
-        <p>Quick nav</p>
-        <div className="flex flex-wrap gap-2">
-          {PRIMARY_NAV.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="rounded-full border border-white/15 px-3 py-1 text-[11px] font-semibold text-slate-200 hover:border-sky-300/50 hover:text-white"
-            >
-              {item.label}
-            </Link>
-          ))}
-        </div>
-      </div>
-    </aside>
+    </div>
   );
 }

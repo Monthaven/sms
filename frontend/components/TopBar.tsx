@@ -1,11 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
-import { Search, Bell, Command, ChevronRight } from "lucide-react";
+import { Bell, ChevronRight } from "lucide-react";
 import NotificationsPanel from "@/components/NotificationsPanel";
 import GlobalSearch from "@/components/GlobalSearch";
 
 export default function TopBar() {
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [unreadCount] = useState(0);
+
   return (
     <header className="h-20 px-8 flex items-center justify-between border-b border-slate-800/50 bg-[#0B1120]/90 backdrop-blur-md sticky top-0 z-40">
       
@@ -22,7 +25,22 @@ export default function TopBar() {
         <GlobalSearch />
 
         {/* Notifications */}
-        <NotificationsToggle />
+        <div className="relative">
+          <button
+            onClick={() => setShowNotifications((v) => !v)}
+            className="relative p-2 text-slate-400 hover:text-white transition-colors"
+          >
+            <Bell size={20} />
+            {unreadCount > 0 && (
+              <span className="absolute top-1.5 right-2 min-w-[12px] rounded-full bg-rose-500 px-1 text-[10px] font-semibold text-white">
+                {unreadCount}
+              </span>
+            )}
+          </button>
+          {showNotifications && (
+            <NotificationsPanel />
+          )}
+        </div>
 
         {/* Profile Dropdown Trigger */}
         <div className="flex items-center gap-3 pl-6 border-l border-slate-800/50">
@@ -36,20 +54,5 @@ export default function TopBar() {
         </div>
       </div>
     </header>
-  );
-}
-
-function NotificationsToggle() {
-  const [open, setOpen] = useState(false);
-  const [unread] = useState(0);
-
-  return (
-    <div className="relative">
-      <button onClick={() => setOpen((v) => !v)} className="relative p-2 text-slate-400 hover:text-white transition-colors">
-        <Bell size={20} />
-        {unread > 0 && <span className="absolute top-1.5 right-2 w-3 h-3 bg-rose-500 rounded-full border-2 border-[#0B1120]"></span>}
-      </button>
-      {open && <div className="absolute right-0 mt-2 z-50"><NotificationsPanel /></div>}
-    </div>
   );
 }

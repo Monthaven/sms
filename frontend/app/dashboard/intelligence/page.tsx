@@ -59,24 +59,26 @@ export default function IntelligencePage() {
         <h3 className="text-slate-400 text-sm font-medium mb-4 flex items-center gap-2">
            <TrendingUp size={16} /> Lead Intake (last jobs)
         </h3>
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={chartData}>
-            <defs>
-              <linearGradient id="colorLeads" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>
-                <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-            <XAxis dataKey="name" stroke="#475569" fontSize={12} tickLine={false} axisLine={false} />
-            <YAxis stroke="#475569" fontSize={12} tickLine={false} axisLine={false} />
-            <Tooltip 
-              contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }}
-              itemStyle={{ color: '#fff' }}
-            />
-            <Area type="monotone" dataKey="leads" stroke="#3B82F6" fillOpacity={1} fill="url(#colorLeads)" />
-          </AreaChart>
-        </ResponsiveContainer>
+        <div className="w-full h-full min-h-[250px]">
+          <ResponsiveContainer width="100%" height={300} minWidth={300} minHeight={200}>
+            <AreaChart data={chartData}>
+              <defs>
+                <linearGradient id="colorLeads" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+              <XAxis dataKey="name" stroke="#475569" fontSize={12} tickLine={false} axisLine={false} />
+              <YAxis stroke="#475569" fontSize={12} tickLine={false} axisLine={false} />
+              <Tooltip 
+                contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }}
+                itemStyle={{ color: '#fff' }}
+              />
+              <Area type="monotone" dataKey="leads" stroke="#3B82F6" fillOpacity={1} fill="url(#colorLeads)" />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
       </Card>
 
       <Card>

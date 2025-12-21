@@ -18,7 +18,7 @@ export function SystemGauge({ value = 75 }: { value?: number }) {
       </div>
       
       <div className="relative flex-1 flex items-center justify-center min-h-[140px]">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height={180} minWidth={180} minHeight={140}>
           <PieChart>
             <Pie
               data={data}
