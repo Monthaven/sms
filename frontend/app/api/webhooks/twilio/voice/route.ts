@@ -15,7 +15,7 @@ async function ensureContactAndLead(phone: string) {
   const contact =
     (await prisma.contact.findUnique({
       where: { phoneE164: phone },
-      include: { Lead: { orderBy: { createdAt: "desc" }, take: 1 } },
+      include: { leads: { orderBy: { createdAt: "desc" }, take: 1 } },
     })) ||
     (await prisma.contact.create({
       data: { phoneE164: phone, source: "INBOUND" },
@@ -90,13 +90,12 @@ export async function POST(request: Request) {
       data: { status: "CONVERSATION_ACTIVE" },
     });
 
-    // Simple IVR: greet and end. Replace with forwarding if desired.
+    // Respond with TwiML to collect voicemail
     const twiml = [
       '<?xml version="1.0" encoding="UTF-8"?>',
       "<Response>",
-      "<Say voice=\"polly.Matthew\" language=\"en-US\">Thank you for calling Monthaven. An agent will follow up shortly.</Say>",
-      "<Pause length=\"1\" />",
-      "<Hangup/>",
+      '<Say voice="alice">Thank you for calling Monthaven Capital. Please leave a message after the tone.</Say>',
+      '<Record maxLength="120" transcribe="true" transcribeCallback="/api/webhooks/twilio/voice/transcription" />',
       "</Response>",
     ].join("");
 

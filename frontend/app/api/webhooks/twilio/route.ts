@@ -15,7 +15,7 @@ async function ensureContactAndLead(phone: string) {
   const contact =
     (await prisma.contact.findUnique({
       where: { phoneE164: phone },
-      include: { Lead: { orderBy: { createdAt: "desc" }, take: 1 } },
+      include: { leads: { orderBy: { createdAt: "desc" }, take: 1 } },
     })) ||
     (await prisma.contact.create({
       data: { phoneE164: phone, source: "INBOUND" },

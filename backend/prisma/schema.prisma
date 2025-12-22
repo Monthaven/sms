@@ -21,52 +21,84 @@ model User {
 }
 
 model Contact {
-  id              String        @id @default(cuid())
-  phoneE164       String        @unique
-  phoneType       String?
-  firstName       String?
-  lastName        String?
-  email           String?
-  source          String        @default("DEALMACHINE")
-  priority        String        @default("LOW")
-  score           Int?
-  smsAllowed      Boolean       @default(false)
-  callOnly        Boolean       @default(false)
-  doNotContact    Boolean       @default(false)
-  ownerMatch      Boolean       @default(false)
-  blockReason     String?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  intent          String?
-  intentSource    String?
-  sendCount       Int?          @default(0)
-  receiveCount    Int?          @default(0)
-  lastSentAt      DateTime?     @db.Timestamp(6)
-  lastReceivedAt  DateTime?     @db.Timestamp(6)
-  lastContactedAt DateTime?     @db.Timestamp(6)
-  flagsRaw        String?
-  blockDate       DateTime?     @db.Timestamp(6)
-  archived        Boolean?      @default(false)
-  sourceFile      String?
-  interactions    Interaction[]
-  leads           Lead[]
-  properties      Property[]
+  id                                    String        @id @default(cuid())
+  phoneE164                             String        @unique
+  phoneType                             String?
+  firstName                             String?
+  lastName                              String?
+  email                                 String?
+  source                                String        @default("DEALMACHINE")
+  priority                              String        @default("LOW")
+  score                                 Int?
+  smsAllowed                            Boolean       @default(false)
+  callOnly                              Boolean       @default(false)
+  doNotContact                          Boolean       @default(false)
+  ownerMatch                            Boolean       @default(false)
+  blockReason                           String?
+  createdAt                             DateTime      @default(now())
+  updatedAt                             DateTime      @updatedAt
+  intent                                String?
+  intentSource                          String?
+  sendCount                             Int?          @default(0)
+  receiveCount                          Int?          @default(0)
+  lastSentAt                            DateTime?     @db.Timestamp(6)
+  lastReceivedAt                        DateTime?     @db.Timestamp(6)
+  lastContactedAt                       DateTime?     @db.Timestamp(6)
+  flagsRaw                              String?
+  blockDate                             DateTime?     @db.Timestamp(6)
+  archived                              Boolean?      @default(false)
+  sourceFile                            String?
+  decision_maker                        Boolean       @default(false)
+  dm_score                              Float?
+  dm_tier                               String?
+  first_name                            String?
+  full_name                             String?
+  has_title                             Boolean       @default(false)
+  is_primary                            Boolean       @default(false)
+  last_name                             String?
+  owner_match                           Boolean       @default(false)
+  phone_1                               String?
+  phone_1_type                          String?
+  phone_2                               String?
+  phone_2_type                          String?
+  phone_3                               String?
+  phone_3_type                          String?
+  propertyId                            String?
+  title                                 String?
+  Property_Contact_propertyIdToProperty Property?     @relation("Contact_propertyIdToProperty", fields: [propertyId], references: [id])
+  interactions                          Interaction[]
+  leads                                 Lead[]
+  Message                               Message[]
+  PhoneFlag                             PhoneFlag[]
+  properties                            Property[]
 
   @@index([phoneE164])
+  @@index([dm_tier])
+  @@index([is_primary])
+  @@index([propertyId])
 }
 
 model Property {
-  id           String   @id @default(cuid())
-  ownerId      String?
-  addressLine1 String
-  city         String
-  state        String
-  postalCode   String
-  rawDetails   Json?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  leads        Lead[]
-  owner        Contact? @relation(fields: [ownerId], references: [id])
+  id                                   String    @id @default(cuid())
+  ownerId                              String?
+  addressLine1                         String
+  city                                 String?
+  state                                String?
+  postalCode                           String
+  rawDetails                           Json?
+  createdAt                            DateTime  @default(now())
+  updatedAt                            DateTime  @updatedAt
+  address                              String?
+  mailing_address                      String?
+  owner_1_name                         String?
+  owner_2_name                         String?
+  units                                Int?
+  year_built                           Int?
+  zip                                  String?
+  portfolio_id                         String?
+  Contact_Contact_propertyIdToProperty Contact[] @relation("Contact_propertyIdToProperty")
+  leads                                Lead[]
+  owner                                Contact?  @relation(fields: [ownerId], references: [id])
 
   @@unique([addressLine1, city, state])
 }
@@ -76,6 +108,7 @@ model DncList {
   phoneE164 String   @unique
   reason    String?
   createdAt DateTime @default(now())
+  updatedAt DateTime
 }
 
 model Campaign {
@@ -84,6 +117,7 @@ model Campaign {
   ezTextingGroupId String?
   status           String         @default("DRAFT")
   createdAt        DateTime       @default(now())
+  updatedAt        DateTime
   ingestionJobs    IngestionJob[] @relation("CampaignIngestionJobs")
   leads            Lead[]
 }
@@ -118,6 +152,7 @@ model LeadAudit {
   action    String
   details   String?
   createdAt DateTime @default(now())
+  updatedAt DateTime
   lead      Lead     @relation(fields: [leadId], references: [id])
   user      User?    @relation(fields: [userId], references: [id])
 }
@@ -148,6 +183,7 @@ model IngestionJob {
   finishedAt      DateTime?
   durationSeconds Int?
   errorMessage    String?
+  updatedAt       DateTime
   campaign        Campaign?          @relation("CampaignIngestionJobs", fields: [campaignId], references: [id])
   startedBy       User?              @relation("IngestionStartedBy", fields: [startedById], references: [id])
 }
@@ -161,6 +197,51 @@ model WebhookLog {
   payload      Json?
   errorMessage String?
   createdAt    DateTime  @default(now())
+}
+
+model Sequence {
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name            String
+  description     String?
+  status          String?           @default("draft")
+  startDate       DateTime?         @db.Timestamp(6)
+  endDate         DateTime?         @db.Timestamp(6)
+  totalContacts   Int?              @default(0)
+  messagesSent    Int?              @default(0)
+  responses       Int?              @default(0)
+  hotLeads        Int?              @default(0)
+  optOuts         Int?              @default(0)
+  createdAt       DateTime?         @default(now()) @db.Timestamp(6)
+  updatedAt       DateTime?         @default(now()) @updatedAt @db.Timestamp(6)
+  SequenceContact SequenceContact[]
+  steps           SequenceStep[]
+}
+
+model SequenceStep {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sequenceId      String?   @db.Uuid
+  stepNumber      Int
+  name            String
+  template        String
+  delayDays       Int?      @default(0)
+  skipIfResponded Boolean?  @default(true)
+  skipIfOptedOut  Boolean?  @default(true)
+  createdAt       DateTime? @default(now()) @db.Timestamp(6)
+  sequence        Sequence? @relation(fields: [sequenceId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model SequenceContact {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sequence_id  String    @db.Uuid
+  contact_id   String
+  current_step Int?      @default(0)
+  status       String?   @default("active")
+  enrolled_at  DateTime? @default(now()) @db.Timestamptz(6)
+  last_sent_at DateTime? @db.Timestamptz(6)
+  next_send_at DateTime? @db.Timestamptz(6)
+  Sequence     Sequence  @relation(fields: [sequence_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([sequence_id, contact_id])
 }
 
 model access_grants {
@@ -300,6 +381,24 @@ model deals {
   highlights_json             Json?
   value_add_plan_json         Json?
   notion_page_id              String?
+  noi                         Decimal?                   @db.Decimal
+  egi                         Decimal?                   @db.Decimal
+  opex                        Decimal?                   @db.Decimal
+  debt_service                Decimal?                   @db.Decimal
+  dscr                        Decimal?                   @db.Decimal
+  t12_taxes                   Decimal?                   @db.Decimal
+  t12_insurance               Decimal?                   @db.Decimal
+  t12_ti_total                Decimal?                   @db.Decimal
+  t12_ti_pct_egi              Decimal?                   @db.Decimal
+  tax_reset_pct               Decimal?                   @db.Decimal
+  tax_reset_amount            Decimal?                   @db.Decimal
+  insurance_adjusted          Decimal?                   @db.Decimal
+  ti_adjusted_noi             Decimal?                   @db.Decimal
+  ti_adjusted_cap             Decimal?                   @db.Decimal
+  ti_adjusted_irr             Decimal?                   @db.Decimal
+  ti_adjusted_em              Decimal?                   @db.Decimal
+  ti_adjusted_dscr            Decimal?                   @db.Decimal
+  recommendation_score_num    Decimal?                   @db.Decimal
   om_assumptions              om_assumptions[]
   om_employment_anchors       om_employment_anchors[]
   om_gallery_images           om_gallery_images[]
@@ -700,6 +799,64 @@ model webhook_events {
   payload      Json?
   processed_at DateTime? @db.Timestamp(6)
   created_at   DateTime? @default(now()) @db.Timestamp(6)
+}
+
+model Message {
+  id          String   @id
+  phone       String
+  direction   String
+  body        String
+  status      String?
+  provider    String
+  external_id String?
+  campaign_id String?
+  contactId   String?
+  createdAt   DateTime @default(now())
+  intent      String?
+  updatedAt   DateTime
+  Contact     Contact? @relation(fields: [contactId], references: [id])
+
+  @@index([contactId])
+  @@index([direction])
+  @@index([phone])
+}
+
+model PhoneFlag {
+  id              String    @id
+  phone           String    @unique
+  dnc             Boolean   @default(false)
+  opt_out         Boolean   @default(false)
+  bounced         Boolean   @default(false)
+  carrier_blocked Boolean   @default(false)
+  phone_type      String?
+  carrier         String?
+  intent          String?
+  intent_updated  DateTime?
+  source          String?
+  contactId       String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime
+  Contact         Contact?  @relation(fields: [contactId], references: [id])
+
+  @@index([dnc])
+  @@index([intent])
+  @@index([opt_out])
+  @@index([phone])
+}
+
+model Portfolio {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name               String    @unique(map: "idx_portfolio_name")
+  property_count     Int?      @default(0)
+  primary_contact_id String?
+  created_at         DateTime? @default(now()) @db.Timestamp(6)
+}
+
+model Settings {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  key        String    @unique
+  value      String
+  updated_at DateTime? @default(now()) @db.Timestamptz(6)
 }
 
 enum UserRole {

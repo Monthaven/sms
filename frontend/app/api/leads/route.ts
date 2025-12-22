@@ -21,7 +21,7 @@ export async function GET(request: Request) {
   const leads = await prisma.lead.findMany({
     where: statuses && statuses.length > 0 ? { status: { in: statuses } } : undefined,
     include: {
-      Contact: {
+      contact: {
         select: {
           id: true,
           firstName: true,
@@ -30,27 +30,18 @@ export async function GET(request: Request) {
           phoneType: true,
           email: true,
           score: true,
-          Interaction: {
+          interactions: {
             orderBy: { createdAt: "asc" },
             take: 50,
           },
         },
       },
-      Property: true,
+      property: true,
     },
     orderBy: { updatedAt: "desc" },
     take: 500,
   });
 
-  // Normalize PascalCase relations to camelCase for the frontend
-  const normalizedLeads = leads.map((lead) => {
-    const { Contact, Property, ...rest } = lead;
-    return {
-      ...rest,
-      contact: Contact,
-      property: Property,
-    };
-  });
-
-  return NextResponse.json(normalizedLeads);
+  return NextResponse.json(leads);
 }
+

@@ -8,15 +8,16 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-model Campaign {
-  id               String         @id @default(cuid())
-  name             String
-  ezTextingGroupId String?
-  status           String         @default("DRAFT")
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-  IngestionJob     IngestionJob[]
-  Lead             Lead[]
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  name          String?
+  role          UserRole       @default(AGENT)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  ingestionJobs IngestionJob[] @relation("IngestionStartedBy")
+  assignedLeads Lead[]
+  auditLogs     LeadAudit[]
 }
 
 model Contact {
@@ -65,141 +66,16 @@ model Contact {
   propertyId                            String?
   title                                 String?
   Property_Contact_propertyIdToProperty Property?     @relation("Contact_propertyIdToProperty", fields: [propertyId], references: [id])
-  Interaction                           Interaction[]
-  Lead                                  Lead[]
+  interactions                          Interaction[]
+  leads                                 Lead[]
   Message                               Message[]
   PhoneFlag                             PhoneFlag[]
-  Property_Property_ownerIdToContact    Property[]    @relation("Property_ownerIdToContact")
+  properties                            Property[]
 
+  @@index([phoneE164])
   @@index([dm_tier])
   @@index([is_primary])
-  @@index([phoneE164])
   @@index([propertyId])
-}
-
-model DncList {
-  id        String   @id @default(cuid())
-  phoneE164 String   @unique
-  reason    String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model IngestionJob {
-  id              String             @id @default(cuid())
-  fileName        String
-  campaignId      String?
-  status          IngestionJobStatus @default(PENDING)
-  rowsProcessed   Int                @default(0)
-  contactsCreated Int                @default(0)
-  leadsCreated    Int                @default(0)
-  startedById     String?
-  startedAt       DateTime           @default(now())
-  finishedAt      DateTime?
-  durationSeconds Int?
-  errorMessage    String?
-  updatedAt       DateTime           @updatedAt
-  Campaign        Campaign?          @relation(fields: [campaignId], references: [id])
-  User            User?              @relation(fields: [startedById], references: [id])
-}
-
-model Interaction {
-  id         String    @id @default(cuid())
-  contactId  String
-  channel    Channel
-  direction  Direction
-  body       String
-  externalId String?
-  createdAt  DateTime  @default(now())
-  Contact    Contact   @relation(fields: [contactId], references: [id])
-
-  @@index([contactId])
-}
-
-model Lead {
-  id             String      @id @default(cuid())
-  campaignId     String
-  contactId      String
-  propertyId     String?
-  status         LeadStatus  @default(NEW)
-  sentimentScore Int         @default(0)
-  assignedToId   String?
-  isFlagged      Boolean     @default(false)
-  notes          String?
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
-  User           User?       @relation(fields: [assignedToId], references: [id])
-  Campaign       Campaign    @relation(fields: [campaignId], references: [id])
-  Contact        Contact     @relation(fields: [contactId], references: [id])
-  Property       Property?   @relation(fields: [propertyId], references: [id])
-  LeadAudit      LeadAudit[]
-
-  @@unique([campaignId, contactId, propertyId])
-  @@index([assignedToId])
-  @@index([status])
-}
-
-model LeadAudit {
-  id        String   @id @default(cuid())
-  leadId    String
-  userId    String?
-  action    String
-  details   String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  Lead      Lead     @relation(fields: [leadId], references: [id])
-  User      User?    @relation(fields: [userId], references: [id])
-}
-
-model Message {
-  id          String   @id @default(cuid())
-  phone       String
-  direction   String
-  body        String
-  status      String?
-  provider    String
-  external_id String?
-  campaign_id String?
-  contactId   String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  intent      String?
-  Contact     Contact? @relation(fields: [contactId], references: [id])
-
-  @@index([contactId])
-  @@index([direction])
-  @@index([phone])
-}
-
-model PhoneFlag {
-  id              String    @id @default(cuid())
-  phone           String    @unique
-  dnc             Boolean   @default(false)
-  opt_out         Boolean   @default(false)
-  bounced         Boolean   @default(false)
-  carrier_blocked Boolean   @default(false)
-  phone_type      String?
-  carrier         String?
-  intent          String?
-  intent_updated  DateTime?
-  source          String?
-  contactId       String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  Contact         Contact?  @relation(fields: [contactId], references: [id])
-
-  @@index([dnc])
-  @@index([intent])
-  @@index([opt_out])
-  @@index([phone])
-}
-
-model Portfolio {
-  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name               String    @unique(map: "idx_portfolio_name")
-  property_count     Int?      @default(0)
-  primary_contact_id String?
-  created_at         DateTime? @default(now()) @db.Timestamp(6)
 }
 
 model Property {
@@ -221,10 +97,106 @@ model Property {
   zip                                  String?
   portfolio_id                         String?
   Contact_Contact_propertyIdToProperty Contact[] @relation("Contact_propertyIdToProperty")
-  Lead                                 Lead[]
-  Contact_Property_ownerIdToContact    Contact?  @relation("Property_ownerIdToContact", fields: [ownerId], references: [id])
+  leads                                Lead[]
+  owner                                Contact?  @relation(fields: [ownerId], references: [id])
 
   @@unique([addressLine1, city, state])
+}
+
+model DncList {
+  id        String   @id @default(cuid())
+  phoneE164 String   @unique
+  reason    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+}
+
+model Campaign {
+  id               String         @id @default(cuid())
+  name             String
+  ezTextingGroupId String?
+  status           String         @default("DRAFT")
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime
+  ingestionJobs    IngestionJob[] @relation("CampaignIngestionJobs")
+  leads            Lead[]
+}
+
+model Lead {
+  id             String      @id @default(cuid())
+  campaignId     String
+  contactId      String
+  propertyId     String?
+  status         LeadStatus  @default(NEW)
+  sentimentScore Int         @default(0)
+  assignedToId   String?
+  isFlagged      Boolean     @default(false)
+  notes          String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  assignedTo     User?       @relation(fields: [assignedToId], references: [id])
+  campaign       Campaign    @relation(fields: [campaignId], references: [id])
+  contact        Contact     @relation(fields: [contactId], references: [id])
+  property       Property?   @relation(fields: [propertyId], references: [id])
+  audits         LeadAudit[]
+
+  @@unique([campaignId, contactId, propertyId])
+  @@index([status])
+  @@index([assignedToId])
+}
+
+model LeadAudit {
+  id        String   @id @default(cuid())
+  leadId    String
+  userId    String?
+  action    String
+  details   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  lead      Lead     @relation(fields: [leadId], references: [id])
+  user      User?    @relation(fields: [userId], references: [id])
+}
+
+model Interaction {
+  id         String    @id @default(cuid())
+  contactId  String
+  channel    Channel
+  direction  Direction
+  body       String
+  externalId String?
+  createdAt  DateTime  @default(now())
+  contact    Contact   @relation(fields: [contactId], references: [id])
+
+  @@index([contactId])
+}
+
+model IngestionJob {
+  id              String             @id @default(cuid())
+  fileName        String
+  campaignId      String?
+  status          IngestionJobStatus @default(PENDING)
+  rowsProcessed   Int                @default(0)
+  contactsCreated Int                @default(0)
+  leadsCreated    Int                @default(0)
+  startedById     String?
+  startedAt       DateTime           @default(now())
+  finishedAt      DateTime?
+  durationSeconds Int?
+  errorMessage    String?
+  updatedAt       DateTime
+  campaign        Campaign?          @relation("CampaignIngestionJobs", fields: [campaignId], references: [id])
+  startedBy       User?              @relation("IngestionStartedBy", fields: [startedById], references: [id])
+}
+
+model WebhookLog {
+  id           String    @id @default(cuid())
+  provider     String
+  direction    Direction
+  status       String
+  statusCode   Int?
+  payload      Json?
+  errorMessage String?
+  createdAt    DateTime  @default(now())
 }
 
 model Sequence {
@@ -240,9 +212,22 @@ model Sequence {
   hotLeads        Int?              @default(0)
   optOuts         Int?              @default(0)
   createdAt       DateTime?         @default(now()) @db.Timestamp(6)
-  updatedAt       DateTime?         @default(now()) @db.Timestamp(6)
+  updatedAt       DateTime?         @default(now()) @updatedAt @db.Timestamp(6)
   SequenceContact SequenceContact[]
-  SequenceStep    SequenceStep[]
+  steps           SequenceStep[]
+}
+
+model SequenceStep {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sequenceId      String?   @db.Uuid
+  stepNumber      Int
+  name            String
+  template        String
+  delayDays       Int?      @default(0)
+  skipIfResponded Boolean?  @default(true)
+  skipIfOptedOut  Boolean?  @default(true)
+  createdAt       DateTime? @default(now()) @db.Timestamp(6)
+  sequence        Sequence? @relation(fields: [sequenceId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model SequenceContact {
@@ -257,49 +242,6 @@ model SequenceContact {
   Sequence     Sequence  @relation(fields: [sequence_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([sequence_id, contact_id])
-}
-
-model SequenceStep {
-  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  sequenceId      String?   @db.Uuid
-  stepNumber      Int
-  name            String
-  template        String
-  delayDays       Int?      @default(0)
-  skipIfResponded Boolean?  @default(true)
-  skipIfOptedOut  Boolean?  @default(true)
-  createdAt       DateTime? @default(now()) @db.Timestamp(6)
-  Sequence        Sequence? @relation(fields: [sequenceId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-}
-
-model Settings {
-  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  key        String    @unique
-  value      String
-  updated_at DateTime? @default(now()) @db.Timestamptz(6)
-}
-
-model User {
-  id           String         @id @default(cuid())
-  email        String         @unique
-  name         String?
-  role         UserRole       @default(AGENT)
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  IngestionJob IngestionJob[]
-  Lead         Lead[]
-  LeadAudit    LeadAudit[]
-}
-
-model WebhookLog {
-  id           String    @id @default(cuid())
-  provider     String
-  direction    Direction
-  status       String
-  statusCode   Int?
-  payload      Json?
-  errorMessage String?
-  createdAt    DateTime  @default(now())
 }
 
 model access_grants {
@@ -859,21 +801,67 @@ model webhook_events {
   created_at   DateTime? @default(now()) @db.Timestamp(6)
 }
 
-enum Channel {
-  EZTEXTING
-  TWILIO
+model Message {
+  id          String   @id
+  phone       String
+  direction   String
+  body        String
+  status      String?
+  provider    String
+  external_id String?
+  campaign_id String?
+  contactId   String?
+  createdAt   DateTime @default(now())
+  intent      String?
+  updatedAt   DateTime
+  Contact     Contact? @relation(fields: [contactId], references: [id])
+
+  @@index([contactId])
+  @@index([direction])
+  @@index([phone])
 }
 
-enum Direction {
-  INBOUND
-  OUTBOUND
+model PhoneFlag {
+  id              String    @id
+  phone           String    @unique
+  dnc             Boolean   @default(false)
+  opt_out         Boolean   @default(false)
+  bounced         Boolean   @default(false)
+  carrier_blocked Boolean   @default(false)
+  phone_type      String?
+  carrier         String?
+  intent          String?
+  intent_updated  DateTime?
+  source          String?
+  contactId       String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime
+  Contact         Contact?  @relation(fields: [contactId], references: [id])
+
+  @@index([dnc])
+  @@index([intent])
+  @@index([opt_out])
+  @@index([phone])
 }
 
-enum IngestionJobStatus {
-  PENDING
-  RUNNING
-  SUCCESS
-  FAILED
+model Portfolio {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name               String    @unique(map: "idx_portfolio_name")
+  property_count     Int?      @default(0)
+  primary_contact_id String?
+  created_at         DateTime? @default(now()) @db.Timestamp(6)
+}
+
+model Settings {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  key        String    @unique
+  value      String
+  updated_at DateTime? @default(now()) @db.Timestamptz(6)
+}
+
+enum UserRole {
+  ADMIN
+  AGENT
 }
 
 enum LeadStatus {
@@ -891,7 +879,19 @@ enum LeadStatus {
   ARCHIVED
 }
 
-enum UserRole {
-  ADMIN
-  AGENT
+enum Channel {
+  EZTEXTING
+  TWILIO
+}
+
+enum Direction {
+  INBOUND
+  OUTBOUND
+}
+
+enum IngestionJobStatus {
+  PENDING
+  RUNNING
+  SUCCESS
+  FAILED
 }

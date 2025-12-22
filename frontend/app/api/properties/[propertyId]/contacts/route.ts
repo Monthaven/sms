@@ -1,40 +1,80 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { NextResponse } from "next/server";
+import { PrismaClient } from "@prisma/client";
 
-export async function GET(request: Request, context: any) {
-  const params = await context?.params;
-  const propertyId = String(params?.propertyId ?? "");
+const globalForPrisma = global as unknown as { prisma: PrismaClient };
+const prisma = globalForPrisma.prisma || new PrismaClient();
+if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+
+export async function GET() {
   try {
-    const leads = await prisma.lead.findMany({
-      where: { propertyId },
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+    const hotLeads = await prisma.lead.findMany({
+      where: {
+        status: "RESP_HOT",
+        updatedAt: { gte: twoHoursAgo },
+      },
       include: {
-        Contact: {
+        contact: {
+          select: { id: true, firstName: true, lastName: true, phoneE164: true, score: true },
+        },
+        property: true,
+      },
+      orderBy: { updatedAt: "desc" },
+      take: 5,
+    });
+
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const recentResponses = await prisma.interaction.findMany({
+      where: {
+        direction: "INBOUND",
+        createdAt: { gte: oneHourAgo },
+      },
+      include: {
+        contact: {
           select: {
             id: true,
             firstName: true,
             lastName: true,
             phoneE164: true,
-            phoneType: true,
-            email: true,
-            score: true,
-            priority: true,
-            // ownerMatch excluded to avoid Prisma conversion issues
+            leads: {
+              take: 1,
+              orderBy: { updatedAt: "desc" },
+              select: { id: true },
+            },
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
+      take: 5,
     });
 
-    // Map to unique contacts by contactId and sort by score desc
-    const contacts = leads
-      .map((l) => ({ leadId: l.id, contact: l.Contact }))
-      .filter((c) => c.contact)
-      .map((c) => ({ leadId: c.leadId, ...c.contact }))
-      .sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+    const notifications = [
+      ...hotLeads.map((lead) => ({
+        id: `hot-${lead.id}`,
+        type: "hot_lead" as const,
+        title: `ÃƒÂ°Ã…Â¸Ã¢â‚¬ÂÃ‚Â¥ Hot leads: ${lead.contact?.firstName || ""} ${lead.contact?.lastName || ""}`.trim(),
+        body: `${lead.property?.addressLine1 || "Property"} - Score: ${lead.contact?.score || "N/A"}`,
+        href: `/dashboard/chat/${lead.id}`,
+        time: lead.updatedAt,
+      })),
+      ...recentResponses.map((interaction) => ({
+        id: `response-${interaction.id}`,
+        type: "new_response" as const,
+        title: `New Response: ${interaction.contact?.firstName || ""} ${interaction.contact?.lastName || ""}`.trim(),
+        body:
+          interaction.body?.substring(0, 80) +
+            (interaction.body && interaction.body.length > 80 ? "..." : "") ||
+          "New message received",
+        href: `/dashboard/chat/${interaction.contact?.leads?.[0]?.id || interaction.contactId}`,
+        time: interaction.createdAt,
+      })),
+    ]
+      .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
+      .slice(0, 5);
 
-    return NextResponse.json(contacts);
-  } catch (err) {
-    console.error('[api/properties/[propertyId]/contacts] error', err);
-    return NextResponse.json({ error: 'Failed to fetch contacts' }, { status: 500 });
+    return NextResponse.json(notifications);
+  } catch (error) {
+    console.error("Error fetching notifications:", error);
+    return NextResponse.json([]);
   }
 }

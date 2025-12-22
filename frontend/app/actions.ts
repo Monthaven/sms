@@ -60,7 +60,7 @@ export async function getLeadDetails(leadId: string) {
   const lead = await prisma.lead.findUnique({
     where: { id: leadId },
     include: {
-      Contact: {
+      contact: {
         select: {
           id: true,
           firstName: true,
@@ -73,7 +73,7 @@ export async function getLeadDetails(leadId: string) {
           // ownerMatch intentionally excluded to avoid Prisma type conversion errors
         },
       },
-      Property: true,
+      property: true,
     },
   })
   if (!lead) return null
@@ -111,7 +111,7 @@ export async function sendReplyAction(
   const lead = await prisma.lead.findUnique({
     where: { id: leadId },
     include: {
-      Contact: {
+      contact: {
         select: {
           id: true,
           phoneE164: true,
@@ -166,11 +166,11 @@ export async function updateLeadStatus(
       if (!user) {
         return { error: "Authentication required to assign lead." };
       }
-      updateData.User = { connect: { id: user.id } };
+      updateData.assignedTo = { connect: { id: user.id } };
     } else if (options?.assignTo) {
-      updateData.User = { connect: { id: options.assignTo } };
+      updateData.assignedTo = { connect: { id: options.assignTo } };
     } else if (options?.assignTo === null) {
-      updateData.User = { disconnect: true };
+      updateData.assignedTo = { disconnect: true };
     }
 
     await prisma.lead.update({
@@ -185,6 +185,7 @@ export async function updateLeadStatus(
         userId: user?.id ?? null,
         action: "STATUS_CHANGE",
         details: buildAuditDetails(newStatus, options),
+        updatedAt: new Date(),  // ADD THIS
       },
     });
 
@@ -222,7 +223,7 @@ export async function assignLeadAction(
     await prisma.lead.update({
       where: { id: leadId },
       data: {
-        User: { connect: { id: agentId } },
+        assignedTo: { connect: { id: agentId } },
         ...(options?.note ? { notes: updatedNotes } : {}),
       },
     });
@@ -240,12 +241,11 @@ export async function assignLeadAction(
         userId: actingUser?.id ?? null,
         action: "ASSIGNED",
         details: [
-          `Assigned to ${agentId}`,
+          `Assigned to agent ${agentId}`,
           options?.note ? `Note: ${options.note}` : null,
-          slaNote,
-        ]
-          .filter(Boolean)
-          .join(" | "),
+          options?.slaMinutes ? `SLA: ${options.slaMinutes}m (due ${new Date(Date.now() + options.slaMinutes * 60 * 1000).toISOString()})` : null
+        ].filter(Boolean).join(" | "),
+        updatedAt: new Date(),  // ADD THIS
       },
     });
 
@@ -295,6 +295,7 @@ export async function logCallOutcomeAction(
         ]
           .filter(Boolean)
           .join(" | "),
+        updatedAt: new Date(),  // ADD THIS
       },
     });
 

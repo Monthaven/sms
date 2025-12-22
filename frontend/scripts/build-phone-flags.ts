@@ -4,7 +4,7 @@
  * Run: npx ts-node scripts/build-phone-flags.ts
  */
 
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 import { normalizePhone } from "../lib/phone-utils";
 
 const prisma = new PrismaClient();
@@ -142,8 +142,8 @@ async function buildPhoneFlags() {
         intent: flags.intent,
         intent_updated: flags.intent_updated,
         source: flags.source,
-        contactId: flags.contactId,
-      },
+        ...(flags.contactId ? { contact: { connect: { id: flags.contactId } } } : {}),
+      } as Prisma.PhoneFlagUncheckedCreateInput,
       update: {
         dnc: flags.dnc,
         opt_out: flags.opt_out,
@@ -152,7 +152,7 @@ async function buildPhoneFlags() {
         intent: flags.intent,
         intent_updated: flags.intent_updated,
         source: flags.source,
-        contactId: flags.contactId,
+        ...(flags.contactId ? { contact: { connect: { id: flags.contactId } } } : {}),
       },
     });
     upserted++;

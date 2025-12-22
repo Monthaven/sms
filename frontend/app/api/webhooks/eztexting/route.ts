@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { Direction, LeadStatus, PrismaClient } from "@prisma/client";
+import { Direction, LeadStatus, PrismaClient, Prisma } from "@prisma/client";
 import { normalizePhone } from "@/lib/utils";
 
 const prisma = new PrismaClient();
@@ -72,15 +72,15 @@ async function ensureContactAndLead(phone: string) {
   const contact =
     (await prisma.contact.findUnique({
       where: { phoneE164: phone },
-      include: { Lead: { orderBy: { createdAt: "desc" }, take: 1 } },
+      include: { leads: { orderBy: { createdAt: "desc" }, take: 1 } },
     })) ||
     (await prisma.contact.create({
       data: { phoneE164: phone, source: "INBOUND" },
     }));
 
   const leadCandidate =
-    "Lead" in contact && Array.isArray((contact as any).Lead)
-      ? (contact as any).Lead[0] || null
+    "leads" in contact && Array.isArray((contact as any).leads)
+      ? (contact as any).leads[0] || null
       : null;
 
   let lead = leadCandidate;
@@ -218,6 +218,8 @@ async function handle(req: Request) {
 
       await prisma.message.create({
         data: {
+          id: crypto.randomUUID(),           // ADD THIS
+          updatedAt: new Date(),              // ADD THIS
           phone: normalized,
           direction: "INBOUND",
           body: message || "(no body)",
@@ -227,14 +229,14 @@ async function handle(req: Request) {
           campaign_id: INBOUND_CAMPAIGN_ID || null,
           contactId,
           intent,
-        },
+        } 
       });
 
       if (intent === "NEGATIVE") {
         await prisma.phoneFlag.upsert({
           where: { phone: normalized },
           update: { opt_out: true, intent: "NEGATIVE", intent_updated: new Date() },
-          create: { phone: normalized, opt_out: true, intent: "NEGATIVE", intent_updated: new Date() },
+          create: { id: crypto.randomUUID(), updatedAt: new Date(), phone: normalized, opt_out: true, intent: "NEGATIVE", intent_updated: new Date() },
         });
       }
     }

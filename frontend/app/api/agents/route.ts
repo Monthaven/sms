@@ -22,7 +22,7 @@ export async function GET() {
       email: true,
       role: true,
       updatedAt: true,
-      Lead: { select: { id: true } },
+      assignedLeads: { select: { id: true } },
     },
     orderBy: { name: "asc" },
   });
@@ -42,7 +42,7 @@ export async function GET() {
       name: agent.name ?? agent.email,
       email: agent.email,
       role: agent.role,
-      leadsAssigned: agent.Lead.length,
+      leadsAssigned: agent.assignedLeads.length,
       status,
     };
   });
