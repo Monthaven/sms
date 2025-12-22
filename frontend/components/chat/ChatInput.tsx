@@ -1,3 +1,9 @@
+/**
+ * PROPRIETARY — Always Improving LLC
+ * Copyright © 2025. All Rights Reserved.
+ * No license granted. Access under Shareholders' Agreement §8.3.
+ */
+
 'use client';
 import { Send, Paperclip, Image as ImageIcon, Smile } from 'lucide-react';
 import { useState } from 'react';

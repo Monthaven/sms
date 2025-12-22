@@ -1,4 +1,10 @@
 /**
+ * PROPRIETARY — Always Improving LLC
+ * Copyright © 2025. All Rights Reserved.
+ * No license granted. Access under Shareholders' Agreement §8.3.
+ */
+
+/**
  * Extract contacts from rawDetails JSON into Contact table.
  * Run: npx ts-node scripts/extract-contacts-from-raw.ts
  */

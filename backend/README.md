@@ -1,4 +1,16 @@
-﻿# Backend Operator's Manual — Monthaven Acquisition Engine (MAE)
+﻿/*
+ * PROPRIETARY AND CONFIDENTIAL
+ * 
+ * Copyright © 2025 Always Improving LLC. All Rights Reserved.
+ * 
+ * This software is the property of Always Improving LLC and is protected
+ * under applicable intellectual property laws. Unauthorized copying,
+ * modification, distribution, or use is strictly prohibited.
+ * 
+ * Access to this code is provided under the terms of the Shareholders'
+ * Agreement of Monthaven Capital Inc., §8.3. No license is granted.
+ */
+# Backend Operator's Manual — Monthaven Acquisition Engine (MAE)
 
 This doc is for the Engine runners. Heavy scripts run locally, feed Neon, and the Storefront on Vercel reads/presents.
 

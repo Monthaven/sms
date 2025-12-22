@@ -1,4 +1,10 @@
 /**
+ * PROPRIETARY — Always Improving LLC
+ * Copyright © 2025. All Rights Reserved.
+ * No license granted. Access under Shareholders' Agreement §8.3.
+ */
+
+/**
  * Phone number utilities for MAE
  * - E.164 normalization
  * - Type classification

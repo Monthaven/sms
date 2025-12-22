@@ -1,3 +1,15 @@
+/*
+ * PROPRIETARY AND CONFIDENTIAL
+ * 
+ * Copyright © 2025 Always Improving LLC. All Rights Reserved.
+ * 
+ * This software is the property of Always Improving LLC and is protected
+ * under applicable intellectual property laws. Unauthorized copying,
+ * modification, distribution, or use is strictly prohibited.
+ * 
+ * Access to this code is provided under the terms of the Shareholders'
+ * Agreement of Monthaven Capital Inc., §8.3. No license is granted.
+ */
 # Monthaven Acquisition Engine (MAE)
 
 **Status:** ACTIVE | **Version:** 3.0.0 (Hybrid Architecture)

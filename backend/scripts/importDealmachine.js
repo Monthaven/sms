@@ -1,3 +1,9 @@
+/**
+ * PROPRIETARY — Always Improving LLC
+ * Copyright © 2025. All Rights Reserved.
+ * No license granted. Access under Shareholders' Agreement §8.3.
+ */
+
 const fs = require('fs');
 const path = require('path');
 const { PrismaClient } = require('@prisma/client');

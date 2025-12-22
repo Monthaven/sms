@@ -1,4 +1,10 @@
 /**
+ * PROPRIETARY — Always Improving LLC
+ * Copyright © 2025. All Rights Reserved.
+ * No license granted. Access under Shareholders' Agreement §8.3.
+ */
+
+/**
  * Consolidate all CSVs under the repo root by E.164 phone number.
  * One row per unique phone, merging non-null attributes across files.
  * Run: npx ts-node scripts/consolidate-csvs.ts

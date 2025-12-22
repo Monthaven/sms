@@ -1,3 +1,9 @@
+/**
+ * PROPRIETARY — Always Improving LLC
+ * Copyright © 2025. All Rights Reserved.
+ * No license granted. Access under Shareholders' Agreement §8.3.
+ */
+
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./generated.css"; // precompiled Tailwind (globals processed)

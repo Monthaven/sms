@@ -1,3 +1,9 @@
+/**
+ * PROPRIETARY — Always Improving LLC
+ * Copyright © 2025. All Rights Reserved.
+ * No license granted. Access under Shareholders' Agreement §8.3.
+ */
+
 import rateLimit from 'express-rate-limit';
 
 // Default rate limit for import endpoints: 30 requests per minute per IP

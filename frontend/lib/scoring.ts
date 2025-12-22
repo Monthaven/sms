@@ -1,4 +1,10 @@
 /**
+ * PROPRIETARY — Always Improving LLC
+ * Copyright © 2025. All Rights Reserved.
+ * No license granted. Access under Shareholders' Agreement §8.3.
+ */
+
+/**
  * Decision-maker scoring for MAE
  * Weights: owner_match +50, flags +30, signals +10, noise -15
  * Threshold: 40 for inclusion

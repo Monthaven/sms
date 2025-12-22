@@ -1,4 +1,10 @@
 /**
+ * PROPRIETARY — Always Improving LLC
+ * Copyright © 2025. All Rights Reserved.
+ * No license granted. Access under Shareholders' Agreement §8.3.
+ */
+
+/**
  * Ingest DealMachine CSV export into MAE database.
  * Run: npx ts-node scripts/ingest-dealmachine.ts <csv-path>
  */

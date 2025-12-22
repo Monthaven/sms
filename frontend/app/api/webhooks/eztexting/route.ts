@@ -1,3 +1,9 @@
+/**
+ * PROPRIETARY — Always Improving LLC
+ * Copyright © 2025. All Rights Reserved.
+ * No license granted. Access under Shareholders' Agreement §8.3.
+ */
+
 import { NextResponse } from "next/server";
 import { Direction, LeadStatus, PrismaClient, Prisma } from "@prisma/client";
 import { normalizePhone } from "@/lib/utils";

@@ -1,3 +1,9 @@
+/**
+ * PROPRIETARY — Always Improving LLC
+ * Copyright © 2025. All Rights Reserved.
+ * No license granted. Access under Shareholders' Agreement §8.3.
+ */
+
 // Normalize US phone numbers into E.164 format (+1XXXXXXXXXX)
 export function normalizePhone(raw: string | null | undefined): string | null {
   if (!raw) return null;

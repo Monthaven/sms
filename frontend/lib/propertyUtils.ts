@@ -1,3 +1,9 @@
+/**
+ * PROPRIETARY — Always Improving LLC
+ * Copyright © 2025. All Rights Reserved.
+ * No license granted. Access under Shareholders' Agreement §8.3.
+ */
+
 export function parsePropertyFinancials(rawDetails: Record<string, any> | null) {
   if (!rawDetails) return { equity: null, estimatedValue: null, lastSalePrice: null, lastSaleDate: null };
   const equity = rawDetails.property_equity_percent ?? rawDetails.equity_percent ?? rawDetails.equity ?? null;

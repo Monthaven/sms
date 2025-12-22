@@ -1,4 +1,10 @@
 /**
+ * PROPRIETARY — Always Improving LLC
+ * Copyright © 2025. All Rights Reserved.
+ * No license granted. Access under Shareholders' Agreement §8.3.
+ */
+
+/**
  * Bulk enroll contacts into a sequence.
  * Usage: npx ts-node scripts/enroll-sequence.ts --sequence="Sequence Name" [--tier=HIGH|MEDIUM|ALL]
  */

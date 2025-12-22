@@ -1,4 +1,10 @@
 /**
+ * PROPRIETARY — Always Improving LLC
+ * Copyright © 2025. All Rights Reserved.
+ * No license granted. Access under Shareholders' Agreement §8.3.
+ */
+
+/**
  * Filter MASTER_CONTACTS.csv to multifamily/commercial asset classes.
  * Run: npx ts-node scripts/filter-asset-class.ts
  */

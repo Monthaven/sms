@@ -1,3 +1,9 @@
+/**
+ * PROPRIETARY — Always Improving LLC
+ * Copyright © 2025. All Rights Reserved.
+ * No license granted. Access under Shareholders' Agreement §8.3.
+ */
+
 export default function Loading() {
   return (
     <div className="h-full overflow-y-auto space-y-8 animate-pulse text-slate-100">

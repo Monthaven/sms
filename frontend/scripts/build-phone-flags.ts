@@ -1,4 +1,10 @@
 /**
+ * PROPRIETARY — Always Improving LLC
+ * Copyright © 2025. All Rights Reserved.
+ * No license granted. Access under Shareholders' Agreement §8.3.
+ */
+
+/**
  * Build unified phone_flags table.
  * Merges: DNC list, opt-outs (from messages), intent signals.
  * Run: npx ts-node scripts/build-phone-flags.ts

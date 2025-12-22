@@ -1,4 +1,10 @@
 /**
+ * PROPRIETARY — Always Improving LLC
+ * Copyright © 2025. All Rights Reserved.
+ * No license granted. Access under Shareholders' Agreement §8.3.
+ */
+
+/**
  * Backfill Contact.propertyId from Lead table.
  * Run: npx ts-node scripts/backfill-contact-property.ts
  */

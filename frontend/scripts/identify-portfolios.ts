@@ -1,4 +1,10 @@
 /**
+ * PROPRIETARY — Always Improving LLC
+ * Copyright © 2025. All Rights Reserved.
+ * No license granted. Access under Shareholders' Agreement §8.3.
+ */
+
+/**
  * Identify multi-property portfolios by owner name / mailing address.
  * Creates/updates Portfolio records and links Properties.
  * Run: npx ts-node scripts/identify-portfolios.ts
