@@ -6,6 +6,8 @@
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Silence multi-lockfile warning by pinning the tracing root to this app.
+  outputFileTracingRoot: process.cwd(),
   // No rewrites needed. Frontend uses Server Actions to talk to the DB directly.
 };
 

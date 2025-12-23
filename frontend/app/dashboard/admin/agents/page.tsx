@@ -73,7 +73,11 @@ export default function AgentsPage() {
         data={agents || []}
         actions={(row: any) => (
            <div className="flex gap-2 justify-end">
-              <button className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-colors">
+              <button 
+                className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-colors"
+                title="Send email"
+                aria-label="Send email"
+              >
                  <Mail size={16} />
               </button>
            </div>

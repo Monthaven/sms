@@ -20,12 +20,20 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  PhoneCall,
+  MessageSquare,
+  BarChart3,
+  FileSignature,
+  Upload,
+  Clock,
+  UserCircle,
 } from "lucide-react";
 import clsx from "clsx";
 import React, { useState } from "react";
 import Image from "next/image";
+import ProfileRail from "@/components/ProfileRail";
 
-type Role = "ADMIN" | "AGENT";
+type Role = "ADMIN" | "AGENT" | "CALLER" | "MANAGER" | "INVESTOR";
 
 const navItems: Array<{
   group: string;
@@ -36,6 +44,7 @@ const navItems: Array<{
     group: "Mission Control",
     items: [
       { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
+      { name: "My Stats", href: "/dashboard/agent", icon: UserCircle },
       { name: "Call Queue", href: "/dashboard/queue", icon: Phone },
       { name: "Inbox", href: "/dashboard/inbox", icon: Inbox },
       { name: "Campaigns", href: "/dashboard/campaigns", icon: Megaphone },
@@ -43,12 +52,25 @@ const navItems: Array<{
     ],
   },
   {
-    group: "System",
-    roles: ["ADMIN"],
+    group: "Caller Station",
+    roles: ["ADMIN", "MANAGER", "CALLER"],
     items: [
-      { name: "Team", href: "/dashboard/admin/agents", icon: Users, roles: ["ADMIN"] },
-      { name: "Auto-Pilot", href: "/dashboard/admin/automations", icon: Activity, roles: ["ADMIN"] },
-      { name: "Connections", href: "/dashboard/admin/integrations", icon: LinkIcon, roles: ["ADMIN"] },
+      { name: "Lead Queue", href: "/sms/queue", icon: MessageSquare },
+      { name: "Dialer", href: "/sms/dial", icon: PhoneCall },
+      { name: "Callbacks", href: "/sms/callbacks", icon: Clock },
+    ],
+  },
+  {
+    group: "System",
+    roles: ["ADMIN", "MANAGER"],
+    items: [
+      { name: "Team", href: "/dashboard/admin/agents", icon: Users },
+      { name: "User Management", href: "/dashboard/admin/users", icon: Users, roles: ["ADMIN"] },
+      { name: "KPI Dashboard", href: "/dashboard/admin/kpis", icon: BarChart3 },
+      { name: "Auto-Pilot", href: "/dashboard/admin/automations", icon: Activity },
+      { name: "Connections", href: "/dashboard/admin/integrations", icon: LinkIcon },
+      { name: "Import Leads", href: "/dashboard/admin/import", icon: Upload, roles: ["ADMIN"] },
+      { name: "Contracts", href: "/dashboard/admin/contracts", icon: FileSignature, roles: ["ADMIN"] },
     ],
   },
 ];
@@ -69,8 +91,10 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
       .map((c) => c.trim())
       .find((c) => c.startsWith("mae_role="));
     if (cookie) {
-      const val = cookie.split("=")[1];
-      if (val === "ADMIN" || val === "AGENT") setRole(val);
+      const val = cookie.split("=")[1] as Role;
+      if (["ADMIN", "AGENT", "CALLER", "MANAGER", "INVESTOR"].includes(val)) {
+        setRole(val);
+      }
     }
   }, []);
 
@@ -158,30 +182,18 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
       </div>
 
       {/* User Profile */}
-      <div className="p-4 border-t border-slate-800">
+      <div className="p-4 border-t border-slate-800 space-y-2">
         <Link
-          href={role === "ADMIN" ? "/dashboard/admin/agents" : "/dashboard"}
+          href="/dashboard/settings"
           className={clsx(
             "flex items-center w-full p-2 rounded-xl hover:bg-slate-800/50 transition-colors text-left group",
             collapsed ? "justify-center" : ""
           )}
         >
-          <div
-            className={clsx(
-              "w-8 h-8 rounded-full bg-slate-700 border border-slate-600 overflow-hidden flex items-center justify-center text-xs text-slate-300",
-              collapsed ? "" : "mr-3"
-            )}
-          >
-            AD
-          </div>
-          {!collapsed && (
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white truncate">Admin User</p>
-              <p className="text-[10px] text-slate-400 truncate">admin@monthaven.com</p>
-            </div>
-          )}
-          {!collapsed && <Settings size={16} className="text-slate-500 group-hover:text-white transition-colors" />}
+          <Settings size={18} className={clsx("text-slate-500 group-hover:text-white transition-colors", collapsed ? "" : "mr-3")} />
+          {!collapsed && <span className="text-sm text-slate-400 group-hover:text-white">Settings</span>}
         </Link>
+        <ProfileRail collapsed={collapsed} />
       </div>
     </aside>
   );

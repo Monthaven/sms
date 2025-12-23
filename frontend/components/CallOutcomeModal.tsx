@@ -90,7 +90,7 @@ export default function CallOutcomeModal({ open, onClose, leadId, leadName }: Ca
             </h2>
             {leadName && <p className="text-sm text-slate-400">{leadName}</p>}
           </div>
-          <button type="button" onClick={handleClose} className="text-slate-400 hover:text-white">
+          <button type="button" onClick={handleClose} className="text-slate-400 hover:text-white" title="Close" aria-label="Close dialog">
             <X className="h-5 w-5" />
           </button>
         </div>

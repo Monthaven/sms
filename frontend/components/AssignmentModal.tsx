@@ -68,7 +68,7 @@ export default function AssignmentModal({ leadId, open, onClose }: AssignmentMod
             <p className="text-[11px] uppercase tracking-[0.4em] text-slate-500">Assignment</p>
             <h2 className="text-2xl font-semibold text-white">Route lead</h2>
           </div>
-          <button type="button" onClick={handleClose} className="text-slate-400 hover:text-white">
+          <button type="button" onClick={handleClose} className="text-slate-400 hover:text-white" title="Close" aria-label="Close dialog">
             <X className="h-5 w-5" />
           </button>
         </div>

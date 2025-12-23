@@ -22,10 +22,10 @@ export async function GET() {
   const jobs = await delegate.findMany({
     orderBy: { startedAt: "desc" },
     take: 25,
-    include: {
-      Campaign: { select: { name: true } },
-      User: { select: { name: true, email: true } },
-    },
+  include: {
+    campaign: { select: { name: true } },
+    startedBy: { select: { name: true, email: true } },
+  }
   });
   return NextResponse.json(jobs);
 }

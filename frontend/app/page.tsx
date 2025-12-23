@@ -51,6 +51,7 @@ export default function LoginPage() {
                 name="email"
                 type="email" 
                 required
+                placeholder="Enter your email"
                 className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition-all"
               />
             </div>
@@ -61,6 +62,7 @@ export default function LoginPage() {
                 name="passkey"
                 type="password" 
                 required
+                placeholder="Enter passkey"
                 className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition-all"
               />
             </div>

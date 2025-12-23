@@ -9,15 +9,23 @@ datasource db {
 }
 
 model User {
-  id            String         @id @default(cuid())
-  email         String         @unique
-  name          String?
-  role          UserRole       @default(AGENT)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  ingestionJobs IngestionJob[] @relation("IngestionStartedBy")
-  assignedLeads Lead[]
-  auditLogs     LeadAudit[]
+  id                 String         @id @default(cuid())
+  email              String         @unique
+  name               String?
+  role               UserRole       @default(AGENT)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  contractEnvelopeId String?
+  contractSignedAt   DateTime?
+  sections           String[]       @default([])
+  twilioNumber       String?
+  settings           Json?
+  activityLogs       AuditLog[]
+  calls              Call[]
+  ingestionJobs      IngestionJob[] @relation("IngestionStartedBy")
+  interactions       Interaction[]
+  assignedLeads      Lead[]
+  auditLogs          LeadAudit[]
 }
 
 model Contact {
@@ -65,6 +73,10 @@ model Contact {
   phone_3_type                          String?
   propertyId                            String?
   title                                 String?
+  ownerNameMatch                        Boolean       @default(false)
+  phoneValid                            Boolean       @default(true)
+  smsConsent                            Boolean       @default(false)
+  calls                                 Call[]
   Property_Contact_propertyIdToProperty Property?     @relation("Contact_propertyIdToProperty", fields: [propertyId], references: [id])
   interactions                          Interaction[]
   leads                                 Lead[]
@@ -73,6 +85,8 @@ model Contact {
   properties                            Property[]
 
   @@index([phoneE164])
+  @@index([priority, score])
+  @@index([doNotContact])
   @@index([dm_tier])
   @@index([is_primary])
   @@index([propertyId])
@@ -134,6 +148,10 @@ model Lead {
   notes          String?
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
+  assignedAt     DateTime?
+  callbackAt     DateTime?
+  lockExpiresAt  DateTime?
+  calls          Call[]
   assignedTo     User?       @relation(fields: [assignedToId], references: [id])
   campaign       Campaign    @relation(fields: [campaignId], references: [id])
   contact        Contact     @relation(fields: [contactId], references: [id])
@@ -143,6 +161,8 @@ model Lead {
   @@unique([campaignId, contactId, propertyId])
   @@index([status])
   @@index([assignedToId])
+  @@index([status, assignedToId])
+  @@index([callbackAt])
 }
 
 model LeadAudit {
@@ -165,9 +185,52 @@ model Interaction {
   body       String
   externalId String?
   createdAt  DateTime  @default(now())
+  userId     String?
   contact    Contact   @relation(fields: [contactId], references: [id])
+  user       User?     @relation(fields: [userId], references: [id])
 
   @@index([contactId])
+}
+
+model Call {
+  id            String    @id @default(cuid())
+  leadId        String?
+  contactId     String?
+  userId        String
+  direction     String
+  status        String
+  duration      Int?
+  twilioCallSid String?   @unique
+  recordingUrl  String?
+  recordingSid  String?
+  disposition   String?
+  notes         String?
+  startedAt     DateTime  @default(now())
+  answeredAt    DateTime?
+  endedAt       DateTime?
+  contact       Contact?  @relation(fields: [contactId], references: [id])
+  lead          Lead?     @relation(fields: [leadId], references: [id])
+  user          User      @relation(fields: [userId], references: [id])
+
+  @@index([userId, startedAt])
+  @@index([leadId])
+  @@index([twilioCallSid])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String
+  action     String
+  entityType String?
+  entityId   String?
+  metadata   Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
 }
 
 model IngestionJob {
@@ -862,6 +925,9 @@ model Settings {
 enum UserRole {
   ADMIN
   AGENT
+  CALLER
+  MANAGER
+  INVESTOR
 }
 
 enum LeadStatus {

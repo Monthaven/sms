@@ -100,10 +100,18 @@ export default function CampaignsPage() {
         data={isLoading ? [] : campaigns}
         actions={(row: any) => (
           <div className="flex justify-end gap-2">
-            <button className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-colors">
+            <button 
+              title="View Analytics" 
+              aria-label="View campaign analytics"
+              className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-colors"
+            >
               <BarChart3 size={16} />
             </button>
-            <button className="p-2 text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 rounded transition-colors">
+            <button 
+              title={row.status?.toUpperCase() === 'ACTIVE' ? 'Pause Campaign' : 'Start Campaign'} 
+              aria-label={row.status?.toUpperCase() === 'ACTIVE' ? 'Pause campaign' : 'Start campaign'}
+              className="p-2 text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 rounded transition-colors"
+            >
               {row.status?.toUpperCase() === 'ACTIVE' ? <Pause size={16} /> : <Play size={16} />}
             </button>
           </div>

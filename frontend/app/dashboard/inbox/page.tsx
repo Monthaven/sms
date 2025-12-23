@@ -10,6 +10,11 @@ import React, { useMemo, useState } from "react";
 import { useLeads } from "@/lib/hooks/useLeads";
 import Card from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import StatCard from "@/components/StatCard";
+import HeatBadge from "@/components/HeatBadge";
+import EmptyState from "@/components/EmptyState";
+import PropertyIntelligence from "@/components/PropertyIntelligence";
+import ContactScoreBreakdown from "@/components/ContactScoreBreakdown";
 import {
   MessageSquare,
   Flame,
@@ -20,6 +25,8 @@ import {
   MapPin,
   Clock4,
   Inbox as InboxIcon,
+  Users,
+  TrendingUp,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import clsx from "clsx";
@@ -93,7 +100,8 @@ export default function InboxPage() {
     const hot = leads?.filter((l) => l.status === "RESP_HOT").length ?? 0;
     const warm = leads?.filter((l) => l.status === "RESP_WARM").length ?? 0;
     const queue = leads?.filter((l) => l.status === "QUEUED_FOR_CALL").length ?? 0;
-    return { total, hot, warm, queue };
+    const active = leads?.filter((l) => l.status === "CONVERSATION_ACTIVE").length ?? 0;
+    return { total, hot, warm, queue, active };
   }, [leads]);
 
   return (
@@ -143,35 +151,42 @@ export default function InboxPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-          <Card padded className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-slate-500 uppercase font-semibold">Total</p>
-              <p className="text-2xl font-bold text-white">{stats.total}</p>
-            </div>
-            <MessageSquare size={18} className="text-blue-400" />
-          </Card>
-          <Card padded className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-slate-500 uppercase font-semibold">Hot</p>
-              <p className="text-2xl font-bold text-rose-300">{stats.hot}</p>
-            </div>
-            <Flame size={18} className="text-rose-400" />
-          </Card>
-          <Card padded className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-slate-500 uppercase font-semibold">Warm</p>
-              <p className="text-2xl font-bold text-orange-300">{stats.warm}</p>
-            </div>
-            <Filter size={18} className="text-orange-400" />
-          </Card>
-          <Card padded className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-slate-500 uppercase font-semibold">Call Queue</p>
-              <p className="text-2xl font-bold text-purple-300">{stats.queue}</p>
-            </div>
-            <Phone size={18} className="text-purple-400" />
-          </Card>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
+          <StatCard
+            label="Total"
+            value={stats.total}
+            icon={<MessageSquare size={18} />}
+            variant="default"
+            onClick={() => setActiveFilter(filters[0])}
+          />
+          <StatCard
+            label="Hot"
+            value={stats.hot}
+            icon={<Flame size={18} />}
+            variant="hot"
+            onClick={() => setActiveFilter(filters[1])}
+          />
+          <StatCard
+            label="Warm"
+            value={stats.warm}
+            icon={<TrendingUp size={18} />}
+            variant="warm"
+            onClick={() => setActiveFilter(filters[2])}
+          />
+          <StatCard
+            label="Active"
+            value={stats.active}
+            icon={<Users size={18} />}
+            variant="success"
+            onClick={() => setActiveFilter(filters[3])}
+          />
+          <StatCard
+            label="Call Queue"
+            value={stats.queue}
+            icon={<Phone size={18} />}
+            variant="purple"
+            onClick={() => setActiveFilter(filters[4])}
+          />
         </div>
 
         {/* Main Grid */}
@@ -186,9 +201,20 @@ export default function InboxPage() {
             </div>
             <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-1">
               {isLoading ? (
-                <div className="text-slate-500 text-sm animate-pulse">Loading leads...</div>
+                <div className="flex flex-col items-center justify-center py-12 gap-2">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400" />
+                  <span className="text-slate-500 text-sm">Loading leads...</span>
+                </div>
               ) : filteredLeads.length === 0 ? (
-                <div className="text-slate-500 text-sm">No leads match this filter.</div>
+                <EmptyState
+                  title="No leads found"
+                  description="No leads match your current filter criteria. Try adjusting your filters or search query."
+                  actionLabel="View All Leads"
+                  onAction={() => {
+                    setActiveFilter(filters[0]);
+                    setQuery("");
+                  }}
+                />
               ) : (
                 filteredLeads.map((lead) => {
                   const style = statusStyles[lead.status as StatusKey] ?? {
@@ -209,12 +235,10 @@ export default function InboxPage() {
                           <span className={`text-[10px] px-2 py-1 rounded-full border ${style.cls}`}>
                             {style.label}
                           </span>
-                          <span className="text-xs text-slate-500">
-                            {formatDistanceToNow(new Date(lead.updatedAt), { addSuffix: true })}
-                          </span>
+                          <HeatBadge status={lead.status} />
                         </div>
-                        <span className="text-[10px] text-slate-500 uppercase">
-                          {lead.status}
+                        <span className="text-[10px] text-slate-500">
+                          {formatDistanceToNow(new Date(lead.updatedAt), { addSuffix: true })}
                         </span>
                       </div>
                       <div className="mt-2 flex items-center justify-between">
@@ -245,7 +269,10 @@ export default function InboxPage() {
           {/* Detail */}
           <Card className="flex flex-col min-h-0">
             {!selected ? (
-              <div className="text-slate-500 text-sm">Select a conversation.</div>
+              <EmptyState
+                title="Select a Conversation"
+                description="Choose a lead from the list to view details and conversation history."
+              />
             ) : (
               <>
                   <div className="flex items-start justify-between gap-3 mb-4">
@@ -257,6 +284,9 @@ export default function InboxPage() {
                     <p className="text-sm text-slate-400 font-mono">
                       {selected.contact?.phoneE164}
                     </p>
+                    <div className="mt-2">
+                      <HeatBadge status={selected.status} />
+                    </div>
                     </div>
                     <div className="flex items-center gap-2">
                     <Button
@@ -286,6 +316,21 @@ export default function InboxPage() {
                 <div className="flex flex-wrap items-center gap-3 mb-4">
                   <LeadActionButtons leadId={selected.id} context="inbox" />
                   <CallLogButton leadId={selected.id} leadName={`${selected.contact?.firstName ?? ""} ${selected.contact?.lastName ?? ""}`} />
+                </div>
+
+                {/* Lead Intelligence Section */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
+                  <ContactScoreBreakdown
+                    score={selected.contact?.scoreBreakdown?.total ?? 50}
+                    priority={selected.status === "RESP_HOT" ? "HOT" : selected.status === "RESP_WARM" ? "WARM" : "NORMAL"}
+                    ownerMatch={selected.contact?.ownerMatch ?? false}
+                    phoneType={selected.contact?.phoneType ?? null}
+                    contactFlags={selected.contact?.flags ?? []}
+                    emailPresent={!!selected.contact?.email}
+                  />
+                  {selected.property && (
+                    <PropertyIntelligence rawDetails={selected.property.rawDetails ?? null} />
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
