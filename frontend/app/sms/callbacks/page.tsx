@@ -6,7 +6,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import clsx from "clsx";
 import {
   Clock,
@@ -45,7 +45,7 @@ export default function CallbacksPage() {
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<"today" | "upcoming" | "overdue">("today");
 
-  const fetchCallbacks = async () => {
+  const fetchCallbacks = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
@@ -58,11 +58,11 @@ export default function CallbacksPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [view]);
 
   useEffect(() => {
     fetchCallbacks();
-  }, [view]);
+  }, [fetchCallbacks]);
 
   const handleCall = (leadId: string) => {
     window.location.href = `/sms/dial/${leadId}`;

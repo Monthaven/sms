@@ -6,7 +6,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import clsx from "clsx";
 import {
   BarChart,
@@ -80,7 +80,7 @@ export default function AgentDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [period, setPeriod] = useState<"today" | "week" | "month">("today");
 
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
@@ -93,11 +93,11 @@ export default function AgentDashboard() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [period]);
 
   useEffect(() => {
     fetchStats();
-  }, [period]);
+  }, [fetchStats]);
 
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);

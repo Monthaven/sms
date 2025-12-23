@@ -16,10 +16,13 @@ import { updateLeadStatus } from '@/app/actions';
 
 export default function QueuePage() {
   const router = useRouter();
-  const { leads = [], isLoading, mutate } = useLeads({ statuses: ["QUEUED_FOR_CALL"] });
+  const { leads = [], isLoading } = useLeads({ statuses: ["QUEUED_FOR_CALL"] });
   const [processingId, setProcessingId] = useState<string | null>(null);
 
   const queueLeads = leads ?? [];
+  const refreshList = () => {
+    router.refresh();
+  };
 
   const handleCall = (leadId: string) => {
     router.push(`/sms/dial/${leadId}`);
@@ -28,8 +31,8 @@ export default function QueuePage() {
   const handleNoAnswer = async (leadId: string) => {
     setProcessingId(leadId);
     try {
-      await updateLeadStatus(leadId, 'NO_ANSWER');
-      mutate(); // Refresh the list
+      await updateLeadStatus(leadId, 'NO_ANSWER' as any);
+      refreshList();
     } catch (err) {
       console.error('Failed to update lead status:', err);
     } finally {
@@ -40,8 +43,8 @@ export default function QueuePage() {
   const handleBooked = async (leadId: string) => {
     setProcessingId(leadId);
     try {
-      await updateLeadStatus(leadId, 'APPOINTMENT_SET');
-      mutate(); // Refresh the list
+      await updateLeadStatus(leadId, 'APPOINTMENT_SET' as any);
+      refreshList();
     } catch (err) {
       console.error('Failed to update lead status:', err);
     } finally {
@@ -50,7 +53,7 @@ export default function QueuePage() {
   };
 
   const handleRefresh = () => {
-    mutate();
+    refreshList();
   };
 
   return (

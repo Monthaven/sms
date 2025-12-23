@@ -6,7 +6,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import clsx from "clsx";
 import {
@@ -102,7 +102,7 @@ export default function LeadDetailPage() {
   const [messageText, setMessageText] = useState("");
   const [sending, setSending] = useState(false);
 
-  const fetchLead = async () => {
+  const fetchLead = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
@@ -115,11 +115,11 @@ export default function LeadDetailPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [leadId]);
 
   useEffect(() => {
     if (leadId) fetchLead();
-  }, [leadId]);
+  }, [leadId, fetchLead]);
 
   const sendMessage = async () => {
     if (!messageText.trim()) return;

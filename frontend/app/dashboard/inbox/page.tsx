@@ -104,6 +104,9 @@ export default function InboxPage() {
     return { total, hot, warm, queue, active };
   }, [leads]);
 
+  const contactAny = (selected?.contact as any) ?? {};
+  const propertyAny = (selected?.property as any) ?? {};
+
   return (
     <div className="mx-auto max-w-[1800px] space-y-8 pb-10">
       <div className="h-[calc(100vh-8rem)] flex flex-col">
@@ -321,15 +324,21 @@ export default function InboxPage() {
                 {/* Lead Intelligence Section */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
                   <ContactScoreBreakdown
-                    score={selected.contact?.scoreBreakdown?.total ?? 50}
-                    priority={selected.status === "RESP_HOT" ? "HOT" : selected.status === "RESP_WARM" ? "WARM" : "NORMAL"}
-                    ownerMatch={selected.contact?.ownerMatch ?? false}
-                    phoneType={selected.contact?.phoneType ?? null}
-                    contactFlags={selected.contact?.flags ?? []}
-                    emailPresent={!!selected.contact?.email}
+                    score={contactAny?.scoreBreakdown?.total ?? contactAny?.score ?? 50}
+                    priority={
+                      selected.status === "RESP_HOT"
+                        ? "HOT"
+                        : selected.status === "RESP_WARM"
+                        ? "WARM"
+                        : "NORMAL"
+                    }
+                    ownerMatch={contactAny?.ownerMatch ?? false}
+                    phoneType={contactAny?.phoneType ?? null}
+                    contactFlags={contactAny?.flags ?? []}
+                    emailPresent={!!contactAny?.email}
                   />
                   {selected.property && (
-                    <PropertyIntelligence rawDetails={selected.property.rawDetails ?? null} />
+                    <PropertyIntelligence rawDetails={propertyAny?.rawDetails ?? null} />
                   )}
                 </div>
 
