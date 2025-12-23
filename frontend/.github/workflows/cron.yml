@@ -1,0 +1,19 @@
+name: External Cron
+
+on:
+  schedule:
+    - cron: "*/5 * * * *" # every 5 minutes; adjust as needed
+  workflow_dispatch:
+
+jobs:
+  run-crons:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call process-sequences
+        run: |
+          curl -sS -X GET "$CRON_BASE_URL/api/cron/process-sequences" \
+            -H "Authorization: Bearer $CRON_SECRET"
+      - name: Call release-expired-locks
+        run: |
+          curl -sS -X GET "$CRON_BASE_URL/api/cron/release-expired-locks" \
+            -H "Authorization: Bearer $CRON_SECRET"
