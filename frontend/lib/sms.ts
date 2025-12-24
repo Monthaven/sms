@@ -56,7 +56,8 @@ function normalizePhone(phone: string): string {
  * Send SMS via Twilio with retry logic
  */
 async function sendViaTwilio(to: string, message: string): Promise<string> {
-  const twilioFrom = process.env.TWILIO_FROM_NUMBER || process.env.TWILIO_MAIN_FROM;
+  // Prefer an explicit SMS sender if provided, then fall back to configured numbers
+  const twilioFrom = process.env.TWILIO_SMS_FROM || process.env.TWILIO_FROM_NUMBER || process.env.TWILIO_MAIN_FROM;
   if (!twilioFrom) {
     throw new Error("Twilio not configured - missing TWILIO_FROM_NUMBER");
   }
