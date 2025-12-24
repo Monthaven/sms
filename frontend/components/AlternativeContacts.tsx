@@ -8,7 +8,8 @@
 import React from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/navigation';
-import { Phone, MessageSquare, User } from 'lucide-react';
+import { MessageSquare, User } from 'lucide-react';
+import { TwilioCallButton } from './TwilioCallButton';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -62,14 +63,13 @@ export default function AlternativeContacts({ propertyId, currentContactId }: Pr
                 </div>
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
-                {/* Call button - actual tel: link */}
-                <a
-                  href={`tel:${c.phoneE164}`}
-                  className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/30 transition"
-                  title="Call this contact"
-                >
-                  <Phone className="h-3.5 w-3.5" />
-                </a>
+                {/* Call button - Twilio */}
+                <TwilioCallButton
+                  phoneNumber={c.phoneE164}
+                  leadId={c.leadId}
+                  variant="icon"
+                  size="sm"
+                />
                 {/* View/Chat button */}
                 {c.leadId && (
                   <button

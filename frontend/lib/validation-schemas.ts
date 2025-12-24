@@ -70,7 +70,7 @@ export const dateRangeSchema = z.object({
 export const smsSendRequestSchema = z.object({
   to: phoneE164Schema,
   message: smsMessageSchema,
-  provider: smsProviderSchema,
+  provider: smsProviderSchema.optional().default("twilio"),
   leadId: idSchema.optional(),
 });
 

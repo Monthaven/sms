@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/Button";
 import StatCard from "@/components/StatCard";
 import HeatBadge from "@/components/HeatBadge";
 import EmptyState from "@/components/EmptyState";
+import { TwilioCallButton } from "@/components/TwilioCallButton";
 import {
   MessageSquare,
   Flame,
@@ -287,13 +288,14 @@ export default function InboxPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     {selected.contact?.phoneE164 && (
-                      <a
-                        href={`tel:${selected.contact.phoneE164}`}
-                        className="inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors bg-slate-900 border border-slate-800 text-slate-200 hover:bg-slate-800 px-4 py-2 text-xs"
+                      <TwilioCallButton
+                        phoneNumber={selected.contact.phoneE164}
+                        leadId={selected.id}
+                        variant="secondary"
+                        size="sm"
                       >
-                        <Phone size={14} />
                         Call
-                      </a>
+                      </TwilioCallButton>
                     )}
                     <Button
                       className="text-xs"

@@ -5,11 +5,13 @@
  * 
  * FloatingDialer - Bottom-right floating dialer with call/text options
  * Supports manual dialing, campaign mode, and quick SMS
+ * Integrated with Twilio Voice SDK for real audio calls
  */
 
 "use client";
 
 import React, { useState, useCallback, useEffect, useRef } from "react";
+import { Device, Call } from "@twilio/voice-sdk";
 import { 
   Phone, 
   PhoneCall, 
@@ -25,7 +27,9 @@ import {
   Zap,
   Hash,
   Delete,
-  Voicemail
+  Voicemail,
+  CheckCircle,
+  Volume2
 } from "lucide-react";
 import clsx from "clsx";
 import { useAcceptingMode } from "./AcceptingModeProvider";
@@ -57,10 +61,65 @@ export default function FloatingDialer() {
   const [duration, setDuration] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [smsSent, setSmsSent] = useState(false);
+  
+  // Twilio Voice SDK state
+  const [device, setDevice] = useState<Device | null>(null);
+  const [activeCall, setActiveCall] = useState<Call | null>(null);
+  const [deviceReady, setDeviceReady] = useState(false);
   
   const { mode: acceptingMode, toggle: toggleAcceptingMode } = useAcceptingMode();
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const deviceRef = useRef<Device | null>(null);
+
+  // Initialize Twilio Device
+  useEffect(() => {
+    const initTwilioDevice = async () => {
+      try {
+        const res = await fetch("/api/twilio/token");
+        if (!res.ok) {
+          console.error("Failed to fetch Twilio token");
+          return;
+        }
+        const data = await res.json();
+        
+        const dev = new Device(data.token, {
+          codecPreferences: [Call.Codec.Opus, Call.Codec.PCMU],
+          // Enable incoming calls
+          allowIncomingWhileBusy: false,
+        });
+
+        dev.on("registered", () => {
+          console.log("Twilio Device registered");
+          setDevice(dev);
+          setDeviceReady(true);
+        });
+
+        dev.on("error", (e) => {
+          console.error("Twilio Device error:", e);
+          setError(`Device error: ${e.message}`);
+        });
+
+        dev.on("incoming", (call) => {
+          console.log("Incoming call from:", call.parameters.From);
+          // Auto-accept if in dialing mode, or show notification
+        });
+
+        await dev.register();
+        deviceRef.current = dev;
+      } catch (err) {
+        console.error("Twilio Device init failed:", err);
+      }
+    };
+
+    initTwilioDevice();
+
+    return () => {
+      deviceRef.current?.destroy();
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
 
   // Cleanup timer on unmount
   useEffect(() => {
@@ -76,10 +135,24 @@ export default function FloatingDialer() {
     }
   }, [mode]);
 
-  // Handle keyboard input
+  // Clear SMS sent state after showing success
+  useEffect(() => {
+    if (smsSent) {
+      const timer = setTimeout(() => {
+        setSmsSent(false);
+        setSmsMessage("");
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [smsSent]);
+
+  // Handle keyboard input (only when input is not focused)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (mode !== "dialer") return;
+      
+      // Don't capture if input is focused - let the input handle it
+      if (document.activeElement === inputRef.current) return;
       
       // ESC to close
       if (e.key === "Escape") {
@@ -87,14 +160,13 @@ export default function FloatingDialer() {
         return;
       }
       
-      // Only capture digit/special keys when dialer is open
+      // Only capture digit/special keys when dialer is open and input not focused
       if (/^[0-9*#]$/.test(e.key)) {
         setPhoneNumber(prev => prev + e.key);
       } else if (e.key === "Backspace" && phoneNumber) {
         setPhoneNumber(prev => prev.slice(0, -1));
-      } else if (e.key === "Enter" && phoneNumber.length >= 10) {
-        handleCall();
       }
+      // Note: Enter to call is handled inline to avoid dependency issues
     };
 
     window.addEventListener("keydown", handleKeyDown);
@@ -110,9 +182,9 @@ export default function FloatingDialer() {
   };
 
   const handleDigitPress = (digit: string) => {
-    if (callStatus === "connected") {
+    if (callStatus === "connected" && activeCall) {
       // Send DTMF tone during active call
-      // TODO: Implement DTMF
+      activeCall.sendDigits(digit);
     }
     setPhoneNumber(prev => prev + digit);
   };
@@ -127,48 +199,112 @@ export default function FloatingDialer() {
       return;
     }
 
+    if (!device || !deviceReady) {
+      setError("Phone system not ready. Please wait...");
+      return;
+    }
+
     setError(null);
     setCallStatus("connecting");
 
     try {
+      // Format phone to E.164 (+1XXXXXXXXXX)
+      const digits = phoneNumber.replace(/\D/g, "");
+      const formattedPhone = digits.startsWith("1") ? `+${digits}` : `+1${digits}`;
+      
+      // First, initiate the call on the server to get a call ID
       const res = await fetch("/api/sms/call/initiate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ to: phoneNumber.replace(/\D/g, ""), source: "manual" }),
+        body: JSON.stringify({ to: formattedPhone, source: "manual" }),
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error?.message || "Call failed");
 
-      // Simulate call flow for now (real implementation would use Twilio Device)
-      setCallStatus("ringing");
-      setTimeout(() => {
+      const callId = data.data?.callId;
+      
+      // Connect using Twilio Device (this starts the actual call with audio)
+      const call = await device.connect({
+        params: {
+          To: formattedPhone,
+          CallId: callId || "",
+        },
+      });
+
+      setActiveCall(call);
+
+      // Handle call events
+      call.on("ringing", () => {
+        setCallStatus("ringing");
+      });
+
+      call.on("accept", () => {
         setCallStatus("connected");
+        // Start duration timer
         const startTime = Date.now();
         timerRef.current = setInterval(() => {
           setDuration(Math.floor((Date.now() - startTime) / 1000));
         }, 1000);
-      }, 2000);
+      });
+
+      call.on("disconnect", () => {
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
+        setCallStatus("ended");
+        setActiveCall(null);
+        setDuration(0);
+        setTimeout(() => setCallStatus("idle"), 2000);
+      });
+
+      call.on("error", (err) => {
+        console.error("Call error:", err);
+        setError(err.message || "Call error");
+        setCallStatus("failed");
+        setActiveCall(null);
+      });
+
+      call.on("cancel", () => {
+        setCallStatus("ended");
+        setActiveCall(null);
+      });
 
     } catch (err) {
       setError(err instanceof Error ? err.message : "Call failed");
       setCallStatus("failed");
     }
-  }, [phoneNumber]);
+  }, [phoneNumber, device, deviceReady]);
 
   const handleEndCall = useCallback(() => {
+    // Disconnect the active Twilio call
+    if (activeCall) {
+      activeCall.disconnect();
+    }
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
     setCallStatus("ended");
+    setActiveCall(null);
     setDuration(0);
     setTimeout(() => setCallStatus("idle"), 1500);
-  }, []);
+  }, [activeCall]);
 
   const handleToggleMute = () => {
+    if (activeCall) {
+      activeCall.mute(!isMuted);
+    }
     setIsMuted(prev => !prev);
   };
+  
+  // Send DTMF tones during active call
+  const sendDTMF = useCallback((digit: string) => {
+    if (activeCall && callStatus === "connected") {
+      activeCall.sendDigits(digit);
+    }
+  }, [activeCall, callStatus]);
 
   const handleSendSMS = useCallback(async () => {
     if (!phoneNumber || phoneNumber.length < 10 || !smsMessage.trim()) {
@@ -180,21 +316,25 @@ export default function FloatingDialer() {
     setError(null);
 
     try {
+      // Format phone to E.164 (+1XXXXXXXXXX)
+      const digits = phoneNumber.replace(/\D/g, "");
+      const formattedPhone = digits.startsWith("1") ? `+${digits}` : `+1${digits}`;
+      
       const res = await fetch("/api/sms/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          to: phoneNumber.replace(/\D/g, ""),
+          to: formattedPhone,
           message: smsMessage.trim(),
         }),
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error?.message || "SMS failed");
+      if (!res.ok) throw new Error(data.error?.message || data.error || "SMS failed");
 
-      setSmsMessage("");
-      setPhoneNumber("");
-      setMode("collapsed");
+      // Show success message instead of closing
+      setSmsSent(true);
+      // Don't clear phone number so user can send another message to same person
     } catch (err) {
       setError(err instanceof Error ? err.message : "SMS failed");
     } finally {
@@ -337,9 +477,13 @@ export default function FloatingDialer() {
                 placeholder="Enter number"
                 className="w-full text-2xl font-mono text-center text-white bg-transparent border-none outline-none placeholder:text-slate-600"
               />
-              {phoneNumber && (
+              {phoneNumber ? (
                 <div className="text-[10px] text-slate-500 mt-1">
                   {phoneNumber.replace(/\D/g, "").length} digits
+                </div>
+              ) : (
+                <div className="text-[10px] text-slate-500 mt-2">
+                  Enter a real phone number to call
                 </div>
               )}
             </>
@@ -453,6 +597,14 @@ export default function FloatingDialer() {
         {/* SMS Mode Content */}
         {mode === "sms" && (
           <div className="p-4 space-y-4">
+            {/* Success Message */}
+            {smsSent && (
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-sm">
+                <CheckCircle size={18} />
+                <span>Message sent successfully!</span>
+              </div>
+            )}
+            
             <div className="space-y-2">
               <label className="text-xs text-slate-500 uppercase tracking-wide">Message</label>
               <textarea
@@ -464,7 +616,7 @@ export default function FloatingDialer() {
               />
               <div className="flex justify-between text-[10px] text-slate-500">
                 <span>{smsMessage.length} / 160 characters</span>
-                <span>{Math.ceil(smsMessage.length / 160)} segment(s)</span>
+                <span>{Math.ceil(Math.max(smsMessage.length, 1) / 160)} segment(s)</span>
               </div>
             </div>
 
@@ -473,7 +625,7 @@ export default function FloatingDialer() {
               disabled={!phoneNumber || phoneNumber.length < 10 || !smsMessage.trim() || sending}
               className={clsx(
                 "w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium transition-all",
-                phoneNumber.length >= 10 && smsMessage.trim()
+                phoneNumber.length >= 10 && smsMessage.trim() && !sending
                   ? "bg-emerald-500 hover:bg-emerald-400 text-white shadow-lg shadow-emerald-500/20"
                   : "bg-slate-700 text-slate-400 cursor-not-allowed"
               )}
@@ -496,8 +648,20 @@ export default function FloatingDialer() {
         {/* Quick Actions Footer */}
         <div className="px-4 py-3 border-t border-slate-700/50 bg-slate-800/30">
           <div className="flex items-center justify-between text-[10px] text-slate-500">
-            <span>Press ESC to close</span>
-            <span>Tab to switch modes</span>
+            <div className="flex items-center gap-2">
+              <span className={clsx(
+                "w-2 h-2 rounded-full",
+                deviceReady ? "bg-emerald-500" : "bg-amber-500 animate-pulse"
+              )} />
+              <span>{deviceReady ? "Phone ready" : "Connecting..."}</span>
+            </div>
+            {callStatus === "connected" && (
+              <div className="flex items-center gap-1 text-emerald-400">
+                <Volume2 size={12} className="animate-pulse" />
+                <span>Audio active</span>
+              </div>
+            )}
+            {callStatus === "idle" && <span>ESC to close</span>}
           </div>
         </div>
       </div>

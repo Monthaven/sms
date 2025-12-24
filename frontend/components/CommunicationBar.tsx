@@ -8,7 +8,6 @@
 
 import { useState, useTransition } from "react";
 import { 
-  Phone, 
   MessageSquare, 
   Mail, 
   Voicemail, 
@@ -20,6 +19,7 @@ import {
 } from "lucide-react";
 import clsx from "clsx";
 import CallOutcomeModal from "@/components/CallOutcomeModal";
+import { TwilioCallButton } from "./TwilioCallButton";
 
 type CommunicationBarProps = {
   leadId: string;
@@ -95,14 +95,15 @@ export default function CommunicationBar({
     <div className="space-y-3">
       {/* Action Buttons Row */}
       <div className="flex flex-wrap gap-2">
-        {/* Call Button - Primary Action */}
-        <a
-          href={`tel:${phoneNumber}`}
-          className="inline-flex items-center gap-2 rounded-xl bg-emerald-500/20 border border-emerald-500/40 px-4 py-2.5 text-sm font-semibold text-emerald-300 hover:bg-emerald-500/30 transition-all"
+        {/* Call Button - Primary Action (Twilio) */}
+        <TwilioCallButton
+          phoneNumber={phoneNumber}
+          leadId={leadId}
+          variant="primary"
+          size="md"
         >
-          <Phone className="h-4 w-4" />
           Call Now
-        </a>
+        </TwilioCallButton>
 
         {/* Log Call Button */}
         <button

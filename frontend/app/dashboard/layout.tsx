@@ -11,6 +11,7 @@ import Sidebar from "@/components/Sidebar";
 import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
 import FloatingDialer from "@/components/FloatingDialer";
+import { TwilioCallProvider } from "@/components/TwilioCallProvider";
 
 export default function DashboardLayout({
   children,
@@ -20,6 +21,7 @@ export default function DashboardLayout({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   return (
+    <TwilioCallProvider>
     <div className="flex h-screen w-full bg-[#050b14] overflow-hidden">
       
       {/* 1. Sidebar - hidden on mobile */}
@@ -51,5 +53,6 @@ export default function DashboardLayout({
       {/* 4. Floating Dialer - call/SMS with mode toggle */}
       <FloatingDialer />
     </div>
+    </TwilioCallProvider>
   );
 }

@@ -13,6 +13,7 @@ import LeadNotes from "@/components/LeadNotes";
 import CommunicationBar from "@/components/CommunicationBar";
 import LeadActionButtons from "@/components/LeadActionButtons";
 import ActivityTimeline from "@/components/ActivityTimeline";
+import { TwilioPhoneLink } from "@/components/TwilioCallButton";
 import { getContactFlags, parsePropertyFinancials, parsePropertyDetails, formatCurrency, formatPercent } from "@/lib/propertyUtils";
 import {
   ArrowLeft,
@@ -167,9 +168,9 @@ export default async function LeadDetailPage({
                 <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <div className="flex items-center gap-2 text-sm">
                     <Phone className="h-4 w-4 text-emerald-400" />
-                    <a href={`tel:${lead.contact.phoneE164}`} className="text-slate-300 hover:text-white transition">
+                    <TwilioPhoneLink phoneNumber={lead.contact.phoneE164} leadId={lead.id}>
                       {lead.contact.phoneE164}
-                    </a>
+                    </TwilioPhoneLink>
                     {lead.contact.phoneType && (
                       <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-slate-400">
                         {lead.contact.phoneType}
