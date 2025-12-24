@@ -28,7 +28,7 @@ export default function NotFound() {
         
         {/* Description */}
         <p className="text-slate-400 max-w-md mb-10 mx-auto">
-          The requested page doesn't exist or has been moved. Select a destination below to continue.
+          The requested page doesn&apos;t exist or has been moved. Select a destination below to continue.
         </p>
 
         {/* Recovery CTAs */}
