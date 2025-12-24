@@ -36,9 +36,10 @@ type CallOutcomeModalProps = {
   onClose: () => void;
   leadId: string | null;
   leadName?: string;
+  callId?: string | null; // Optional: pass if logging outcome for an existing call
 };
 
-export default function CallOutcomeModal({ open, onClose, leadId, leadName }: CallOutcomeModalProps) {
+export default function CallOutcomeModal({ open, onClose, leadId, leadName, callId }: CallOutcomeModalProps) {
   const [outcome, setOutcome] = useState(OUTCOMES[0]);
   const [note, setNote] = useState("");
   const [status, setStatus] = useState<LeadStatus>("CONVERSATION_ACTIVE");
@@ -69,6 +70,7 @@ export default function CallOutcomeModal({ open, onClose, leadId, leadName }: Ca
         note: note.trim() || undefined,
         status,
         calledAt: callTime ? new Date(callTime).toISOString() : undefined,
+        callId: callId || undefined,
       });
       reset();
       onClose();

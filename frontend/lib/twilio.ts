@@ -30,9 +30,18 @@ function getTwilioClient() {
   return client;
 }
 
+/**
+ * @deprecated Use sendSMS from @/lib/sms instead for unified SMS sending
+ * This function is kept for backwards compatibility
+ */
 export async function sendSMS(to: string, body: string) {
-  const twilioClient = getTwilioClient();
-  return twilioClient.messages.create({ to, from: fromNumber, body });
+  // Re-route to unified SMS utility
+  const { sendSMS: unifiedSendSMS } = await import("@/lib/sms");
+  const result = await unifiedSendSMS({ to, message: body, provider: "twilio" });
+  if (!result.success) {
+    throw new Error(result.error || "SMS send failed");
+  }
+  return { sid: result.externalId };
 }
 
 type InitiateCallParams = {

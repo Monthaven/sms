@@ -4,32 +4,35 @@
  * No license granted. Access under Shareholders' Agreement §8.3.
  */
 
-
 import { getLeadDetails } from "@/app/actions";
-import LeadActionButtons from "@/components/LeadActionButtons";
 import { Avatar, StatusBadge } from "@/components/Shared";
-import PageFooterRail from "@/components/PageFooterRail";
 import ReplyComposer from "@/components/ReplyComposer";
-import CallLogButton from "@/components/CallLogButton";
-import PropertyIntelligence from "@/components/PropertyIntelligence";
 import ContactScoreBreakdown from "@/components/ContactScoreBreakdown";
 import AlternativeContacts from "@/components/AlternativeContacts";
-import { getContactFlags } from "@/lib/propertyUtils";
+import LeadNotes from "@/components/LeadNotes";
+import CommunicationBar from "@/components/CommunicationBar";
+import LeadActionButtons from "@/components/LeadActionButtons";
+import ActivityTimeline from "@/components/ActivityTimeline";
+import { getContactFlags, parsePropertyFinancials, parsePropertyDetails, formatCurrency, formatPercent } from "@/lib/propertyUtils";
 import {
-  Activity,
   ArrowLeft,
+  Building,
+  Clock,
+  DollarSign,
+  Home,
+  Mail,
   MapPin,
-  MessageCircle,
   Phone,
-  Shield,
+  TrendingUp,
+  User,
 } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
 export const revalidate = 60;
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
-export default async function ChatThread({
+export default async function LeadDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
@@ -42,9 +45,15 @@ export default async function ChatThread({
 
   const interactions = lead.interactions || [];
   const displayName =
-    `${lead.contact.firstName ?? ""} ${lead.contact.lastName ?? ""}`.trim() || lead.contact.phoneE164;
+    `${lead.contact.firstName ?? ""} ${lead.contact.lastName ?? ""}`.trim() ||
+    lead.contact.phoneE164;
   const contactFlags =
-    getContactFlags((lead.property as any)?.rawDetails ?? null, lead.contact.phoneE164) || [];
+    getContactFlags(
+      (lead.property as any)?.rawDetails ?? null,
+      lead.contact.phoneE164
+    ) || [];
+
+  const rawDetails = (lead.property as any)?.rawDetails ?? {};
 
   const macroTemplates = [
     {
@@ -70,196 +79,272 @@ export default async function ChatThread({
   );
 
   function mapStatus(status: string | undefined) {
-    if (!status) return 'New';
+    if (!status) return "New";
     switch (status) {
-      case 'RESP_HOT':
-      case 'HOT':
-      case 'QUEUED_FOR_CALL':
-        return 'Hot';
-      case 'RESP_WARM':
-      case 'WARM':
-        return 'Warm';
-      case 'NEW':
-      case 'CREATED':
-        return 'New';
-      case 'RESP_STOP':
-      case 'DNC':
-        return 'DNC';
-      case 'SOLD':
-        return 'Sold';
+      case "RESP_HOT":
+      case "HOT":
+      case "QUEUED_FOR_CALL":
+        return "Hot";
+      case "RESP_WARM":
+      case "WARM":
+        return "Warm";
+      case "NEW":
+      case "CREATED":
+        return "New";
+      case "RESP_STOP":
+      case "DNC":
+        return "DNC";
+      case "SOLD":
+        return "Sold";
       default:
-        return 'Cold';
+        return "Cold";
     }
   }
 
+  // Parse property financials and details using utility functions
+  const fin = parsePropertyFinancials(rawDetails);
+  const details = parsePropertyDetails(rawDetails);
+  
+  // Get formatted values (handles NaN, null, and string formats)
+  const estimatedValueFormatted = formatCurrency(fin.estimatedValue);
+  const lastSaleFormatted = formatCurrency(fin.lastSalePrice);
+  const equityFormatted = formatPercent(fin.equity);
+  const yearBuilt = details.yearBuilt || lead.property?.year_built || null;
+  const ownerType = rawDetails.absentee_owner ? "Absentee" : rawDetails.is_corporate ? "Corporate" : "Owner-Occupied";
+
   return (
-    <div className="space-y-8 text-slate-100 h-full overflow-y-auto">
-      <Link
-        href="/dashboard"
-        className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-slate-100"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to Command Center
-      </Link>
-
-      <section className="glass-panel border border-white/10 p-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-4">
-            <Avatar name={`${lead.contact.firstName ?? ''} ${lead.contact.lastName ?? ''}`.trim() || lead.contact.phoneE164} />
-            <div>
-              <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Lead Profile</p>
-              <h1 className="text-3xl font-semibold text-white">
-                {lead.contact.firstName} {lead.contact.lastName}
-              </h1>
-              <p className="text-sm text-slate-400">{lead.contact.phoneE164}</p>
-            </div>
-          </div>
-          <div className="flex flex-col items-start gap-3 md:items-end">
+    <div className="h-full overflow-y-auto text-slate-100">
+      {/* Sticky Top Navigation */}
+      <div className="sticky top-0 z-10 bg-slate-950/90 backdrop-blur-sm border-b border-white/10 px-6 py-3">
+        <div className="flex items-center justify-between">
+          <Link
+            href="/dashboard/inbox"
+            className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-slate-300 hover:bg-white/10 hover:text-white transition-all group"
+          >
+            <ArrowLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
+            <span>Back to Inbox</span>
+          </Link>
+          
+          <div className="flex items-center gap-3">
             <StatusBadge status={mapStatus(lead.status)} />
-            <LeadActionButtons leadId={lead.id} context="chat" />
-            <CallLogButton leadId={lead.id} leadName={displayName} />
+            <LeadActionButtons leadId={lead.id} context="chat" showAssignButton={false} />
           </div>
         </div>
+      </div>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-3">
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <div className="text-xs uppercase tracking-[0.3em] text-slate-500">
-              Property
-            </div>
-            <p className="mt-2 text-sm text-white">
-              {lead.property?.addressLine1 ?? "No address on file"}
-            </p>
-            <p className="text-xs text-slate-400">
-              {lead.property?.city ?? "N/A"}, {lead.property?.state ?? "--"}
-            </p>
-            <MapPin className="mt-3 h-4 w-4 text-sky-300" />
-          </div>
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <div className="text-xs uppercase tracking-[0.3em] text-slate-500">
-              Channel
-            </div>
-            <p className="mt-2 text-sm text-white">EzTexting</p>
-            <p className="text-xs text-slate-400">Webhook powered</p>
-            <MessageCircle className="mt-3 h-4 w-4 text-emerald-300" />
-          </div>
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <div className="text-xs uppercase tracking-[0.3em] text-slate-500">
-              Queue
-            </div>
-            <p className="mt-2 text-sm text-white">
-              {lead.status === "QUEUED_FOR_CALL" ? "Call ready" : "SMS thread"}
-            </p>
-            <p className="text-xs text-slate-400">Synced from Neon</p>
-            <Phone className="mt-3 h-4 w-4 text-amber-300" />
-          </div>
-        </div>
-      </section>
-
-      <section className="grid gap-6 lg:grid-cols-[2fr,1fr]">
-        <div className="glass-panel border border-white/10 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs uppercase tracking-[0.4em] text-slate-500">
-                Conversation
-              </p>
-              <h2 className="text-2xl font-semibold text-white">
-                Timeline
-              </h2>
-            </div>
-            <Activity className="h-4 w-4 text-sky-300" />
-          </div>
-
-          <div className="mt-6 space-y-5 max-h-[600px] overflow-y-auto">
-            {interactions.length === 0 && (
-              <div className="rounded-2xl border border-dashed border-white/15 p-6 text-sm text-slate-400">
-                No interaction logs yet. Once EzTexting hits the webhook, replies render here chronologically.
-              </div>
-            )}
-            {groupedInteractions.map((group) => (
-              <div key={group.label} className="space-y-3">
-                <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.4em] text-slate-500">
-                  <span className="h-px flex-1 bg-white/10" />
-                  {group.label}
-                  <span className="h-px flex-1 bg-white/10" />
+      <div className="p-6 space-y-6">
+        {/* Lead Header Card */}
+        <section className="glass-panel border border-white/10 p-6">
+          <div className="flex flex-col lg:flex-row lg:items-start gap-6">
+            {/* Left: Contact Info */}
+            <div className="flex items-start gap-4 flex-1">
+              <Avatar name={displayName} size="lg" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500 mb-1">
+                  Lead Profile
+                </p>
+                <h1 className="text-2xl font-bold text-white truncate">
+                  {displayName}
+                </h1>
+                
+                {/* Contact Details */}
+                <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Phone className="h-4 w-4 text-emerald-400" />
+                    <a href={`tel:${lead.contact.phoneE164}`} className="text-slate-300 hover:text-white transition">
+                      {lead.contact.phoneE164}
+                    </a>
+                    {lead.contact.phoneType && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-slate-400">
+                        {lead.contact.phoneType}
+                      </span>
+                    )}
+                  </div>
+                  
+                  {lead.contact.email && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Mail className="h-4 w-4 text-indigo-400" />
+                      <a href={`mailto:${lead.contact.email}`} className="text-slate-300 hover:text-white transition truncate">
+                        {lead.contact.email}
+                      </a>
+                    </div>
+                  )}
                 </div>
-                <div className="space-y-4">
-                  {group.items.map((interaction) => (
-                    <article
-                      key={interaction.id}
-                      className={`rounded-2xl border p-4 ${
-                        interaction.direction === "INBOUND"
-                          ? "border-emerald-400/40 bg-emerald-400/5"
-                          : "border-sky-400/30 bg-sky-400/5"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between text-xs text-slate-300">
-                        <span className="font-semibold uppercase tracking-[0.4em] text-slate-500">
-                          {interaction.direction}
-                        </span>
-                        <span>
-                          {new Date(interaction.createdAt).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </span>
-                      </div>
-                      <p className="mt-3 text-sm text-white">
-                        {interaction.body}
-                      </p>
-                    </article>
-                  ))}
+
+                {/* Quick Stats */}
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <div className="flex items-center gap-1.5 text-xs">
+                    <TrendingUp className="h-3.5 w-3.5 text-amber-400" />
+                    <span className="text-slate-400">Score:</span>
+                    <span className="font-semibold text-white">{lead.contact.score ?? "N/A"}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs">
+                    <User className="h-3.5 w-3.5 text-sky-400" />
+                    <span className="text-slate-400">Priority:</span>
+                    <span className="font-semibold text-white">{lead.contact.priority ?? "LOW"}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs">
+                    <Clock className="h-3.5 w-3.5 text-purple-400" />
+                    <span className="text-slate-400">Created:</span>
+                    <span className="font-semibold text-white">
+                      {new Date(lead.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                    </span>
+                  </div>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
+            </div>
 
-        <div className="space-y-4">
-          <div className="glass-panel border border-white/10 p-4">
-            <PropertyIntelligence rawDetails={(lead.property as any)?.rawDetails ?? null} />
+            {/* Right: Communication Actions */}
+            <div className="lg:w-auto">
+              <CommunicationBar
+                leadId={lead.id}
+                phoneNumber={lead.contact.phoneE164}
+                email={lead.contact.email}
+                leadName={displayName}
+              />
+            </div>
           </div>
+        </section>
 
-          <div className="glass-panel border border-white/10 p-4">
-            <ContactScoreBreakdown
-              score={lead.contact.score ?? 0}
-              priority={lead.contact.priority ?? 'LOW'}
-              ownerMatch={Boolean((lead.contact as any).ownerMatch)}
-              phoneType={lead.contact.phoneType}
-              contactFlags={contactFlags}
+        {/* Main Content Grid */}
+        <div className="grid gap-6 lg:grid-cols-[1fr,380px]">
+          {/* Left Column: Activity Timeline + Reply */}
+          <div className="space-y-4">
+            {/* Full Activity Timeline - Messages, Calls, Notes, Status Changes */}
+            <ActivityTimeline 
+              leadId={lead.id} 
+              maxHeight="500px"
+              showSummary={true}
+              autoRefresh={true}
+              refreshInterval={30000}
             />
+
+            {/* Quick Reply */}
+            <section className="glass-panel border border-white/10 p-4">
+              <ReplyComposer leadId={lead.id} macros={macroTemplates} />
+            </section>
           </div>
 
-          <div className="glass-panel border border-white/10 p-4 max-h-[600px] overflow-y-auto">
-            <AlternativeContacts propertyId={lead.property?.id ?? ''} currentContactId={lead.contact.id} />
-          </div>
+          {/* Right Column: Intelligence Panels */}
+          <div className="space-y-4">
+            {/* Property Details Card */}
+            <section className="glass-panel border border-white/10 p-4">
+              <div className="flex items-center gap-2 mb-4">
+                <Home className="h-4 w-4 text-sky-400" />
+                <h3 className="text-sm font-semibold text-white">Property Details</h3>
+              </div>
 
-          <div className="glass-panel border border-white/10 p-4 max-h-[600px] overflow-y-auto">
-            <ReplyComposer leadId={lead.id} macros={macroTemplates} />
+              {lead.property ? (
+                <div className="space-y-4">
+                  {/* Address */}
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-3.5 w-3.5 text-slate-400" />
+                      <span className="text-sm font-medium text-white">
+                        {lead.property.addressLine1}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-400 ml-5">
+                      {lead.property.city}, {lead.property.state} {lead.property.postalCode}
+                    </p>
+                  </div>
+
+                  {/* Property Stats Grid */}
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="rounded-lg bg-white/5 p-2 text-center">
+                      <div className="text-lg font-bold text-white">{details.beds ?? "—"}</div>
+                      <div className="text-[10px] text-slate-500 uppercase">Beds</div>
+                    </div>
+                    <div className="rounded-lg bg-white/5 p-2 text-center">
+                      <div className="text-lg font-bold text-white">{details.baths ?? "—"}</div>
+                      <div className="text-[10px] text-slate-500 uppercase">Baths</div>
+                    </div>
+                    <div className="rounded-lg bg-white/5 p-2 text-center">
+                      <div className="text-lg font-bold text-white">{details.sqft ? Number(details.sqft).toLocaleString() : "—"}</div>
+                      <div className="text-[10px] text-slate-500 uppercase">Sqft</div>
+                    </div>
+                  </div>
+
+                  {/* Financial Info */}
+                  <div className="space-y-2 border-t border-white/10 pt-3">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-slate-400 flex items-center gap-1.5">
+                        <DollarSign className="h-3.5 w-3.5" /> Est. Value
+                      </span>
+                      <span className="font-medium text-white">
+                        {estimatedValueFormatted ?? "N/A"}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-slate-400">Equity</span>
+                      <span className="font-medium text-emerald-400">
+                        {equityFormatted ?? "N/A"}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-slate-400">Last Sale</span>
+                      <span className="font-medium text-white">
+                        {lastSaleFormatted ?? "N/A"}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-slate-400">Year Built</span>
+                      <span className="font-medium text-white">{yearBuilt ?? "N/A"}</span>
+                    </div>
+                  </div>
+
+                  {/* Owner Status Badge */}
+                  <div className="flex items-center gap-2 rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-2">
+                    <Building className="h-4 w-4 text-amber-400" />
+                    <span className="text-sm text-amber-200">{ownerType}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-sm text-slate-500 text-center py-4">
+                  No property data available
+                </div>
+              )}
+            </section>
+
+            {/* Contact Score */}
+            <section className="glass-panel border border-white/10 p-4">
+              <ContactScoreBreakdown
+                score={lead.contact.score ?? 0}
+                priority={lead.contact.priority ?? "LOW"}
+                ownerMatch={Boolean((lead.contact as any).ownerMatch)}
+                phoneType={lead.contact.phoneType}
+                contactFlags={contactFlags}
+                emailPresent={Boolean(lead.contact.email)}
+              />
+            </section>
+
+            {/* Notes */}
+            <section className="glass-panel border border-white/10 p-4">
+              <LeadNotes leadId={lead.id} initialNotes={lead.notes ?? ""} />
+            </section>
+
+            {/* Alternative Contacts */}
+            {lead.property?.id && (
+              <section className="glass-panel border border-white/10 p-4">
+                <AlternativeContacts
+                  propertyId={lead.property.id}
+                  currentContactId={lead.contact.id}
+                />
+              </section>
+            )}
           </div>
         </div>
-      </section>
-
-      <PageFooterRail
-        kicker="Assignment"
-        title="Need to re-route or view admin actions?"
-        description="Once the chat is handled, bounce directly into the queue or campaign admin."
-        actions={[
-          { label: "Queue", href: "/dashboard/queue", icon: Phone, variant: "primary" },
-          { label: "Admin Tower", href: "/dashboard/admin", icon: Shield },
-        ]}
-      />
+      </div>
     </div>
   );
 }
 
 type LeadDetail = Awaited<ReturnType<typeof getLeadDetails>>;
-type InteractionEntry =
-  NonNullable<LeadDetail>["interactions"][number];
+type InteractionEntry = NonNullable<LeadDetail>["interactions"][number];
 
 function groupInteractions(interactions: InteractionEntry[]) {
   const sorted = [...interactions].sort(
-    (a, b) =>
-      new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
   );
   const groups: { label: string; items: typeof sorted }[] = [];
   sorted.forEach((interaction) => {

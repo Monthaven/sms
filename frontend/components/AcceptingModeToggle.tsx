@@ -15,10 +15,10 @@ export default function AcceptingModeToggle() {
   const isDialing = mode === "dialing";
 
   return (
-    <div className="fixed right-6 bottom-6 z-[60]">
+    <div className="fixed right-6 bottom-6 z-[60] md:block hidden">
       <button
         onClick={toggle}
-        aria-pressed={isDialing}
+        aria-pressed={isDialing ? "true" : "false"}
         title={`Switch to ${isDialing ? 'Campaign' : 'Dialing'} Mode`}
         aria-label={`Currently in ${mode} mode. Click to switch.`}
         className="inline-flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium shadow-lg transition-colors border border-white/10 bg-slate-900/95 text-white backdrop-blur-lg hover:bg-slate-800"

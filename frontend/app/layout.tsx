@@ -9,7 +9,6 @@ import { Inter } from "next/font/google";
 import "./generated.css"; // precompiled Tailwind (globals processed)
 import ReactQueryProvider from "@/components/ReactQueryProvider";
 import AcceptingModeProvider from "@/components/AcceptingModeProvider";
-import AcceptingModeToggle from "@/components/AcceptingModeToggle";
 import { ToastProvider } from "@/components/ToastProvider";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -27,7 +26,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <AcceptingModeProvider>
             <ToastProvider>
               {children}
-              <AcceptingModeToggle />
             </ToastProvider>
           </AcceptingModeProvider>
         </ReactQueryProvider>

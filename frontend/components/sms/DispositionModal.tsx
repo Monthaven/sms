@@ -33,6 +33,7 @@ type Outcome =
 interface DispositionModalProps {
   open: boolean;
   leadId: string;
+  callId?: string | null;
   callDuration?: number;
   onClose: () => void;
   onSaved?: () => void;
@@ -47,7 +48,7 @@ const outcomeOptions: { value: Outcome; label: string; description: string; icon
   { value: "WRONG_NUMBER", label: "Wrong Number", description: "Not the right person", icon: AlertCircle, color: "gray" },
 ];
 
-export function DispositionModal({ open, leadId, callDuration, onClose, onSaved }: DispositionModalProps) {
+export function DispositionModal({ open, leadId, callId, callDuration, onClose, onSaved }: DispositionModalProps) {
   const [outcome, setOutcome] = useState<Outcome | null>(null);
   const [notes, setNotes] = useState("");
   const [callbackAt, setCallbackAt] = useState("");
@@ -65,7 +66,12 @@ export function DispositionModal({ open, leadId, callDuration, onClose, onSaved 
 
   const submit = async () => {
     setError(null);
-    const payload = { outcome, notes, callbackAt: callbackAt || undefined };
+    const payload = { 
+      outcome, 
+      notes, 
+      callbackAt: callbackAt || undefined,
+      callId: callId || undefined,
+    };
     const parsed = dispositionSchema.safeParse(payload);
     if (!parsed.success) {
       setError("Please complete all required fields.");
@@ -77,7 +83,7 @@ export function DispositionModal({ open, leadId, callDuration, onClose, onSaved 
       const res = await fetch(`/api/sms/leads/${leadId}/disposition`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(parsed.data),
+        body: JSON.stringify({ ...parsed.data, callId: callId || undefined }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));

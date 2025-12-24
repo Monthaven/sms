@@ -7,7 +7,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import twilio from "twilio";
+import { sendSMS, type SMSProvider } from "@/lib/sms";
 import { randomUUID } from "crypto";
 
 export async function POST(
@@ -21,7 +21,7 @@ export async function POST(
 
   const { leadId } = await params;
   const body = await req.json();
-  const { body: messageBody } = body;
+  const { body: messageBody, provider = "twilio" } = body;
 
   if (!messageBody?.trim()) {
     return NextResponse.json({ error: { message: "Message body required" } }, { status: 400 });
@@ -43,23 +43,18 @@ export async function POST(
     return NextResponse.json({ error: { message: "No phone number for this lead" } }, { status: 400 });
   }
 
-  // Send via Twilio
-  const twilioClient = twilio(
-    process.env.TWILIO_ACCOUNT_SID,
-    process.env.TWILIO_AUTH_TOKEN
-  );
+  // Send via unified SMS utility (supports Twilio and EzTexting)
+  const smsResult = await sendSMS({
+    leadId,
+    to: lead.contact.phoneE164,
+    message: messageBody,
+    provider: provider as SMSProvider,
+  });
 
-  let twilioMessage;
-  try {
-    twilioMessage = await twilioClient.messages.create({
-      to: lead.contact.phoneE164,
-      from: process.env.TWILIO_MAIN_FROM || "",
-      body: messageBody,
-    });
-  } catch (err) {
-    console.error("Twilio send failed:", err);
+  if (!smsResult.success) {
+    console.error("SMS send failed:", smsResult.error);
     return NextResponse.json(
-      { error: { message: "Failed to send message" } },
+      { error: { message: smsResult.error || "Failed to send message" } },
       { status: 500 }
     );
   }
@@ -72,8 +67,8 @@ export async function POST(
       direction: "OUTBOUND",
       body: messageBody,
       status: "SENT",
-      provider: "twilio",
-      external_id: twilioMessage.sid,
+      provider: provider,
+      external_id: smsResult.externalId,
       contactId: lead.contact.id,
       updatedAt: new Date(),
     },
@@ -85,5 +80,6 @@ export async function POST(
     body: message.body,
     createdAt: message.createdAt.toISOString(),
     status: message.status,
+    provider: provider,
   });
 }

@@ -301,6 +301,7 @@ export function DialPad({ leadId, contactName }: DialPadProps) {
       <DispositionModal
         open={showDisposition}
         leadId={leadId}
+        callId={callId}
         callDuration={duration}
         onClose={() => setShowDisposition(false)}
         onSaved={() => setShowDisposition(false)}

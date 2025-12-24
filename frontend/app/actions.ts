@@ -103,6 +103,7 @@ export async function sendReplyAction(
 ): Promise<ReplyState> {
   const leadId = formData.get("leadId");
   const message = formData.get("message");
+  const provider = (formData.get("provider") as string) || "twilio";
 
   if (!leadId || typeof leadId !== "string") {
     return { error: "Missing lead identifier." };
@@ -130,20 +131,24 @@ export async function sendReplyAction(
     return { error: "Lead not found." };
   }
 
-  await prisma.interaction.create({
-    data: {
-      contactId: lead.contactId,
-      channel: 'EZTEXTING', // or TWILIO
-      direction: 'OUTBOUND',
-      body: cleanMessage,
-      externalId: `sim_out_${Date.now()}`
-    }
-  })
+  if (!lead.contact.phoneE164) {
+    return { error: "Contact has no phone number." };
+  }
 
-  await prisma.lead.update({
-    where: { id: leadId },
-    data: { status: 'CONVERSATION_ACTIVE' }
-  })
+  // Import and use the shared SMS utility
+  const { sendSMS } = await import("@/lib/sms");
+  
+  const smsResult = await sendSMS({
+    leadId,
+    to: lead.contact.phoneE164,
+    message: cleanMessage,
+    provider: provider as "twilio" | "eztexting",
+  });
+
+  if (!smsResult.success) {
+    console.error('SMS send failed:', smsResult.error);
+    return { error: smsResult.error || 'Failed to send SMS' };
+  }
 
   revalidatePath('/dashboard')
   revalidatePath(`/dashboard/chat/${leadId}`)
@@ -268,42 +273,38 @@ type CallOutcomeInput = {
   note?: string;
   status?: LeadStatus;
   calledAt?: string;
+  callId?: string;
 };
 
+/**
+ * Log a call outcome - uses unified lib/calls.ts
+ */
 export async function logCallOutcomeAction(
   leadId: string,
   payload: CallOutcomeInput
 ) {
   try {
     const actingUser = await getCurrentUser();
-    const calledAt = payload.calledAt
-      ? new Date(payload.calledAt)
-      : new Date();
+    if (!actingUser) {
+      return { error: "Not authenticated" };
+    }
 
-    await prisma.lead.update({
-      where: { id: leadId },
-      data: {
-        ...(payload.status ? { status: payload.status } : {}),
-      },
+    // Use unified call utility
+    const { logCallOutcome } = await import("@/lib/calls");
+    
+    const result = await logCallOutcome({
+      callId: payload.callId,
+      leadId,
+      userId: actingUser.id,
+      direction: "OUTBOUND",
+      outcome: payload.outcome,
+      notes: payload.note,
+      status: payload.status,
     });
 
-    await prisma.leadAudit.create({
-      data: {
-        id: randomUUID(),
-        leadId,
-        userId: actingUser?.id ?? null,
-        action: "CALL_LOG",
-        details: [
-          `Outcome: ${payload.outcome}`,
-          payload.note ? `Notes: ${payload.note}` : null,
-          `Called at: ${calledAt.toISOString()}`,
-          payload.status ? `Status set to ${payload.status}` : null,
-        ]
-          .filter(Boolean)
-          .join(" | "),
-        updatedAt: new Date(),  // ADD THIS
-      },
-    });
+    if (!result.success) {
+      return { error: result.error || "Failed to log call" };
+    }
 
     revalidateLeadViews(leadId);
     return { success: true } as { success: boolean };

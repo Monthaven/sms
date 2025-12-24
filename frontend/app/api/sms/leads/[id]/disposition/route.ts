@@ -38,7 +38,7 @@ export async function POST(req: Request, context: any) {
     );
   }
 
-  const { outcome, notes, callbackAt } = parsed.data;
+  const { outcome, notes, callbackAt, callId } = parsed.data as { outcome: string; notes?: string; callbackAt?: string; callId?: string };
   const leadId = (context as { params: { id: string } }).params.id;
 
   const lead = await prisma.lead.findUnique({ where: { id: leadId } });
@@ -57,19 +57,27 @@ export async function POST(req: Request, context: any) {
     },
   });
 
-  const latestCall = await prisma.call.findFirst({
-    where: { leadId, userId: user.id },
-    orderBy: { startedAt: "desc" },
-  });
+  // Use specific callId if provided, otherwise find the latest call
+  let targetCall;
+  if (callId) {
+    targetCall = await prisma.call.findUnique({
+      where: { id: callId },
+    });
+  } else {
+    targetCall = await prisma.call.findFirst({
+      where: { leadId, userId: user.id },
+      orderBy: { startedAt: "desc" },
+    });
+  }
 
-  if (latestCall) {
+  if (targetCall) {
     await prisma.call.update({
-      where: { id: latestCall.id },
+      where: { id: targetCall.id },
       data: {
         disposition: outcome,
         notes,
-        endedAt: latestCall.endedAt ?? new Date(),
-        status: latestCall.status === "COMPLETED" ? latestCall.status : "COMPLETED",
+        endedAt: targetCall.endedAt ?? new Date(),
+        status: targetCall.status === "COMPLETED" ? targetCall.status : "COMPLETED",
       },
     });
   }

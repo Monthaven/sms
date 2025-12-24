@@ -68,13 +68,19 @@ export async function GET(req: Request) {
     prisma.$queryRaw`
       SELECT 
         DATE("createdAt") as date,
-        COUNT(*) as count
+        COUNT(*)::integer as count
       FROM "Lead"
       WHERE "createdAt" >= ${startDate}
       GROUP BY DATE("createdAt")
       ORDER BY date ASC
     `,
   ]);
+
+  // Convert BigInt to Number for JSON serialization
+  const safeDaily = (dailyActivity as any[]).map((d: any) => ({
+    date: d.date,
+    count: Number(d.count),
+  }));
 
   // Get agent performance counts separately
   const agentLeaderboard = await Promise.all(
@@ -131,7 +137,7 @@ export async function GET(req: Request) {
     },
     statusBreakdown,
     agentLeaderboard,
-    dailyActivity,
+    dailyActivity: safeDaily,
     periodDays: daysBack,
   });
 }

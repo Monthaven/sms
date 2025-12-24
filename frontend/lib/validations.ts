@@ -32,4 +32,5 @@ export const dispositionSchema = z.object({
   ]),
   notes: z.string().min(5),
   callbackAt: z.string().datetime().optional(),
+  callId: z.string().optional(), // Link to specific call record
 });

@@ -6,7 +6,10 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { sendSMS } from "@/lib/twilio";
+import { sendSMS, type SMSProvider } from "@/lib/sms";
+
+// Default SMS provider for sequence messages - can be overridden per sequence
+const DEFAULT_SMS_PROVIDER: SMSProvider = (process.env.DEFAULT_SMS_PROVIDER as SMSProvider) || "twilio";
 
 export async function POST(req: NextRequest) {
   const authHeader = req.headers.get("authorization");
@@ -86,15 +89,28 @@ export async function POST(req: NextRequest) {
     // Send SMS
     if (contact.phoneE164) {
       try {
-        await sendSMS(contact.phoneE164, message);
+        // Use sequence-specific provider or default
+        const provider = (sc.Sequence as any).smsProvider || DEFAULT_SMS_PROVIDER;
+        
+        const result = await sendSMS({
+          to: contact.phoneE164,
+          message,
+          provider,
+        });
 
-        // Log interaction
+        if (!result.success) {
+          console.error("Send failed:", result.error);
+          continue;
+        }
+
+        // Log interaction with the channel used
         await prisma.interaction.create({
           data: {
             contactId: sc.contact_id,
-            channel: "TWILIO",
+            channel: provider.toUpperCase() as "TWILIO" | "EZTEXTING",
             direction: "OUTBOUND",
             body: message,
+            externalId: result.externalId,
           },
         });
 

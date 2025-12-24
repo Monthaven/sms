@@ -348,7 +348,7 @@ function ToggleOption({
         title={`Toggle ${label}`}
         aria-label={`${label}: ${checked ? 'on' : 'off'}`}
         role="switch"
-        aria-checked={checked ? "true" : "false"}
+        aria-checked={checked}
       >
         <div
           className={clsx(

@@ -45,8 +45,9 @@ const navItems: Array<{
     items: [
       { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
       { name: "My Stats", href: "/dashboard/agent", icon: UserCircle },
-      { name: "Call Queue", href: "/dashboard/queue", icon: Phone },
       { name: "Inbox", href: "/dashboard/inbox", icon: Inbox },
+      { name: "Call Queue", href: "/dashboard/queue", icon: Phone },
+      { name: "Chat", href: "/dashboard/chat", icon: MessageSquare },
       { name: "Campaigns", href: "/dashboard/campaigns", icon: Megaphone },
       { name: "Intelligence", href: "/dashboard/intelligence", icon: BrainCircuit },
     ],
@@ -64,6 +65,7 @@ const navItems: Array<{
     group: "System",
     roles: ["ADMIN", "MANAGER"],
     items: [
+      { name: "Admin Hub", href: "/dashboard/admin", icon: Activity },
       { name: "Team", href: "/dashboard/admin/agents", icon: Users },
       { name: "User Management", href: "/dashboard/admin/users", icon: Users, roles: ["ADMIN"] },
       { name: "KPI Dashboard", href: "/dashboard/admin/kpis", icon: BarChart3 },
@@ -71,6 +73,7 @@ const navItems: Array<{
       { name: "Connections", href: "/dashboard/admin/integrations", icon: LinkIcon },
       { name: "Import Leads", href: "/dashboard/admin/import", icon: Upload, roles: ["ADMIN"] },
       { name: "Contracts", href: "/dashboard/admin/contracts", icon: FileSignature, roles: ["ADMIN"] },
+      { name: "Reports", href: "/dashboard/reports", icon: BarChart3 },
     ],
   },
 ];

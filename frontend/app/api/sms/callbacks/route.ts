@@ -23,7 +23,7 @@ export async function GET(req: Request) {
 
   let whereClause: any = {
     callbackAt: { not: null },
-    status: { not: "CLOSED" },
+    status: { notIn: ["ARCHIVED", "CONVERTED", "RESP_STOP"] },
   };
 
   // Filter by assigned user for non-admin

@@ -13,16 +13,12 @@ import { Button } from "@/components/ui/Button";
 import StatCard from "@/components/StatCard";
 import HeatBadge from "@/components/HeatBadge";
 import EmptyState from "@/components/EmptyState";
-import PropertyIntelligence from "@/components/PropertyIntelligence";
-import ContactScoreBreakdown from "@/components/ContactScoreBreakdown";
 import {
   MessageSquare,
   Flame,
-  Filter,
   Search,
   Phone,
   Building,
-  MapPin,
   Clock4,
   Inbox as InboxIcon,
   Users,
@@ -103,9 +99,6 @@ export default function InboxPage() {
     const active = leads?.filter((l) => l.status === "CONVERSATION_ACTIVE").length ?? 0;
     return { total, hot, warm, queue, active };
   }, [leads]);
-
-  const contactAny = (selected?.contact as any) ?? {};
-  const propertyAny = (selected?.property as any) ?? {};
 
   return (
     <div className="mx-auto max-w-[1800px] space-y-8 pb-10">
@@ -270,19 +263,20 @@ export default function InboxPage() {
           </Card>
 
           {/* Detail */}
-          <Card className="flex flex-col min-h-0">
+          <Card className="flex flex-col min-h-0 overflow-hidden">
             {!selected ? (
               <EmptyState
                 title="Select a Conversation"
                 description="Choose a lead from the list to view details and conversation history."
               />
             ) : (
-              <>
-                  <div className="flex items-start justify-between gap-3 mb-4">
-                    <div>
-                      <p className="text-xs text-slate-500 uppercase font-semibold mb-1">Contact</p>
-                      <h3 className="text-xl font-bold text-white leading-tight">
-                        {selected.contact?.firstName} {selected.contact?.lastName}
+              <div className="flex flex-col h-full overflow-hidden">
+                {/* Header - fixed */}
+                <div className="flex items-start justify-between gap-3 mb-4 shrink-0">
+                  <div>
+                    <p className="text-xs text-slate-500 uppercase font-semibold mb-1">Contact</p>
+                    <h3 className="text-xl font-bold text-white leading-tight">
+                      {selected.contact?.firstName} {selected.contact?.lastName}
                     </h3>
                     <p className="text-sm text-slate-400 font-mono">
                       {selected.contact?.phoneE164}
@@ -290,20 +284,17 @@ export default function InboxPage() {
                     <div className="mt-2">
                       <HeatBadge status={selected.status} />
                     </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                    <Button
-                      variant="secondary"
-                      className="text-xs"
-                      icon={<Phone size={14} />}
-                      onClick={() => {
-                        if (selected.contact?.phoneE164) {
-                          window.location.href = `tel:${selected.contact.phoneE164}`;
-                        }
-                      }}
-                    >
-                      Call
-                    </Button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {selected.contact?.phoneE164 && (
+                      <a
+                        href={`tel:${selected.contact.phoneE164}`}
+                        className="inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors bg-slate-900 border border-slate-800 text-slate-200 hover:bg-slate-800 px-4 py-2 text-xs"
+                      >
+                        <Phone size={14} />
+                        Call
+                      </a>
+                    )}
                     <Button
                       className="text-xs"
                       icon={<MessageSquare size={14} />}
@@ -311,106 +302,60 @@ export default function InboxPage() {
                         window.location.href = `/dashboard/chat/${selected.id}`;
                       }}
                     >
-                      Reply
+                      Chat
                     </Button>
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3 mb-4">
+                {/* Actions - fixed */}
+                <div className="flex flex-wrap items-center gap-3 mb-3 shrink-0">
                   <LeadActionButtons leadId={selected.id} context="inbox" />
                   <CallLogButton leadId={selected.id} leadName={`${selected.contact?.firstName ?? ""} ${selected.contact?.lastName ?? ""}`} />
                 </div>
 
-                {/* Lead Intelligence Section */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
-                  <ContactScoreBreakdown
-                    score={contactAny?.scoreBreakdown?.total ?? contactAny?.score ?? 50}
-                    priority={
-                      selected.status === "RESP_HOT"
-                        ? "HOT"
-                        : selected.status === "RESP_WARM"
-                        ? "WARM"
-                        : "NORMAL"
-                    }
-                    ownerMatch={contactAny?.ownerMatch ?? false}
-                    phoneType={contactAny?.phoneType ?? null}
-                    contactFlags={contactAny?.flags ?? []}
-                    emailPresent={!!contactAny?.email}
-                  />
-                  {selected.property && (
-                    <PropertyIntelligence rawDetails={propertyAny?.rawDetails ?? null} />
-                  )}
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-                  <div className="bg-slate-900/60 border border-slate-800 rounded-lg p-3">
-                    <p className="text-[11px] text-slate-500 uppercase font-semibold mb-1">
-                      Status
-                    </p>
-                    <span
-                      className={`text-xs px-2 py-1 rounded-full border ${
-                        statusStyles[selected.status as StatusKey]?.cls ??
-                        "bg-slate-800 text-slate-200 border-slate-700"
-                      }`}
-                    >
-                      {statusStyles[selected.status as StatusKey]?.label ?? selected.status}
-                    </span>
-                  </div>
-                  {selected.property && (
-                    <div className="bg-slate-900/60 border border-slate-800 rounded-lg p-3">
-                      <p className="text-[11px] text-slate-500 uppercase font-semibold mb-1">
-                        Property
-                      </p>
-                      <p className="text-sm text-slate-200 flex items-center gap-1">
-                        <MapPin size={12} /> {selected.property.addressLine1}
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        {selected.property.city}, {selected.property.state}
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex-1 grid grid-rows-[1fr_auto] gap-3 min-h-0">
-                  <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-4 overflow-y-auto custom-scrollbar space-y-3">
-                    <div className="flex items-center justify-between text-[11px] uppercase tracking-widest text-slate-500">
+                {/* Thread + Reply - scrollable area */}
+                <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                  {/* Thread messages - scrollable */}
+                  <div className="flex-1 min-h-0 rounded-xl border border-slate-800 bg-slate-900/40 p-3 overflow-y-auto custom-scrollbar space-y-2 mb-2">
+                    <div className="flex items-center justify-between text-[10px] uppercase tracking-widest text-slate-500 pb-2 border-b border-slate-800">
                       <span>Thread</span>
                       <span>{interactions.length} messages</span>
                     </div>
                     {interactions.length === 0 ? (
-                      <div className="text-xs text-slate-500">
-                        No message history yet. Replies will appear here once logged.
+                      <div className="text-xs text-slate-500 py-4 text-center">
+                        No messages yet
                       </div>
                     ) : (
                       interactions.map((msg) => (
                         <div
                           key={msg.id}
                           className={clsx(
-                            "rounded-xl border px-3 py-2 text-sm",
+                            "rounded-lg border px-3 py-2 text-sm",
                             msg.direction === "INBOUND"
                               ? "border-emerald-500/30 bg-emerald-500/5"
                               : "border-blue-500/30 bg-blue-500/5"
                           )}
                         >
-                          <div className="flex items-center justify-between text-[11px] text-slate-400">
-                            <span className="font-semibold uppercase tracking-[0.2em]">
+                          <div className="flex items-center justify-between text-[10px] text-slate-400">
+                            <span className="font-semibold uppercase tracking-wider">
                               {msg.direction}
                             </span>
                             <span>
                               {formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true })}
                             </span>
                           </div>
-                          <p className="mt-2 text-slate-100 whitespace-pre-wrap">{msg.body}</p>
+                          <p className="mt-1.5 text-slate-100 whitespace-pre-wrap text-sm">{msg.body}</p>
                         </div>
                       ))
                     )}
                   </div>
 
-                  <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3">
+                  {/* Reply composer - pinned at bottom */}
+                  <div className="shrink-0 rounded-xl border border-slate-800 bg-slate-900/60 p-3">
                     <ReplyComposer leadId={selected.id} />
                   </div>
                 </div>
-              </>
+              </div>
             )}
           </Card>
         </div>

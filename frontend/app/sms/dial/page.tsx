@@ -9,7 +9,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DialPad } from "@/components/sms/DialPad";
-import { Loader2 } from "lucide-react";
+import { Loader2, PhoneOff } from "lucide-react";
 
 /**
  * Dialer page - auto-loads the next lead in queue or shows empty state
@@ -53,41 +53,25 @@ export default function DialerPage() {
     );
   }
 
-  if (error) {
+  if (error || !leadId) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center glass-panel rounded-xl p-8">
-          <p className="text-slate-300 mb-4">{error}</p>
+        <div className="text-center glass-panel rounded-xl p-8 max-w-sm">
+          <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-slate-800/50 flex items-center justify-center border border-slate-700">
+            <PhoneOff className="text-slate-500" size={28} />
+          </div>
+          <h3 className="text-white font-semibold mb-2">Queue Empty</h3>
+          <p className="text-slate-400 text-sm mb-6">{error || "No leads available to dial"}</p>
           <button
             onClick={() => router.push("/sms/queue")}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium text-sm"
           >
-            Go to Lead Queue
+            View Lead Queue
           </button>
         </div>
       </div>
     );
   }
 
-  if (!leadId) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center glass-panel rounded-xl p-8">
-          <p className="text-slate-300 mb-4">No leads available to dial</p>
-          <button
-            onClick={() => router.push("/sms/queue")}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-          >
-            Go to Lead Queue
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="p-6">
-      <DialPad leadId={leadId} />
-    </div>
-  );
+  return <DialPad leadId={leadId} />;
 }
