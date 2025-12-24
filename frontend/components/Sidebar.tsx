@@ -27,6 +27,7 @@ import {
   Upload,
   Clock,
   UserCircle,
+  History,
   LucideIcon,
 } from "lucide-react";
 import clsx from "clsx";
@@ -69,6 +70,7 @@ const navItems: NavGroup[] = [
       { name: "Lead Queue", href: "/sms/queue", icon: MessageSquare },
       { name: "Dialer", href: "/sms/dial", icon: PhoneCall },
       { name: "Callbacks", href: "/sms/callbacks", icon: Clock },
+      { name: "History", href: "/sms/history", icon: History },
     ],
   },
   {

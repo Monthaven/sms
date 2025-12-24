@@ -7,6 +7,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Device, Call } from "@twilio/voice-sdk";
 import clsx from "clsx";
 import { DispositionModal } from "./DispositionModal";
@@ -24,6 +25,7 @@ function sanitizedManualDisplay(value: string) {
 }
 
 export function DialPad({ leadId, contactName }: DialPadProps) {
+  const router = useRouter();
   const [device, setDevice] = useState<Device | null>(null);
   const [activeCall, setActiveCall] = useState<Call | null>(null);
   const [callId, setCallId] = useState<string | null>(null);
@@ -331,7 +333,10 @@ export function DialPad({ leadId, contactName }: DialPadProps) {
         callId={callId}
         callDuration={duration}
         onClose={() => setShowDisposition(false)}
-        onSaved={() => setShowDisposition(false)}
+        onSaved={() => {
+          setShowDisposition(false);
+          router.push("/sms/queue");
+        }}
       />
     </div>
   );

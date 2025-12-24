@@ -190,6 +190,108 @@ export async function initiateCall({
 }
 
 // ============================================================================
+// Initiate Manual Call (to arbitrary number)
+// ============================================================================
+
+export type InitiateManualCallParams = {
+  to: string;
+  userId: string;
+  leadId?: string; // Optional - for context linking
+  statusCallbackUrl?: string;
+};
+
+/**
+ * Initiate an outbound call to an arbitrary phone number (manual dialing)
+ */
+export async function initiateManualCall({
+  to,
+  userId,
+  leadId,
+  statusCallbackUrl,
+}: InitiateManualCallParams): Promise<InitiateCallResult> {
+  try {
+    // Validate voice is configured
+    if (!isVoiceConfigured()) {
+      return { success: false, error: "Voice calling is not configured" };
+    }
+
+    if (!fromNumber || !appUrl) {
+      return { success: false, error: "Missing TWILIO_FROM_NUMBER or NEXT_PUBLIC_APP_URL" };
+    }
+
+    // Sanitize the phone number
+    const sanitizedTo = to.replace(/[^\d+]/g, "");
+    if (sanitizedTo.length < 7) {
+      return { success: false, error: "Invalid phone number" };
+    }
+
+    // Format with + if not present
+    const formattedTo = sanitizedTo.startsWith("+") ? sanitizedTo : `+1${sanitizedTo}`;
+
+    // Get contactId if leadId is provided
+    let contactId: string | null = null;
+    if (leadId) {
+      const lead = await prisma.lead.findUnique({
+        where: { id: leadId },
+        select: { contactId: true },
+      });
+      contactId = lead?.contactId ?? null;
+    }
+
+    // Create call record in database
+    const call = await prisma.call.create({
+      data: {
+        leadId: leadId || null,
+        contactId,
+        userId,
+        direction: "OUTBOUND",
+        status: "INITIATED",
+        startedAt: new Date(),
+        notes: `Manual dial to ${formattedTo}`,
+      },
+    });
+
+    // Initiate Twilio call
+    const client = getTwilioClient();
+    const callbackUrl = statusCallbackUrl || `${appUrl}/api/webhooks/twilio/voice/status`;
+    
+    const twilioCall = await client.calls.create({
+      from: fromNumber,
+      to: formattedTo,
+      url: `${appUrl}/api/twilio/voice?to=${encodeURIComponent(formattedTo)}`,
+      statusCallback: callbackUrl,
+      statusCallbackEvent: ["initiated", "ringing", "answered", "completed"],
+      statusCallbackMethod: "POST",
+    });
+
+    // Update call record with Twilio SID
+    await prisma.call.update({
+      where: { id: call.id },
+      data: { twilioCallSid: twilioCall.sid },
+    });
+
+    logger.info("Manual call initiated", {
+      callId: call.id,
+      to: formattedTo,
+      twilioSid: twilioCall.sid,
+    });
+
+    return {
+      success: true,
+      callId: call.id,
+      twilioCallSid: twilioCall.sid,
+      to: formattedTo,
+    };
+  } catch (error) {
+    logger.error("initiateManualCall error", { error: error instanceof Error ? error.message : String(error) });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to initiate manual call",
+    };
+  }
+}
+
+// ============================================================================
 // Log Call Outcome
 // ============================================================================
 

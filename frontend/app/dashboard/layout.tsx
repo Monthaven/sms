@@ -10,7 +10,7 @@ import React, { useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
-import AcceptingModeToggle from "@/components/AcceptingModeToggle";
+import FloatingDialer from "@/components/FloatingDialer";
 
 export default function DashboardLayout({
   children,
@@ -48,8 +48,8 @@ export default function DashboardLayout({
       {/* 3. Mobile Bottom Navigation */}
       <BottomNav />
 
-      {/* 4. Accepting Mode Toggle - floating in corner */}
-      <AcceptingModeToggle />
+      {/* 4. Floating Dialer - call/SMS with mode toggle */}
+      <FloatingDialer />
     </div>
   );
 }

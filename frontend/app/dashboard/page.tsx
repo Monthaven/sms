@@ -7,13 +7,22 @@
 "use client";
 
 import React from 'react';
+import Link from 'next/link';
 import { useDashboardStats } from '@/lib/hooks/useDashboardStats';
 import { KPICard } from '@/components/dashboard/KPICard';
 import { SystemGauge } from '@/components/dashboard/SystemGauge';
-import { Phone, DollarSign, Activity, Users } from 'lucide-react';
+import { Phone, DollarSign, Activity, Users, Inbox, MessageSquare, PhoneCall, BarChart3, Settings } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import type { Lead } from '@/lib/api';
 import type { AgentPresence } from '@/lib/hooks/useAgents';
+
+// Quick action buttons for dashboard header
+const quickActions = [
+  { label: "Inbox", href: "/dashboard/inbox", icon: Inbox, color: "blue" },
+  { label: "Call Queue", href: "/dashboard/queue", icon: PhoneCall, color: "emerald" },
+  { label: "Chat", href: "/dashboard/chat", icon: MessageSquare, color: "purple" },
+  { label: "Reports", href: "/dashboard/reports", icon: BarChart3, color: "amber" },
+];
 
 export default function DashboardPage() {
   const { stats, agents, isLoading } = useDashboardStats();
@@ -26,13 +35,31 @@ export default function DashboardPage() {
     <div className="space-y-8 fade-in-up">
       
       {/* 1. WELCOME HEADER */}
-      <div className="flex items-end justify-between">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
            <h2 className="text-3xl font-bold text-white tracking-tight">Welcome back, Agent.</h2>
            <p className="text-slate-400 text-sm mt-1">System status is nominal. <span className="text-emerald-400">{stats.hotLeads} leads</span> require attention.</p>
         </div>
-        <div className="flex gap-2">
-           {/* Quick Actions could go here */}
+        {/* Quick Actions */}
+        <div className="flex flex-wrap gap-2">
+          {quickActions.map((action) => {
+            const colorStyles: Record<string, string> = {
+              blue: "hover:bg-blue-500/10 hover:border-blue-500/30 hover:text-blue-400",
+              emerald: "hover:bg-emerald-500/10 hover:border-emerald-500/30 hover:text-emerald-400",
+              purple: "hover:bg-purple-500/10 hover:border-purple-500/30 hover:text-purple-400",
+              amber: "hover:bg-amber-500/10 hover:border-amber-500/30 hover:text-amber-400",
+            };
+            return (
+              <Link
+                key={action.href}
+                href={action.href}
+                className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-700/50 bg-slate-800/30 text-slate-300 text-xs font-medium transition-all ${colorStyles[action.color]}`}
+              >
+                <action.icon size={14} />
+                {action.label}
+              </Link>
+            );
+          })}
         </div>
       </div>
 

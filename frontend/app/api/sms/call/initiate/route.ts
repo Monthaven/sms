@@ -4,13 +4,14 @@
  * No license granted. Access under Shareholders' Agreement §8.3.
  * 
  * Call Initiation API
+ * Supports both lead-based calls and manual number entry.
  * Uses unified lib/calls.ts for all call operations through Twilio.
  */
 
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { initiateCallSchema } from "@/lib/validations";
-import { initiateCall } from "@/lib/calls";
+import { initiateCall, initiateManualCall } from "@/lib/calls";
 
 export async function POST(req: Request) {
   const user = await getCurrentUser();
@@ -37,9 +38,42 @@ export async function POST(req: Request) {
     );
   }
 
-  const { leadId } = parsed.data;
+  const { leadId, to, source } = parsed.data;
 
-  // Use unified call utility
+  // Manual call (no lead)
+  if (source === "manual" && to) {
+    const result = await initiateManualCall({
+      to,
+      userId: user.id,
+      leadId: leadId, // Optional - may link to a lead for context
+    });
+
+    if (!result.success) {
+      return NextResponse.json(
+        { success: false, error: { code: "CALL_FAILED", message: result.error } },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        callId: result.callId,
+        twilioCallSid: result.twilioCallSid,
+        to: result.to,
+        source: "manual",
+      },
+    });
+  }
+
+  // Lead-based call
+  if (!leadId) {
+    return NextResponse.json(
+      { success: false, error: { code: "VALIDATION_ERROR", message: "leadId is required for queue calls" } },
+      { status: 400 }
+    );
+  }
+
   const result = await initiateCall({
     leadId,
     userId: user.id,
@@ -62,6 +96,7 @@ export async function POST(req: Request) {
       twilioCallSid: result.twilioCallSid,
       to: result.to,
       contactName: result.contactName,
+      source: "queue",
     },
   });
 }

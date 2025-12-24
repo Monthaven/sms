@@ -18,8 +18,13 @@ export const claimLeadSchema = z.object({
 });
 
 export const initiateCallSchema = z.object({
-  leadId: z.string().cuid(),
-});
+  leadId: z.string().cuid().optional(),
+  to: z.string().regex(/^\+?[1-9]\d{6,14}$/, "Invalid phone number").optional(),
+  source: z.enum(["queue", "manual"]).default("queue"),
+}).refine(
+  (data) => data.leadId || data.to,
+  { message: "Either leadId or 'to' number is required" }
+);
 
 export const dispositionSchema = z.object({
   outcome: z.enum([

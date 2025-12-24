@@ -143,7 +143,7 @@ export function LeadCard({
 
         {/* Right: Actions */}
         <div className="flex flex-col gap-2">
-          {!isClaimed ? (
+          {!isClaimed && (
             <button
               onClick={onClaim}
               disabled={disabled}
@@ -158,22 +158,21 @@ export function LeadCard({
               <UserCheck size={16} />
               Claim
             </button>
-          ) : (
-            <button
-              onClick={onCall}
-              disabled={disabled}
-              data-testid="call-button"
-              className={clsx(
-                "flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200",
-                "bg-green-500/10 border border-green-500/30 text-green-400",
-                "hover:bg-green-500/20 hover:border-green-500/50",
-                "disabled:opacity-50 disabled:cursor-not-allowed"
-              )}
-            >
-              <Phone size={16} />
-              Call
-            </button>
           )}
+          <button
+            onClick={onCall}
+            disabled={disabled}
+            data-testid="call-button"
+            className={clsx(
+              "flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200",
+              "bg-green-500/10 border border-green-500/30 text-green-400",
+              "hover:bg-green-500/20 hover:border-green-500/50",
+              "disabled:opacity-50 disabled:cursor-not-allowed"
+            )}
+          >
+            <Phone size={16} />
+            Call
+          </button>
         </div>
       </div>
     </div>
