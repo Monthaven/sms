@@ -29,6 +29,21 @@ import {
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+// Extended types for Prisma JSON columns
+interface PropertyWithRawDetails {
+  rawDetails?: Record<string, unknown>;
+  addressLine1?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  [key: string]: unknown;
+}
+
+interface ContactWithOwnerMatch {
+  ownerMatch?: boolean;
+  [key: string]: unknown;
+}
+
 export const revalidate = 60;
 export const dynamic = "force-dynamic";
 
@@ -47,13 +62,14 @@ export default async function LeadDetailPage({
   const displayName =
     `${lead.contact.firstName ?? ""} ${lead.contact.lastName ?? ""}`.trim() ||
     lead.contact.phoneE164;
+  const propertyData = lead.property as PropertyWithRawDetails | null;
   const contactFlags =
     getContactFlags(
-      (lead.property as any)?.rawDetails ?? null,
+      propertyData?.rawDetails ?? null,
       lead.contact.phoneE164
     ) || [];
 
-  const rawDetails = (lead.property as any)?.rawDetails ?? {};
+  const rawDetails = propertyData?.rawDetails ?? {};
 
   const macroTemplates = [
     {
@@ -311,7 +327,7 @@ export default async function LeadDetailPage({
               <ContactScoreBreakdown
                 score={lead.contact.score ?? 0}
                 priority={lead.contact.priority ?? "LOW"}
-                ownerMatch={Boolean((lead.contact as any).ownerMatch)}
+                ownerMatch={Boolean((lead.contact as ContactWithOwnerMatch).ownerMatch)}
                 phoneType={lead.contact.phoneType}
                 contactFlags={contactFlags}
                 emailPresent={Boolean(lead.contact.email)}

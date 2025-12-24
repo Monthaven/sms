@@ -5,12 +5,10 @@
  */
 
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/db";
 import { evaluateTwilioStatus } from "@/lib/integrations";
+import { getCurrentUser } from "@/lib/auth";
 
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
-const prisma = globalForPrisma.prisma || new PrismaClient();
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 const db = prisma as any;
 
 export const runtime = "nodejs";
@@ -25,6 +23,12 @@ type IntegrationStatus = {
 };
 
 export async function GET() {
+  // Auth check for internal dashboard route
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const delegate = db?.webhookLog;
   let logs: any[] = [];
   let twilioStatus: any = { status: "connected" };

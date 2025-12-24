@@ -10,6 +10,7 @@ import React from 'react';
 import { GlassTable } from '@/components/ui/GlassTable';
 import { Zap, Clock, MessageSquare, Power } from 'lucide-react';
 import { useAutomations } from '@/lib/hooks/useAutomations';
+import type { AutomationRow } from '@/lib/api';
 
 export default function AutomationsPage() {
   const { data: automations = [], isLoading } = useAutomations();
@@ -27,24 +28,24 @@ export default function AutomationsPage() {
         </button>
       </div>
 
-      <GlassTable 
+      <GlassTable<AutomationRow>
         columns={[
-          { header: 'Workflow', accessor: 'name', cell: (row: any) => (
+          { header: 'Workflow', accessor: 'name', cell: (row: AutomationRow) => (
              <div className="font-medium text-white">{row.name}</div>
           )},
-          { header: 'Trigger', accessor: 'cadence', cell: (row: any) => (
+          { header: 'Trigger', accessor: 'cadence', cell: (row: AutomationRow) => (
              <div className="flex items-center gap-2 text-slate-300 text-xs">
                 <Clock size={14} className="text-slate-500" />
                 {row.cadence}
              </div>
           )},
-          { header: 'Owner', accessor: 'owner', cell: (row: any) => (
+          { header: 'Owner', accessor: 'owner', cell: (row: AutomationRow) => (
              <div className="flex items-center gap-2 text-slate-300 text-xs">
                 <MessageSquare size={14} className="text-slate-500" />
                 {row.owner}
              </div>
           )},
-          { header: 'Status', accessor: 'status', cell: (row: any) => (
+          { header: 'Status', accessor: 'status', cell: (row: AutomationRow) => (
             <div className={`flex items-center gap-2 text-xs font-bold ${
               row.status === 'healthy' ? 'text-emerald-400' :
               row.status === 'warning' ? 'text-amber-400' : 'text-slate-500'
@@ -58,7 +59,7 @@ export default function AutomationsPage() {
           )}
         ]}
         data={isLoading ? [] : automations}
-        actions={(row: any) => (
+        actions={(row: AutomationRow) => (
            <button className={`p-2 rounded transition-colors ${
              row.status === 'healthy'
                ? 'text-emerald-400 hover:bg-emerald-500/10'

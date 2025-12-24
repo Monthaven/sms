@@ -4,15 +4,24 @@
  * No license granted. Access under Shareholders' Agreement §8.3.
  */
 
-import { PrismaClient } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/db";
+import { getCurrentUser } from "@/lib/auth";
+import { logger, generateRequestId } from "@/lib/logger";
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ leadId: string }> }
 ) {
+  const requestId = generateRequestId();
+  const log = logger.child({ endpoint: "/api/leads/[leadId]/notes", requestId });
+
+  // Auth check
+  const currentUser = await getCurrentUser();
+  if (!currentUser) {
+    return NextResponse.json({ error: { message: "Unauthorized" } }, { status: 401 });
+  }
+
   try {
     const { leadId } = await params;
     const body = await request.json();
@@ -30,9 +39,10 @@ export async function PATCH(
       data: { notes },
     });
 
+    log.info("Updated lead notes", { leadId });
     return NextResponse.json({ success: true, notes: updated.notes });
   } catch (error) {
-    console.error("Failed to update lead notes:", error);
+    log.error("Failed to update lead notes", { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { error: "Failed to update notes" },
       { status: 500 }
@@ -44,6 +54,9 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ leadId: string }> }
 ) {
+  const requestId = generateRequestId();
+  const log = logger.child({ endpoint: "/api/leads/[leadId]/notes", requestId });
+
   try {
     const { leadId } = await params;
 
@@ -58,7 +71,7 @@ export async function GET(
 
     return NextResponse.json({ notes: lead.notes });
   } catch (error) {
-    console.error("Failed to get lead notes:", error);
+    log.error("Failed to get lead notes", { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { error: "Failed to get notes" },
       { status: 500 }

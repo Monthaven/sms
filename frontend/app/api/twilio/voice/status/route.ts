@@ -6,8 +6,15 @@
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { getCurrentUser } from "@/lib/auth";
 
 export async function GET(req: Request) {
+  // Auth check
+  const currentUser = await getCurrentUser();
+  if (!currentUser) {
+    return NextResponse.json({ error: { message: "Unauthorized" } }, { status: 401 });
+  }
+
   const url = new URL(req.url);
   const callId = url.searchParams.get("callId");
   if (!callId) {

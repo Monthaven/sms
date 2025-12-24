@@ -5,11 +5,9 @@
  */
 
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/db";
+import { getCurrentUser } from "@/lib/auth";
 
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
-const prisma = globalForPrisma.prisma || new PrismaClient();
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 const db = prisma as any;
 
 export const runtime = "nodejs";
@@ -25,13 +23,14 @@ type AutomationPayload = {
 };
 
 export async function GET() {
+  // Auth check for internal dashboard route
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const ingestionDelegate = db?.ingestionJob;
   const webhookDelegate = db?.webhookLog;
-  // If delegates are unavailable (e.g. trimmed frontend client), return safe defaults
-  if (!ingestionDelegate || !webhookDelegate) {
-    // Avoid spamming logs during dev hot-reloads; log once via a non-throwing warning
-    console.debug && console.debug("Prisma delegates partially unavailable for automations route; returning defaults.");
-  }
   let jobs: any[] = [];
   let webhooks: any[] = [];
 

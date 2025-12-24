@@ -5,7 +5,8 @@
  */
 
 import { useLeads } from "@/lib/hooks/useLeads";
-import { useAgents } from "@/lib/hooks/useAgents";
+import { useAgents, type AgentPresence } from "@/lib/hooks/useAgents";
+import { type Lead } from "@/lib/api";
 import { useMemo } from "react";
 
 export function useDashboardStats() {
@@ -15,15 +16,16 @@ export function useDashboardStats() {
 
   // 2. Calculate Metrics
   const stats = useMemo(() => {
-    const leadArray = Array.isArray(leads) ? leads : [];
+    const leadArray: Lead[] = Array.isArray(leads) ? leads : [];
     const totalLeads = leadArray.length;
-    const hotLeads = leadArray.filter((l: any) => l.status === "RESP_HOT" || l.status === "HOT").length;
+    const hotLeads = leadArray.filter((l) => l.status === "RESP_HOT" || l.status === "HOT").length;
 
-    const activeAgents = Array.isArray(agents) ? agents.filter((a: any) => a.status === 'online' || a.status === 'busy').length : 0;
-    const totalAgents = Array.isArray(agents) ? agents.length : 1; // Prevent divide by zero
+    const agentArray: AgentPresence[] = Array.isArray(agents) ? agents : [];
+    const activeAgents = agentArray.filter((a) => a.status === 'online' || a.status === 'away').length;
+    const totalAgents = agentArray.length || 1; // Prevent divide by zero
 
     // Build spark series for the last 10 days
-    const buildSeries = (predicate?: (l: any) => boolean) => {
+    const buildSeries = (predicate?: (l: Lead) => boolean) => {
       const series: { v: number }[] = [];
       for (let i = 9; i >= 0; i--) {
         const dayStart = new Date();
@@ -31,8 +33,8 @@ export function useDashboardStats() {
         dayStart.setUTCDate(dayStart.getUTCDate() - i);
         const dayEnd = new Date(dayStart);
         dayEnd.setUTCDate(dayStart.getUTCDate() + 1);
-        const count = leadArray.filter((l: any) => {
-          const ts = l.updatedAt || l.createdAt;
+        const count = leadArray.filter((l) => {
+          const ts = l.updatedAt;
           if (!ts) return false;
           const d = new Date(ts);
           return d >= dayStart && d < dayEnd && (predicate ? predicate(l) : true);
@@ -51,11 +53,11 @@ export function useDashboardStats() {
 
     // Recent Activity (Sort by newest)
     const recentActivity = leadArray
-      .filter((l: any) => l.updatedAt)
-      .sort((a: any, b: any) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+      .filter((l) => l.updatedAt)
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
       .slice(0, 5);
 
-    const queueCount = leadArray.filter((l: any) => l.status === "QUEUED_FOR_CALL").length;
+    const queueCount = leadArray.filter((l) => l.status === "QUEUED_FOR_CALL").length;
 
     return {
       totalLeads,

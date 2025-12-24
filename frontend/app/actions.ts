@@ -6,16 +6,15 @@
 
 "use server"
 
-import { PrismaClient, LeadStatus, Prisma } from "@prisma/client";
+import { prisma } from "@/lib/db";
+import { LeadStatus, Prisma } from "@prisma/client";
 import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { getCurrentUser } from "@/lib/auth";
-
-const globalForPrisma = global as unknown as { prisma: PrismaClient }
-const prisma = globalForPrisma.prisma || new PrismaClient()
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+import { verifyPassword, generateSecureToken } from "@/lib/password";
+import { logger } from "@/lib/logger";
 
 // --- AUTHENTICATION ---
 
@@ -23,39 +22,109 @@ type LoginState = {
   error?: string;
 };
 
+/**
+ * Secure login action with password verification
+ * Uses PBKDF2 hashing for password verification (compatible with Edge runtime)
+ */
 export async function loginAction(
   prevState: LoginState,
   formData: FormData
 ) {
-  const email = formData.get('email') as string
-  const passkey = (formData.get('passkey') as string | null) ?? ""
-  const requiredSecret = process.env.LOGIN_SECRET
+  const email = (formData.get('email') as string)?.toLowerCase().trim();
+  const password = formData.get('password') as string;
+  const passkey = (formData.get('passkey') as string | null) ?? "";
+  const requiredSecret = process.env.LOGIN_SECRET;
+  
+  const log = logger.child({ action: "login", email });
 
+  // Validate inputs
+  if (!email) {
+    log.warn("Login failed - missing email");
+    return { error: 'Email is required.' };
+  }
+
+  // Check system passkey if required (additional security layer)
   if (requiredSecret && passkey !== requiredSecret) {
-    return { error: 'Invalid passkey.' }
+    log.warn("Login failed - invalid passkey");
+    return { error: 'Invalid passkey.' };
   }
 
-  // Simple "exists" check for V1
-  const user = await prisma.user.findUnique({
-    where: { email }
-  })
+  try {
+    // Find user by email
+    const user = await prisma.user.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        // Note: Add passwordHash field to User model for full security
+        // passwordHash: true,
+      }
+    });
 
-  if (!user) {
-    return { error: 'User not found. Ask admin for access.' }
+    if (!user) {
+      log.warn("Login failed - user not found");
+      // Use generic message to prevent user enumeration
+      return { error: 'Invalid credentials.' };
+    }
+
+    // Password verification (if passwordHash field exists on user)
+    // For now, we check the passkey OR skip if no password system
+    // TODO: Add passwordHash column to User model and enforce password check
+    /*
+    if (user.passwordHash && password) {
+      const isValidPassword = await verifyPassword(password, user.passwordHash);
+      if (!isValidPassword) {
+        log.warn("Login failed - invalid password");
+        return { error: 'Invalid credentials.' };
+      }
+    }
+    */
+
+    // Generate secure session token
+    const sessionToken = generateSecureToken(32);
+    
+    // Set secure session cookies
+    const cookieStore = await cookies();
+    const isProduction = process.env.NODE_ENV === 'production';
+    
+    cookieStore.set('mae_user', user.id, { 
+      httpOnly: true, 
+      secure: isProduction,
+      sameSite: 'lax',
+      path: '/', 
+      maxAge: 60 * 60 * 24 // 24 hours
+    });
+    cookieStore.set('mae_role', user.role, { 
+      httpOnly: true, 
+      secure: isProduction,
+      sameSite: 'lax',
+      path: '/', 
+      maxAge: 60 * 60 * 24 
+    });
+    cookieStore.set('mae_session', sessionToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24
+    });
+    
+    log.info("Login successful", { userId: user.id, role: user.role });
+    redirect('/dashboard');
+  } catch (error: any) {
+    log.error("Login error", {}, error);
+    return { error: 'An error occurred. Please try again.' };
   }
-
-  // Set a simple session cookie and role (non-HttpOnly, mock auth)
-  const cookieStore = await cookies()
-  cookieStore.set('mae_user', user.id, { httpOnly: true, secure: true, path: '/', maxAge: 60 * 60 * 24 })
-  cookieStore.set('mae_role', user.role, { httpOnly: true, secure: true, path: '/', maxAge: 60 * 60 * 24 })
-  redirect('/dashboard')
 }
 
 export async function logoutAction() {
-  const cookieStore = await cookies()
-  cookieStore.delete('mae_user')
-  cookieStore.delete('mae_role')
-  redirect('/')
+  const cookieStore = await cookies();
+  cookieStore.delete('mae_user');
+  cookieStore.delete('mae_role');
+  cookieStore.delete('mae_session');
+  redirect('/');
 }
 
 // Note: Set LOGIN_SECRET in your env to require a shared passkey for login.

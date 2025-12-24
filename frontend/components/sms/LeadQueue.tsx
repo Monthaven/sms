@@ -30,6 +30,9 @@ export function LeadQueue() {
     window.location.href = `/sms/dial/${id}`;
   }, []);
 
+  type PriorityFilter = "ALL" | "HIGH" | "MEDIUM" | "LOW";
+  type SortOption = "score" | "callback" | "recent";
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
@@ -48,7 +51,7 @@ export function LeadQueue() {
               <select
                 title="Filter by priority"
                 value={priority}
-                onChange={(e) => setPriority(e.target.value as any)}
+                onChange={(e) => setPriority(e.target.value as PriorityFilter)}
                 className="bg-slate-800/50 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500"
               >
                 {["ALL", "HIGH", "MEDIUM", "LOW"].map((opt) => (
@@ -65,7 +68,7 @@ export function LeadQueue() {
               <select
                 title="Sort order"
                 value={sort}
-                onChange={(e) => setSort(e.target.value as any)}
+                onChange={(e) => setSort(e.target.value as SortOption)}
                 className="bg-slate-800/50 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500"
               >
                 <option value="score">By Score</option>

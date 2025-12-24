@@ -9,12 +9,29 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { sendSMS, type SMSProvider } from "@/lib/sms";
 import { randomUUID } from "crypto";
+import { checkRateLimit, RATE_LIMITS, rateLimitHeaders } from "@/lib/rate-limit";
+import { logger, generateRequestId } from "@/lib/logger";
 
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ leadId: string }> }
 ) {
+  const requestId = generateRequestId();
+  const log = logger.child({ endpoint: "/api/leads/[leadId]/messages", requestId });
+  
+  // Rate limiting by user or IP
   const currentUser = await getCurrentUser();
+  const identifier = currentUser?.id || req.headers.get("x-forwarded-for") || "anonymous";
+  const rateLimit = checkRateLimit(identifier, RATE_LIMITS.SMS_SEND);
+  
+  if (!rateLimit.success) {
+    log.warn("Rate limit exceeded", { identifier });
+    return NextResponse.json(
+      { error: { message: "Too many requests" } },
+      { status: 429, headers: rateLimitHeaders(rateLimit) }
+    );
+  }
+  
   if (!currentUser) {
     return NextResponse.json({ error: { message: "Unauthorized" } }, { status: 401 });
   }
@@ -52,7 +69,7 @@ export async function POST(
   });
 
   if (!smsResult.success) {
-    console.error("SMS send failed:", smsResult.error);
+    log.error("SMS send failed", { leadId, error: smsResult.error });
     return NextResponse.json(
       { error: { message: smsResult.error || "Failed to send message" } },
       { status: 500 }
@@ -73,6 +90,8 @@ export async function POST(
       updatedAt: new Date(),
     },
   });
+
+  log.info("SMS sent successfully", { leadId, messageId: message.id, provider });
 
   return NextResponse.json({
     id: message.id,

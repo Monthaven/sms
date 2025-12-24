@@ -5,18 +5,31 @@
  */
 
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/db";
+import { getCurrentUser } from "@/lib/auth";
+import type { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient();
-const db = prisma as any;
+// Extended Prisma type for optional models that may not exist in all environments
+type ExtendedPrismaClient = PrismaClient & {
+  webhookLog?: {
+    findMany: (args: { orderBy?: Record<string, string>; take?: number }) => Promise<unknown[]>;
+  };
+};
+
+const db = prisma as ExtendedPrismaClient;
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  // Auth check for internal dashboard route
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const delegate = db?.webhookLog;
   if (!delegate) {
-    console.debug && console.debug("Prisma webhookLog delegate unavailable; returning empty list.");
     return NextResponse.json([]);
   }
   const logs = await delegate.findMany({

@@ -5,19 +5,18 @@
  */
 
 import { NextResponse } from "next/server";
-import { PrismaClient, LeadStatus } from "@prisma/client";
+import { LeadStatus } from "@prisma/client";
+import { prisma } from "@/lib/db";
 import { normalizePhone } from "@/lib/utils";
-
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
-const prisma = globalForPrisma.prisma || new PrismaClient();
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+import { logger, generateRequestId } from "@/lib/logger";
+import { validateTwilioWebhook, formDataToParams } from "@/lib/twilio-webhook";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const INBOUND_CAMPAIGN_ID = process.env.INBOUND_CAMPAIGN_ID;
 
-async function ensureContactAndLead(phone: string) {
+async function ensureContactAndLead(phone: string, log: ReturnType<typeof logger.child>) {
   const contact =
     (await prisma.contact.findUnique({
       where: { phoneE164: phone },
@@ -28,8 +27,8 @@ async function ensureContactAndLead(phone: string) {
     }));
 
   const leadCandidate =
-    "Lead" in contact && Array.isArray((contact as any).Lead)
-      ? (contact as any).Lead[0] || null
+    "leads" in contact && Array.isArray((contact as any).leads)
+      ? (contact as any).leads[0] || null
       : null;
 
   let lead = leadCandidate;
@@ -45,44 +44,66 @@ async function ensureContactAndLead(phone: string) {
         status: LeadStatus.RESP_HOT,
       },
     });
+    log.info("Created new lead for inbound contact", { contactId: contact.id, leadId: lead.id });
   }
 
   return { contactId: contact.id, leadId: lead.id };
 }
 
 export async function POST(request: Request) {
+  const requestId = generateRequestId();
+  const log = logger.child({ endpoint: "/api/webhooks/twilio", requestId });
+  
   try {
     const form = await request.formData();
-    const fromRaw = (form.get("From") as string) ?? "";
-    const toRaw = (form.get("To") as string) ?? "";
-    const body = (form.get("Body") as string) ?? "";
-    const sid = (form.get("MessageSid") as string) ?? undefined;
+    const params = formDataToParams(form);
+    
+    // Validate Twilio signature
+    const signatureValidation = validateTwilioWebhook(request, params);
+    if (!signatureValidation.valid) {
+      log.warn("Invalid Twilio signature");
+      return NextResponse.json({ error: signatureValidation.error || "Invalid signature" }, { status: 401 });
+    }
+    
+    const fromRaw = params["From"] ?? "";
+    const toRaw = params["To"] ?? "";
+    const body = params["Body"] ?? "";
+    const sid = params["MessageSid"] ?? undefined;
 
     const from = normalizePhone(fromRaw);
     const to = normalizePhone(toRaw);
 
     if (!from) {
+      log.warn("Invalid From number", { fromRaw });
       return NextResponse.json({ error: "Missing or invalid From" }, { status: 400 });
     }
 
-    const contact = await prisma.contact.findUnique({
-      where: { phoneE164: from },
-    });
+    log.info("Processing Twilio inbound", { from, to, hasBody: !!body, sid });
 
-    // Write webhook log no matter what
+    // Check for duplicate by externalId
+    if (sid) {
+      const existing = await prisma.interaction.findFirst({ where: { externalId: sid } });
+      if (existing) {
+        log.debug("Duplicate message, skipping", { sid });
+        return new NextResponse("<Response/>", {
+          status: 200,
+          headers: { "Content-Type": "text/xml" },
+        });
+      }
+    }
+
+    // Write webhook log
     await prisma.webhookLog.create({
       data: {
         provider: "TWILIO",
         direction: "INBOUND",
         status: "RECEIVED",
         statusCode: 200,
-        payload: Object.fromEntries(
-          Array.from(form.entries()).map(([k, v]) => [k, typeof v === "string" ? v : `${v}`])
-        ),
+        payload: params,
       },
     });
 
-    const { contactId, leadId } = await ensureContactAndLead(from);
+    const { contactId, leadId } = await ensureContactAndLead(from, log);
 
     // Insert interaction
     await prisma.interaction.create({
@@ -102,12 +123,14 @@ export async function POST(request: Request) {
       },
     });
 
+    log.info("Twilio webhook processed successfully", { contactId, leadId });
+
     return new NextResponse("<Response/>", {
       status: 200,
       headers: { "Content-Type": "text/xml" },
     });
   } catch (err: any) {
-    console.error("Twilio webhook error", err);
+    log.error("Twilio webhook error", {}, err);
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 }

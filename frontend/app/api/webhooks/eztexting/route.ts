@@ -5,11 +5,10 @@
  */
 
 import { NextResponse } from "next/server";
-import { Direction, LeadStatus, PrismaClient, Prisma } from "@prisma/client";
+import { Direction, LeadStatus } from "@prisma/client";
+import { prisma } from "@/lib/db";
 import { normalizePhone } from "@/lib/utils";
-
-const prisma = new PrismaClient();
-const db = prisma as any;
+import { logger, generateRequestId } from "@/lib/logger";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -163,23 +162,28 @@ async function parsePayload(req: Request): Promise<Payload> {
 }
 
 async function handle(req: Request) {
+  const requestId = generateRequestId();
+  const log = logger.child({ endpoint: "/api/webhooks/eztexting", requestId });
+  
   let body: any = null;
-  const logDelegate = db?.webhookLog;
 
   const recordLog = async (data: {
     status: string;
     statusCode?: number;
     errorMessage?: string | null;
   }) => {
-    if (!logDelegate) return;
-    await logDelegate.create({
-      data: {
-        provider: "EZTEXTING",
-        direction: Direction.INBOUND,
-        payload: body,
-        ...data,
-      },
-    });
+    try {
+      await prisma.webhookLog.create({
+        data: {
+          provider: "EZTEXTING",
+          direction: Direction.INBOUND,
+          payload: body,
+          ...data,
+        },
+      });
+    } catch (logError) {
+      log.error("Failed to write webhook log", {}, logError as Error);
+    }
   };
 
   try {
@@ -187,9 +191,12 @@ async function handle(req: Request) {
     body = payload.raw;
     const { fromNumber, message, type, id } = payload;
 
+    log.info("Processing EzTexting inbound", { fromNumber, type, hasMessage: !!message });
+
     if (id) {
       const existing = await prisma.interaction.findFirst({ where: { externalId: id } });
       if (existing) {
+        log.debug("Duplicate message, skipping", { externalId: id });
         await recordLog({ status: "duplicate", statusCode: 200 });
         return NextResponse.json({ status: "skipped_duplicate" });
       }
@@ -198,6 +205,7 @@ async function handle(req: Request) {
     if (type === "inbound_text") {
       const normalized = normalizePhone(fromNumber);
       if (!normalized) {
+        log.warn("Invalid phone number", { fromNumber });
         await recordLog({ status: "invalid_phone", statusCode: 400, errorMessage: "Invalid phone number" });
         return NextResponse.json({ error: "Invalid Phone" }, { status: 400 });
       }
@@ -209,6 +217,8 @@ async function handle(req: Request) {
       if (["stop", "cancel", "unsubscribe"].some((w) => lower.includes(w))) status = LeadStatus.RESP_STOP;
       if (["price", "offer", "selling", "how much"].some((w) => lower.includes(w))) status = LeadStatus.RESP_HOT;
       const intent = classifyIntent(message || "");
+
+      log.debug("Classified intent", { intent, status, contactId });
 
       await prisma.lead.update({ where: { id: leadId }, data: { status } });
 
@@ -224,8 +234,8 @@ async function handle(req: Request) {
 
       await prisma.message.create({
         data: {
-          id: crypto.randomUUID(),           // ADD THIS
-          updatedAt: new Date(),              // ADD THIS
+          id: crypto.randomUUID(),
+          updatedAt: new Date(),
           phone: normalized,
           direction: "INBOUND",
           body: message || "(no body)",
@@ -244,13 +254,15 @@ async function handle(req: Request) {
           update: { opt_out: true, intent: "NEGATIVE", intent_updated: new Date() },
           create: { id: crypto.randomUUID(), updatedAt: new Date(), phone: normalized, opt_out: true, intent: "NEGATIVE", intent_updated: new Date() },
         });
+        log.info("Marked contact as opt-out", { phone: normalized });
       }
     }
 
     await recordLog({ status: "success", statusCode: 200 });
+    log.info("EzTexting webhook processed successfully");
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Webhook Error:", error);
+    log.error("EzTexting webhook error", {}, error as Error);
     await recordLog({
       status: "error",
       statusCode: 500,

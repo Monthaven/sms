@@ -5,13 +5,17 @@
  */
 
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
-const prisma = globalForPrisma.prisma || new PrismaClient();
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+import { prisma } from "@/lib/db";
+import { logger } from "@/lib/logger";
+import { getCurrentUser } from "@/lib/auth";
 
 export async function GET() {
+  // Auth check for notifications endpoint
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
     const hotLeads = await prisma.lead.findMany({
@@ -80,7 +84,7 @@ export async function GET() {
 
     return NextResponse.json(notifications);
   } catch (error) {
-    console.error("Error fetching notifications:", error);
+    logger.error("Error fetching notifications", { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json([]);
   }
 }

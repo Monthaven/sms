@@ -11,6 +11,12 @@ import { GlassTable } from '@/components/ui/GlassTable';
 import { Play, Pause, Plus, BarChart3, MessageSquare } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useCampaigns } from '@/lib/hooks/useCampaigns';
+import type { CampaignSummary } from '@/lib/api';
+
+interface CampaignRow extends CampaignSummary {
+  progress?: number;
+  replies?: number;
+}
 
 export default function CampaignsPage() {
   const { data: campaigns = [], isLoading } = useCampaigns();
@@ -54,15 +60,15 @@ export default function CampaignsPage() {
       </div>
 
       {/* Campaigns Table */}
-      <GlassTable 
+      <GlassTable<CampaignRow>
         columns={[
-          { header: 'Campaign Name', accessor: 'name', className: 'w-1/3', cell: (row: any) => (
+          { header: 'Campaign Name', accessor: 'name', className: 'w-1/3', cell: (row: CampaignRow) => (
             <div>
               <div className="font-medium text-white">{row.name}</div>
               <div className="text-xs text-slate-500">{row.channel || 'Engine'}</div>
             </div>
           )},
-          { header: 'Status', accessor: 'status', cell: (row: any) => (
+          { header: 'Status', accessor: 'status', cell: (row: CampaignRow) => (
             <span className={`px-2 py-1 rounded text-[10px] uppercase font-bold border ${
               row.status?.toUpperCase() === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 animate-pulse' :
               row.status?.toUpperCase() === 'DRAFT' ? 'bg-slate-700/30 text-slate-400 border-slate-600' :
@@ -71,7 +77,7 @@ export default function CampaignsPage() {
               {row.status || 'Unknown'}
             </span>
           )},
-          { header: 'Progress', accessor: 'progress', className: 'w-1/4', cell: (row: any) => (
+          { header: 'Progress', accessor: 'progress', className: 'w-1/4', cell: (row: CampaignRow) => (
             <div className="w-full">
               <div className="flex justify-between text-[10px] mb-1 text-slate-400">
                 <span>{row.messages ?? 0} Sent</span>
@@ -85,20 +91,20 @@ export default function CampaignsPage() {
               </div>
             </div>
           )},
-          { header: 'Engagement', accessor: 'replies', cell: (row: any) => (
+          { header: 'Engagement', accessor: 'replies', cell: (row: CampaignRow) => (
              <div className="flex items-center gap-1.5 text-slate-300">
                 <MessageSquare size={14} className="text-slate-500" />
                 {row.replies ?? 0}
              </div>
           )},
-          { header: 'Last Updated', accessor: 'updated', cell: (row: any) => (
+          { header: 'Last Updated', accessor: 'updated', cell: (row: CampaignRow) => (
             <span className="text-xs text-slate-500 font-mono">
               {row.lastActivity ? formatDistanceToNow(new Date(row.lastActivity), { addSuffix: true }) : '—'}
             </span>
           )}
         ]}
         data={isLoading ? [] : campaigns}
-        actions={(row: any) => (
+        actions={(row: CampaignRow) => (
           <div className="flex justify-end gap-2">
             <button 
               title="View Analytics" 

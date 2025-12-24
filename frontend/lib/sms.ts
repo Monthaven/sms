@@ -4,20 +4,24 @@
  * No license granted. Access under Shareholders' Agreement §8.3.
  */
 
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/db";
 import twilio from "twilio";
+import { withRetry, RETRY_CONFIGS } from "@/lib/retry";
+import { logger } from "@/lib/logger";
 
-const prisma = new PrismaClient();
-
-// Initialize Twilio client lazily
+// Initialize Twilio client lazily (singleton)
 let _twilioClient: ReturnType<typeof twilio> | null = null;
 
 function getTwilioClient() {
   if (!_twilioClient) {
-    _twilioClient = twilio(
-      process.env.TWILIO_ACCOUNT_SID,
-      process.env.TWILIO_AUTH_TOKEN
-    );
+    const accountSid = process.env.TWILIO_ACCOUNT_SID;
+    const authToken = process.env.TWILIO_AUTH_TOKEN;
+    
+    if (!accountSid || !authToken) {
+      throw new Error("Twilio credentials not configured");
+    }
+    
+    _twilioClient = twilio(accountSid, authToken);
   }
   return _twilioClient;
 }
@@ -39,13 +43,96 @@ export type SendSMSResult = {
 };
 
 /**
+ * Normalize phone number to E.164 format
+ */
+function normalizePhone(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+  return phone.startsWith("+") ? phone : `+${digits}`;
+}
+
+/**
+ * Send SMS via Twilio with retry logic
+ */
+async function sendViaTwilio(to: string, message: string): Promise<string> {
+  const twilioFrom = process.env.TWILIO_FROM_NUMBER || process.env.TWILIO_MAIN_FROM;
+  if (!twilioFrom) {
+    throw new Error("Twilio not configured - missing TWILIO_FROM_NUMBER");
+  }
+
+  const twilioClient = getTwilioClient();
+  
+  const result = await withRetry(
+    async () => {
+      const msg = await twilioClient.messages.create({
+        body: message,
+        to: normalizePhone(to),
+        from: twilioFrom,
+      });
+      return msg.sid;
+    },
+    RETRY_CONFIGS.TWILIO
+  );
+  
+  return result;
+}
+
+/**
+ * Send SMS via EzTexting with retry logic
+ */
+async function sendViaEzTexting(to: string, message: string): Promise<string> {
+  const ezUser = process.env.EZTEXTING_USER;
+  const ezPass = process.env.EZTEXTING_PASS || process.env.EZTEXTING_PASSWORD;
+  const ezApiBase = process.env.EZTEXTING_API_BASE || "https://a.eztexting.com/v1";
+
+  if (!ezUser || !ezPass) {
+    throw new Error("EzTexting not configured - missing credentials");
+  }
+
+  const cleanPhone = to.replace("+1", "").replace(/\D/g, ""); // 10-digit only
+  
+  const result = await withRetry(
+    async () => {
+      const response = await fetch(`${ezApiBase}/messages`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Basic ${Buffer.from(`${ezUser}:${ezPass}`).toString("base64")}`,
+        },
+        body: JSON.stringify({
+          toNumbers: [cleanPhone],
+          message: message,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        const error = new Error(`EzTexting API error: ${errorText}`);
+        (error as any).status = response.status;
+        throw error;
+      }
+
+      const data = await response.json().catch(() => ({ id: `ez_${Date.now()}` }));
+      return data.id || `ez_${Date.now()}`;
+    },
+    RETRY_CONFIGS.EZTEXTING
+  );
+  
+  return result;
+}
+
+/**
  * Send SMS via Twilio or EzTexting
  * This is the core SMS sending function used by both API routes and server actions
+ * Includes retry logic and proper logging
  */
 export async function sendSMS(params: SendSMSParams): Promise<SendSMSResult> {
   const { leadId, to, message, provider } = params;
+  const log = logger.child({ provider, to: to.slice(-4), leadId });
 
   if (!to || !message) {
+    log.warn("SMS send failed - missing fields");
     return { success: false, provider, error: "Missing required fields: to, message" };
   }
 
@@ -54,67 +141,14 @@ export async function sendSMS(params: SendSMSParams): Promise<SendSMSResult> {
 
   try {
     if (provider === "twilio") {
-      // Send via Twilio
-      const twilioFrom = process.env.TWILIO_FROM_NUMBER;
-      if (!twilioFrom) {
-        return { success: false, provider, error: "Twilio not configured - missing TWILIO_FROM_NUMBER" };
-      }
-
-      const twilioClient = getTwilioClient();
-      const twilioMsg = await twilioClient.messages.create({
-        body: message,
-        to: to,
-        from: twilioFrom,
-      });
-
-      externalId = twilioMsg.sid;
+      externalId = await sendViaTwilio(to, message);
       channel = "TWILIO";
-      console.log(`✅ Twilio SMS sent: ${twilioMsg.sid}`);
+      log.info("SMS sent via Twilio", { externalId });
       
     } else if (provider === "eztexting") {
-      // Send via EzTexting API
-      const ezUser = process.env.EZTEXTING_USER;
-      const ezPass = process.env.EZTEXTING_PASS || process.env.EZTEXTING_PASSWORD;
-      const ezApiBase = process.env.EZTEXTING_API_BASE || "https://a.eztexting.com/v1";
-
-      if (!ezUser || !ezPass) {
-        return { success: false, provider, error: "EzTexting not configured - missing credentials" };
-      }
-
-      // EzTexting API v1 - using their documented endpoint
-      const cleanPhone = to.replace("+1", "").replace(/\D/g, ""); // 10-digit only
-      const ezResponse = await fetch(
-        `${ezApiBase}/messages`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Basic ${Buffer.from(`${ezUser}:${ezPass}`).toString("base64")}`,
-          },
-          body: JSON.stringify({
-            toNumbers: [cleanPhone], // EzTexting expects toNumbers field
-            message: message,
-          }),
-        }
-      );
-
-      const responseText = await ezResponse.text();
-      console.log("EzTexting response:", ezResponse.status, responseText);
-
-      if (!ezResponse.ok) {
-        console.error("EzTexting error:", responseText);
-        return { success: false, provider, error: `EzTexting send failed: ${responseText || ezResponse.status}` };
-      }
-
-      let ezData;
-      try {
-        ezData = JSON.parse(responseText);
-      } catch {
-        ezData = { id: `ez_${Date.now()}` };
-      }
-      externalId = ezData.id || `ez_${Date.now()}`;
+      externalId = await sendViaEzTexting(to, message);
       channel = "EZTEXTING";
-      console.log(`✅ EzTexting SMS sent: ${externalId}`);
+      log.info("SMS sent via EzTexting", { externalId });
       
     } else {
       return { success: false, provider, error: "Invalid provider. Use 'twilio' or 'eztexting'" };
@@ -152,7 +186,7 @@ export async function sendSMS(params: SendSMSParams): Promise<SendSMSResult> {
       externalId,
     };
   } catch (error: any) {
-    console.error("SMS send error:", error);
+    logger.error("SMS send error", { error: error?.message || String(error), provider });
     return {
       success: false,
       provider,

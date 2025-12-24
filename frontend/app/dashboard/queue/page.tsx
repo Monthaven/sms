@@ -13,6 +13,7 @@ import { Phone, Clock, RefreshCw, CheckCircle, XCircle } from 'lucide-react';
 import LeadStatusBadge from '@/components/LeadStatusBadge';
 import EmptyState from '@/components/EmptyState';
 import { updateLeadStatus } from '@/app/actions';
+import type { Lead } from '@/lib/api';
 
 export default function QueuePage() {
   const router = useRouter();
@@ -31,7 +32,8 @@ export default function QueuePage() {
   const handleNoAnswer = async (leadId: string) => {
     setProcessingId(leadId);
     try {
-      await updateLeadStatus(leadId, 'NO_ANSWER' as any);
+      // NO_ANSWER maps to RESP_COLD in the schema
+      await updateLeadStatus(leadId, 'RESP_COLD');
       refreshList();
     } catch (err) {
       console.error('Failed to update lead status:', err);
@@ -43,7 +45,8 @@ export default function QueuePage() {
   const handleBooked = async (leadId: string) => {
     setProcessingId(leadId);
     try {
-      await updateLeadStatus(leadId, 'APPOINTMENT_SET' as any);
+      // APPOINTMENT_SET maps to CONVERTED in the schema
+      await updateLeadStatus(leadId, 'CONVERTED');
       refreshList();
     } catch (err) {
       console.error('Failed to update lead status:', err);
@@ -97,7 +100,7 @@ export default function QueuePage() {
             onAction={() => router.push('/dashboard/inbox')}
           />
         )}
-        {queueLeads.map((lead: any, index: number) => (
+        {queueLeads.map((lead: Lead, index: number) => (
           <div 
             key={lead.id || index} 
             className={`group flex items-center justify-between p-4 rounded-xl border border-slate-800 bg-slate-900/40 hover:bg-slate-800/60 hover:border-blue-500/30 transition-all duration-300 ${processingId === lead.id ? 'opacity-50' : ''}`}

@@ -8,6 +8,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { initiateContractSigning } from "@/lib/contracts";
+import { logger } from "@/lib/logger";
 
 export async function POST(req: Request) {
   const currentUser = await getCurrentUser();
@@ -68,7 +69,7 @@ export async function POST(req: Request) {
       signingUrl: result.signingUrl,
     });
   } catch (error) {
-    console.error("Failed to send contract:", error);
+    logger.error("Failed to send contract", { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { error: { message: "Failed to send contract" } },
       { status: 500 }

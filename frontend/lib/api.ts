@@ -32,6 +32,7 @@ export interface Lead {
     city: string;
     state: string;
   } | null;
+  createdAt?: string;
   updatedAt: string;
   assignedAgentId?: string | null;
 }

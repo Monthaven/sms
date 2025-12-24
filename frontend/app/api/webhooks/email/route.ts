@@ -5,16 +5,16 @@
  */
 
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
-const prisma = globalForPrisma.prisma || new PrismaClient();
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+import { prisma } from "@/lib/db";
+import { logger, generateRequestId } from "@/lib/logger";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
+  const requestId = generateRequestId();
+  const log = logger.child({ endpoint: "/api/webhooks/email", requestId });
+
   try {
     const payload = await request.json();
 
@@ -28,9 +28,10 @@ export async function POST(request: Request) {
       },
     });
 
+    log.info("Email webhook received", { provider: "EMAIL_INBOUND" });
     return NextResponse.json({ ok: true });
   } catch (err) {
-    console.error("Email webhook error", err);
+    log.error("Email webhook error", { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 }

@@ -23,7 +23,7 @@ interface KPICardProps {
 
 export function KPICard({ title, value, trend, trendUp, data, icon, delay = 0 }: KPICardProps) {
   return (
-    <Card className="relative overflow-hidden group" padded style={{ animationDelay: `${delay}ms` } as any}>
+    <Card className="relative overflow-hidden group" padded style={{ animationDelay: `${delay}ms` }}>
       {/* Header */}
       <div className="flex justify-between items-start mb-4 relative z-10">
         <div>
@@ -52,7 +52,7 @@ export function KPICard({ title, value, trend, trendUp, data, icon, delay = 0 }:
         {data && (
           <div className="h-12 w-28 absolute -bottom-1 -right-1 opacity-40 group-hover:opacity-100 transition-opacity duration-500">
             <ResponsiveContainer width="100%" height={48} minWidth={112} minHeight={48}>
-              <AreaChart data={data as any}>
+              <AreaChart data={data}>
                 <defs>
                   <linearGradient id={`grad-${title}`} x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor={trendUp ? '#10B981' : '#3B82F6'} stopOpacity={0.5}/>

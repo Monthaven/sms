@@ -10,6 +10,7 @@
 
 import twilio from "twilio";
 import { prisma } from "@/lib/db";
+import { logger } from "@/lib/logger";
 
 // ============================================================================
 // Types
@@ -180,7 +181,7 @@ export async function initiateCall({
       contactName,
     };
   } catch (error) {
-    console.error("initiateCall error:", error);
+    logger.error("initiateCall error", { error: error instanceof Error ? error.message : String(error) });
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to initiate call",
@@ -274,7 +275,7 @@ export async function logCallOutcome({
 
     return { success: true, callId: finalCallId };
   } catch (error) {
-    console.error("logCallOutcome error:", error);
+    logger.error("logCallOutcome error", { error: error instanceof Error ? error.message : String(error) });
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to log call outcome",
@@ -312,7 +313,7 @@ export async function updateCallStatus(
 
     return true;
   } catch (error) {
-    console.error("updateCallStatus error:", error);
+    logger.error("updateCallStatus error", { error: error instanceof Error ? error.message : String(error) });
     return false;
   }
 }

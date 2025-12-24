@@ -12,10 +12,20 @@ import { Phone, MessageSquare, User } from 'lucide-react';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
+interface Contact {
+  id: string;
+  firstName?: string;
+  lastName?: string;
+  phoneE164: string;
+  phoneType?: string;
+  score?: number;
+  leadId?: string;
+}
+
 type Props = { propertyId: string; currentContactId?: string };
 
 export default function AlternativeContacts({ propertyId, currentContactId }: Props) {
-  const { data, error } = useSWR(propertyId ? `/api/properties/${propertyId}/contacts` : null, fetcher, { refreshInterval: 60000 });
+  const { data, error } = useSWR<Contact[]>(propertyId ? `/api/properties/${propertyId}/contacts` : null, fetcher, { refreshInterval: 60000 });
   const router = useRouter();
 
   if (error) return <div className="text-sm text-red-400">Failed to load alternatives</div>;
@@ -30,7 +40,7 @@ export default function AlternativeContacts({ propertyId, currentContactId }: Pr
         <span className="text-[10px] text-slate-500 ml-auto">{data.length} found</span>
       </div>
       <ul className="space-y-2">
-        {data.map((c: any, idx: number) => (
+        {data.map((c: Contact, idx: number) => (
           <li 
             key={c.id} 
             className={`rounded-lg border p-2 ${

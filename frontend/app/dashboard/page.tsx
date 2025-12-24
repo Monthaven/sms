@@ -12,6 +12,8 @@ import { KPICard } from '@/components/dashboard/KPICard';
 import { SystemGauge } from '@/components/dashboard/SystemGauge';
 import { Phone, DollarSign, Activity, Users } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import type { Lead } from '@/lib/api';
+import type { AgentPresence } from '@/lib/hooks/useAgents';
 
 export default function DashboardPage() {
   const { stats, agents, isLoading } = useDashboardStats();
@@ -88,7 +90,7 @@ export default function DashboardPage() {
             {stats.recentActivity.length === 0 ? (
                <div className="text-slate-500 text-xs text-center mt-10">No recent activity</div>
             ) : (
-               stats.recentActivity.map((lead: any, i: number) => (
+               stats.recentActivity.map((lead: Lead, i: number) => (
                 <div key={lead.id || i} className="group flex items-center gap-4 p-3 rounded-xl hover:bg-slate-800/50 border border-transparent hover:border-slate-700/50 transition-all cursor-pointer">
                   <div className={`w-2 h-2 rounded-full ${lead.status === 'RESP_HOT' ? 'bg-rose-500 shadow-[0_0_8px_#f43f5e]' : 'bg-slate-600'}`} />
                   <div className="flex-1 min-w-0">
@@ -120,7 +122,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="flex-1 overflow-y-auto pr-2 space-y-2 custom-scrollbar">
-             {agents.map((agent: any) => (
+             {agents.map((agent: AgentPresence) => (
                <div key={agent.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-800/20 border border-slate-700/30">
                   <div className="flex items-center gap-3">
                     <div className="relative">

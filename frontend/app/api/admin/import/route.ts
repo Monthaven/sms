@@ -8,6 +8,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { normalizePhone } from "@/lib/phone-utils";
+import { logger } from "@/lib/logger";
 
 type ColumnMapping = {
   csvColumn: string;
@@ -173,7 +174,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json(results);
   } catch (error) {
-    console.error("Import error:", error);
+    logger.error("Import error", { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { error: { message: "Failed to process import" } },
       { status: 500 }

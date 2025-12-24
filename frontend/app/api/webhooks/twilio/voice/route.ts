@@ -5,12 +5,11 @@
  */
 
 import { NextResponse } from "next/server";
-import { PrismaClient, LeadStatus } from "@prisma/client";
+import { LeadStatus } from "@prisma/client";
+import { prisma } from "@/lib/db";
 import { normalizePhone } from "@/lib/utils";
-
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
-const prisma = globalForPrisma.prisma || new PrismaClient();
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+import { logger } from "@/lib/logger";
+import { validateTwilioWebhook, formDataToParams } from "@/lib/twilio-webhook";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -53,10 +52,21 @@ async function ensureContactAndLead(phone: string) {
 export async function POST(request: Request) {
   try {
     const form = await request.formData();
-    const fromRaw = (form.get("From") as string) ?? "";
-    const toRaw = (form.get("To") as string) ?? "";
-    const callSid = (form.get("CallSid") as string) ?? undefined;
-    const callStatus = (form.get("CallStatus") as string) ?? "";
+    const params = formDataToParams(form);
+    
+    // Validate Twilio signature
+    const signatureValidation = validateTwilioWebhook(request, params);
+    if (!signatureValidation.valid) {
+      return NextResponse.json(
+        { error: signatureValidation.error || "Invalid signature" },
+        { status: 401 }
+      );
+    }
+    
+    const fromRaw = params["From"] ?? "";
+    const toRaw = params["To"] ?? "";
+    const callSid = params["CallSid"] ?? undefined;
+    const callStatus = params["CallStatus"] ?? "";
 
     const from = normalizePhone(fromRaw);
     const to = normalizePhone(toRaw);
@@ -110,7 +120,7 @@ export async function POST(request: Request) {
       headers: { "Content-Type": "text/xml" },
     });
   } catch (err) {
-    console.error("Twilio voice webhook error", err);
+    logger.error("Twilio voice webhook error", { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 }

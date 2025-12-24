@@ -6,25 +6,45 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { sendSMS } from "@/lib/sms";
+import { getCurrentUser } from "@/lib/auth";
+import { checkRateLimit, getClientIP, RATE_LIMITS, rateLimitHeaders } from "@/lib/rate-limit";
+import { smsSendRequestSchema, validateRequest } from "@/lib/validation-schemas";
+import { logger } from "@/lib/logger";
 
 export async function POST(request: NextRequest) {
+  const clientIP = getClientIP(request);
+  const log = logger.child({ endpoint: "/api/sms/send", clientIP });
+
+  // Auth check
+  const currentUser = await getCurrentUser();
+  if (!currentUser) {
+    return NextResponse.json({ error: { message: "Unauthorized" } }, { status: 401 });
+  }
+
+  // Rate limiting
+  const rateLimit = checkRateLimit(`sms_send:${clientIP}`, RATE_LIMITS.SMS_SEND);
+  if (!rateLimit.success) {
+    log.warn("Rate limit exceeded", { remaining: rateLimit.remaining });
+    return NextResponse.json(
+      { error: "Too many requests. Please try again later." },
+      { status: 429, headers: rateLimitHeaders(rateLimit) }
+    );
+  }
+
   try {
     const body = await request.json();
-    const { leadId, to, message, provider } = body;
-
-    if (!to || !message) {
+    
+    // Validate input
+    const validation = validateRequest(smsSendRequestSchema, body);
+    if (!validation.success) {
+      log.warn("Validation failed", { error: validation.error });
       return NextResponse.json(
-        { error: "Missing required fields: to, message" },
-        { status: 400 }
+        { error: validation.error },
+        { status: 400, headers: rateLimitHeaders(rateLimit) }
       );
     }
 
-    if (!provider || !["twilio", "eztexting"].includes(provider)) {
-      return NextResponse.json(
-        { error: "Invalid provider. Use 'twilio' or 'eztexting'" },
-        { status: 400 }
-      );
-    }
+    const { leadId, to, message, provider } = validation.data;
 
     const result = await sendSMS({
       leadId,
@@ -34,19 +54,24 @@ export async function POST(request: NextRequest) {
     });
 
     if (!result.success) {
+      log.error("SMS send failed", { error: result.error });
       return NextResponse.json(
         { error: result.error },
-        { status: 500 }
+        { status: 500, headers: rateLimitHeaders(rateLimit) }
       );
     }
 
-    return NextResponse.json({
-      success: true,
-      provider: result.provider,
-      externalId: result.externalId,
-    });
-  } catch (error) {
-    console.error("SMS send error:", error);
+    log.info("SMS sent successfully", { provider: result.provider, externalId: result.externalId });
+    return NextResponse.json(
+      {
+        success: true,
+        provider: result.provider,
+        externalId: result.externalId,
+      },
+      { headers: rateLimitHeaders(rateLimit) }
+    );
+  } catch (error: any) {
+    log.error("SMS send error", {}, error);
     return NextResponse.json(
       { error: "Failed to send SMS" },
       { status: 500 }

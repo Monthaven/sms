@@ -8,12 +8,10 @@
  */
 
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/db";
 import { updateCallStatus, type CallStatus } from "@/lib/calls";
-
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
-const prisma = globalForPrisma.prisma || new PrismaClient();
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+import { logger } from "@/lib/logger";
+import { validateTwilioWebhook, formDataToParams } from "@/lib/twilio-webhook";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -36,9 +34,16 @@ function mapTwilioStatus(twilioStatus: string): CallStatus | null {
 export async function POST(request: Request) {
   try {
     const form = await request.formData();
-    const payload = Object.fromEntries(
-      Array.from(form.entries()).map(([k, v]) => [k, typeof v === "string" ? v : `${v}`])
-    );
+    const payload = formDataToParams(form);
+
+    // Validate Twilio signature
+    const signatureValidation = validateTwilioWebhook(request, payload);
+    if (!signatureValidation.valid) {
+      return NextResponse.json(
+        { error: signatureValidation.error || "Invalid signature" },
+        { status: 401 }
+      );
+    }
 
     // Log the webhook
     await prisma.webhookLog.create({
@@ -68,7 +73,7 @@ export async function POST(request: Request) {
       { headers: { "Content-Type": "text/xml" } }
     );
   } catch (err) {
-    console.error("Twilio voice status webhook error", err);
+    logger.error("Twilio voice status webhook error", { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 }

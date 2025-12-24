@@ -114,7 +114,7 @@ export default function SettingsPage() {
     }));
   };
 
-  const updateQuietHours = (key: keyof typeof settings.quietHours, value: any) => {
+  const updateQuietHours = (key: keyof typeof settings.quietHours, value: boolean | string) => {
     setSettings((prev) => ({
       ...prev,
       quietHours: { ...prev.quietHours, [key]: value },

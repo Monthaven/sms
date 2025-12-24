@@ -27,6 +27,7 @@ import {
   Upload,
   Clock,
   UserCircle,
+  LucideIcon,
 } from "lucide-react";
 import clsx from "clsx";
 import React, { useState } from "react";
@@ -35,11 +36,20 @@ import ProfileRail from "@/components/ProfileRail";
 
 type Role = "ADMIN" | "AGENT" | "CALLER" | "MANAGER" | "INVESTOR";
 
-const navItems: Array<{
+interface NavItem {
+  name: string;
+  href: string;
+  icon: LucideIcon;
+  roles?: Role[];
+}
+
+interface NavGroup {
   group: string;
   roles?: Role[];
-  items: Array<{ name: string; href: string; icon: any; roles?: Role[] }>;
-}> = [
+  items: NavItem[];
+}
+
+const navItems: NavGroup[] = [
   {
     group: "Mission Control",
     items: [

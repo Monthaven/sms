@@ -6,10 +6,15 @@
 
 import { DialPad } from "@/components/sms/DialPad";
 
-export default function DialPage({ params }: any) {
+interface DialPageProps {
+  params: Promise<{ leadId: string }>;
+}
+
+export default async function DialPage({ params }: DialPageProps) {
+  const { leadId } = await params;
   return (
     <div className="p-6">
-      <DialPad leadId={params.leadId} />
+      <DialPad leadId={leadId} />
     </div>
   );
 }

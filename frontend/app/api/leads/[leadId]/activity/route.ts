@@ -10,6 +10,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { logger } from "@/lib/logger";
 
 export type ActivityType = "message" | "call" | "note" | "status_change" | "assignment";
 
@@ -172,7 +173,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error("Activity timeline error:", error);
+    logger.error("Activity timeline error", { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { success: false, error: "Failed to fetch activity timeline" },
       { status: 500 }

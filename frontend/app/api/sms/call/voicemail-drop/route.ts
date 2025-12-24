@@ -8,6 +8,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import twilio from "twilio";
+import { logger } from "@/lib/logger";
 
 /**
  * POST /api/sms/call/voicemail-drop
@@ -97,7 +98,7 @@ export async function POST(req: Request) {
       data: { message: "Voicemail dropped successfully" },
     });
   } catch (err) {
-    console.error("Voicemail drop failed:", err);
+    logger.error("Voicemail drop failed", { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json(
       { success: false, error: { code: "INTERNAL_ERROR", message: "Failed to drop voicemail" } },
       { status: 500 }

@@ -6,7 +6,7 @@
 
 import React from "react";
 
-export function Avatar({ name }: { name: string }) {
+export function Avatar({ name, size = "md" }: { name: string; size?: "sm" | "md" | "lg" }) {
   const initials = name
     .split(" ")
     .map((n) => n[0])
@@ -14,8 +14,14 @@ export function Avatar({ name }: { name: string }) {
     .toUpperCase()
     .slice(0, 2);
 
+  const sizeClasses = {
+    sm: "h-8 w-8 text-xs",
+    md: "h-10 w-10 text-xs",
+    lg: "h-14 w-14 text-sm",
+  };
+
   return (
-    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-indigo-500/20 to-purple-500/20 text-xs font-bold text-indigo-300 border border-indigo-500/30">
+    <div className={`flex items-center justify-center rounded-xl bg-gradient-to-tr from-indigo-500/20 to-purple-500/20 font-bold text-indigo-300 border border-indigo-500/30 ${sizeClasses[size]}`}>
       {initials}
     </div>
   );

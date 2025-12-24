@@ -4,14 +4,31 @@
  * No license granted. Access under Shareholders' Agreement §8.3.
  */
 
-import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/db";
+import { getCurrentUser } from "@/lib/auth";
+import { logger, generateRequestId } from "@/lib/logger";
+import { checkRateLimit, getClientIP, RATE_LIMITS, rateLimitHeaders } from "@/lib/rate-limit";
 
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
-const prisma = globalForPrisma.prisma || new PrismaClient();
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+export async function GET(req: NextRequest) {
+  const requestId = generateRequestId();
+  const log = logger.child({ endpoint: "/api/notifications", requestId });
 
-export async function GET() {
+  // Auth check
+  const currentUser = await getCurrentUser();
+  if (!currentUser) {
+    return NextResponse.json({ error: { message: "Unauthorized" } }, { status: 401 });
+  }
+
+  // Rate limiting
+  const clientIP = getClientIP(req);
+  const rateLimit = checkRateLimit(clientIP, RATE_LIMITS.API_GENERAL);
+  
+  if (!rateLimit.success) {
+    log.warn("Rate limit exceeded", { clientIP });
+    return NextResponse.json([], { status: 429 });
+  }
+
   try {
     const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
     const hotLeads = await prisma.lead.findMany({
@@ -58,7 +75,7 @@ export async function GET() {
       ...hotLeads.map((lead) => ({
         id: `hot-${lead.id}`,
         type: "hot_lead" as const,
-        title: `ÃƒÂ°Ã…Â¸Ã¢â‚¬ÂÃ‚Â¥ Hot leads: ${lead.contact?.firstName || ""} ${lead.contact?.lastName || ""}`.trim(),
+        title: `🔥 Hot lead: ${lead.contact?.firstName || ""} ${lead.contact?.lastName || ""}`.trim(),
         body: `${lead.property?.addressLine1 || "Property"} - Score: ${lead.contact?.score || "N/A"}`,
         href: `/dashboard/chat/${lead.id}`,
         time: lead.updatedAt,
@@ -78,9 +95,13 @@ export async function GET() {
       .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
       .slice(0, 5);
 
-    return NextResponse.json(notifications);
-  } catch (error) {
-    console.error("Error fetching notifications:", error);
+    log.debug("Notifications fetched", { count: notifications.length });
+
+    return NextResponse.json(notifications, {
+      headers: rateLimitHeaders(rateLimit)
+    });
+  } catch (error: any) {
+    log.error("Error fetching notifications", {}, error);
     return NextResponse.json([]);
   }
 }

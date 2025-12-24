@@ -13,7 +13,11 @@ import Card from '@/components/ui/Card';
 import { useFormStatus } from 'react-dom';
 import { loginAction } from './actions';
 
-const initialState = { error: "" };
+interface LoginState {
+  error?: string;
+}
+
+const initialState: LoginState = { error: "" };
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -25,7 +29,7 @@ function SubmitButton() {
 }
 
 export default function LoginPage() {
-  const [state, formAction] = React.useActionState(loginAction, initialState as any);
+  const [state, formAction] = React.useActionState(loginAction, initialState);
 
   return (
     <div className="h-screen w-full flex items-center justify-center bg-[#050b14] relative overflow-hidden">

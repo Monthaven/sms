@@ -19,7 +19,11 @@ const STATUS_MAP: Record<string, string> = {
   WRONG_NUMBER: "RESP_COLD",
 };
 
-export async function POST(req: Request, context: any) {
+interface RouteContext {
+  params: Promise<{ id: string }>;
+}
+
+export async function POST(req: Request, context: RouteContext) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ success: false, error: { code: "UNAUTHORIZED", message: "Unauthorized" } }, { status: 401 });
@@ -39,7 +43,7 @@ export async function POST(req: Request, context: any) {
   }
 
   const { outcome, notes, callbackAt, callId } = parsed.data as { outcome: string; notes?: string; callbackAt?: string; callId?: string };
-  const leadId = (context as { params: { id: string } }).params.id;
+  const { id: leadId } = await context.params;
 
   const lead = await prisma.lead.findUnique({ where: { id: leadId } });
   if (!lead) {

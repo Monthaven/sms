@@ -5,7 +5,22 @@
  */
 
 import React from 'react';
+import type { LucideIcon } from 'lucide-react';
 
-export default function PageFooterRail(_props: any) {
+interface FooterAction {
+  label: string;
+  href: string;
+  icon?: LucideIcon;
+}
+
+interface PageFooterRailProps {
+  kicker?: string;
+  title?: string;
+  description?: string;
+  actions?: FooterAction[];
+  children?: React.ReactNode;
+}
+
+export default function PageFooterRail(_props: PageFooterRailProps) {
   return null;
 }

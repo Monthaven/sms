@@ -14,7 +14,7 @@ export type AgentPresence = {
   email: string;
   role: string;
   leadsAssigned: number;
-  status: "online" | "away" | "offline";
+  status: "online" | "away" | "offline" | "busy";
 };
 
 async function fetchAgents(): Promise<AgentPresence[]> {

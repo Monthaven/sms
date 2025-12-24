@@ -19,6 +19,10 @@ interface DialPadProps {
   contactName?: string | null;
 }
 
+function sanitizedManualDisplay(value: string) {
+  return value.replace(/[^\d+]/g, "");
+}
+
 export function DialPad({ leadId, contactName }: DialPadProps) {
   const [device, setDevice] = useState<Device | null>(null);
   const [activeCall, setActiveCall] = useState<Call | null>(null);
@@ -28,6 +32,7 @@ export function DialPad({ leadId, contactName }: DialPadProps) {
   const [duration, setDuration] = useState(0);
   const [showDisposition, setShowDisposition] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [manualNumber, setManualNumber] = useState("");
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<number | null>(null);
@@ -100,18 +105,24 @@ export function DialPad({ leadId, contactName }: DialPadProps) {
       setError("Device not ready");
       return;
     }
+    const sanitizedManual = manualNumber.replace(/[^\d+]/g, "");
+    const useManual = sanitizedManual.length > 0;
     setError(null);
     setStatus("connecting");
     try {
       const res = await fetch("/api/sms/call/initiate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ leadId }),
+        body: JSON.stringify(
+          useManual
+            ? { to: sanitizedManual, source: "manual" }
+            : { leadId }
+        ),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error?.message || "Call init failed");
       const callId = data.data?.callId;
-      const to = data.data?.to;
+      const to = data.data?.to || sanitizedManual;
       if (!callId || !to) throw new Error("Missing call parameters");
       setCallId(callId);
 
@@ -166,7 +177,7 @@ export function DialPad({ leadId, contactName }: DialPadProps) {
       setError(err instanceof Error ? err.message : "Call failed");
       setStatus("failed");
     }
-  }, [device, leadId, endCall]);
+  }, [device, leadId, endCall, manualNumber]);
 
   const formatDuration = (s: number) => {
     const mins = Math.floor(s / 60);
@@ -194,7 +205,9 @@ export function DialPad({ leadId, contactName }: DialPadProps) {
           <p className="text-xs text-slate-500 uppercase tracking-widest mb-1">
             {status === "idle" ? "Ready to call" : status.charAt(0).toUpperCase() + status.slice(1)}
           </p>
-          <h2 className="text-xl font-semibold text-white">{contactName || "Unknown Contact"}</h2>
+          <h2 className="text-xl font-semibold text-white">
+            {manualNumber ? sanitizedManualDisplay(manualNumber) : (contactName || "Unknown Contact")}
+          </h2>
         </div>
       </div>
 
@@ -227,6 +240,20 @@ export function DialPad({ leadId, contactName }: DialPadProps) {
           {error}
         </div>
       )}
+
+      {/* Manual Number Entry */}
+      <div className="space-y-2">
+        <label className="text-xs uppercase tracking-wide text-slate-500">Manual number (optional)</label>
+        <input
+          value={manualNumber}
+          onChange={(e) => setManualNumber(e.target.value)}
+          placeholder="+15551234567"
+          className="w-full rounded-lg bg-slate-900/60 border border-slate-700 px-3 py-2 text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          inputMode="tel"
+          autoComplete="tel"
+        />
+        <p className="text-[11px] text-slate-500">Enter to override queue target and dial directly.</p>
+      </div>
 
       {/* Call Controls */}
       <div className="flex justify-center gap-4">

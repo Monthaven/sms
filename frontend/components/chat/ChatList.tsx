@@ -7,6 +7,7 @@
 'use client';
 
 import { useLeads } from '@/lib/hooks/useLeads';
+import { Lead } from '@/lib/api';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
@@ -26,23 +27,23 @@ export function ChatList({ filter = 'all' }: ChatListProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
   const filteredLeads = useMemo(() => {
-    let result = leads || [];
+    let result: Lead[] = leads || [];
     
     // Apply type filter
     if (filter === 'unread') {
-      result = result.filter((lead: any) => 
+      result = result.filter((lead: Lead) => 
         lead.status === 'RESP_HOT' || 
         lead.status === 'RESP_WARM' || 
         lead.status === 'CONVERSATION_ACTIVE'
       );
     } else if (filter === 'hot') {
-      result = result.filter((lead: any) => lead.status === 'RESP_HOT');
+      result = result.filter((lead: Lead) => lead.status === 'RESP_HOT');
     }
     
     // Apply search filter
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      result = result.filter((lead: any) => {
+      result = result.filter((lead: Lead) => {
         const name = `${lead.contact?.firstName || ''} ${lead.contact?.lastName || ''}`.toLowerCase();
         const phone = lead.contact?.phoneE164?.toLowerCase() || '';
         const address = lead.property?.addressLine1?.toLowerCase() || '';
@@ -92,7 +93,7 @@ export function ChatList({ filter = 'all' }: ChatListProps) {
             </p>
           </div>
         ) : (
-          filteredLeads.map((lead: any) => {
+          filteredLeads.map((lead: Lead) => {
           const isActive = pathname?.includes(lead.id);
           // Get actual last message from interactions
           const lastInteraction = lead.contact?.interactions?.[lead.contact.interactions.length - 1];

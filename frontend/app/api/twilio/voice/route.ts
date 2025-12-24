@@ -7,13 +7,14 @@
 import { NextResponse } from "next/server";
 import twilio from "twilio";
 import { prisma } from "@/lib/db";
+import { validateTwilioWebhook, formDataToParams } from "@/lib/twilio-webhook";
 
 const VoiceResponse = twilio.twiml.VoiceResponse;
 
-async function buildResponse(params: URLSearchParams | FormData) {
-  const to = (params instanceof URLSearchParams ? params.get("to") : (params.get("To") as string | null)) || "";
-  const callId = params instanceof URLSearchParams ? params.get("callId") : (params.get("CallId") as string | null);
-  const callSid = params instanceof URLSearchParams ? undefined : (params.get("CallSid") as string | null);
+async function buildResponse(params: URLSearchParams | Record<string, string>) {
+  const to = (params instanceof URLSearchParams ? params.get("to") : params["To"] || params["to"]) || "";
+  const callId = params instanceof URLSearchParams ? params.get("callId") : (params["CallId"] || params["callId"]);
+  const callSid = params instanceof URLSearchParams ? undefined : params["CallSid"];
 
   if (callId && callSid) {
     await prisma.call.updateMany({
@@ -47,6 +48,17 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const form = await req.formData();
-  const twiml = await buildResponse(form);
+  const params = formDataToParams(form);
+  
+  // Validate Twilio signature
+  const signatureValidation = validateTwilioWebhook(req, params);
+  if (!signatureValidation.valid) {
+    return NextResponse.json(
+      { error: signatureValidation.error || "Invalid signature" },
+      { status: 401 }
+    );
+  }
+  
+  const twiml = await buildResponse(params);
   return new NextResponse(twiml, { headers: { "Content-Type": "text/xml" } });
 }

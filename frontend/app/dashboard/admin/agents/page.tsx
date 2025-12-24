@@ -7,7 +7,7 @@
 'use client';
 
 import React from 'react';
-import { useAgents } from '@/lib/hooks/useAgents';
+import { useAgents, type AgentPresence } from '@/lib/hooks/useAgents';
 import { GlassTable } from '@/components/ui/GlassTable';
 import { UserPlus, Shield, Mail } from 'lucide-react';
 
@@ -27,9 +27,9 @@ export default function AgentsPage() {
         </button>
       </div>
 
-      <GlassTable 
+      <GlassTable<AgentPresence>
         columns={[
-          { header: 'Agent', accessor: 'name', cell: (agent: any) => (
+          { header: 'Agent', accessor: 'name', cell: (agent: AgentPresence) => (
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-slate-700 flex items-center justify-center font-bold text-xs text-slate-300">
                 {agent.name.substring(0, 2).toUpperCase()}
@@ -40,13 +40,13 @@ export default function AgentsPage() {
               </div>
             </div>
           )},
-          { header: 'Role', accessor: 'role', cell: (agent: any) => (
+          { header: 'Role', accessor: 'role', cell: (agent: AgentPresence) => (
             <div className="flex items-center gap-1.5 text-slate-300">
               <Shield size={14} className="text-blue-400" />
               <span className="capitalize">{agent.role}</span>
             </div>
           )},
-          { header: 'Status', accessor: 'status', cell: (agent: any) => (
+          { header: 'Status', accessor: 'status', cell: (agent: AgentPresence) => (
             <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold border ${
               agent.status === 'online' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
               agent.status === 'busy' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
@@ -55,7 +55,7 @@ export default function AgentsPage() {
               {agent.status}
             </span>
           )},
-          { header: 'Performance', accessor: 'leadsAssigned', cell: (agent: any) => (
+          { header: 'Performance', accessor: 'leadsAssigned', cell: (agent: AgentPresence) => (
              <div className="flex flex-col gap-1 w-24">
                 <div className="flex justify-between text-[10px] text-slate-400">
                    <span>Capacity</span>
@@ -71,7 +71,7 @@ export default function AgentsPage() {
           )}
         ]}
         data={agents || []}
-        actions={(row: any) => (
+        actions={(row: AgentPresence) => (
            <div className="flex gap-2 justify-end">
               <button 
                 className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-colors"

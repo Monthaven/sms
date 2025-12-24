@@ -9,8 +9,12 @@ import { getCurrentUser } from "@/lib/auth";
 import { claimLead } from "@/lib/lead-queue";
 import { UserRole } from "@prisma/client";
 
-export async function POST(_: Request, context: any) {
-  const { params } = context as { params: { id: string } };
+interface RouteContext {
+  params: Promise<{ id: string }>;
+}
+
+export async function POST(_: Request, context: RouteContext) {
+  const { id } = await context.params;
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ success: false, error: { code: "UNAUTHORIZED", message: "Unauthorized" } }, { status: 401 });
@@ -21,7 +25,7 @@ export async function POST(_: Request, context: any) {
   }
 
   try {
-    const lead = await claimLead(params.id, user.id);
+    const lead = await claimLead(id, user.id);
     return NextResponse.json({ success: true, data: { lead } });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to claim lead";
