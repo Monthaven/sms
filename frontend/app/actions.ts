@@ -50,7 +50,7 @@ export async function loginAction(
   }
 
   try {
-    // Find user by email
+    // Find user by email with password hash for verification
     const user = await prisma.user.findUnique({
       where: { email },
       select: {
@@ -58,8 +58,9 @@ export async function loginAction(
         email: true,
         name: true,
         role: true,
-        // Note: Add passwordHash field to User model for full security
-        // passwordHash: true,
+        passwordHash: true,
+        lockedUntil: true,
+        loginAttempts: true,
       }
     });
 
@@ -69,18 +70,51 @@ export async function loginAction(
       return { error: 'Invalid credentials.' };
     }
 
-    // Password verification (if passwordHash field exists on user)
-    // For now, we check the passkey OR skip if no password system
-    // TODO: Add passwordHash column to User model and enforce password check
-    /*
-    if (user.passwordHash && password) {
+    // Check if account is locked
+    if (user.lockedUntil && user.lockedUntil > new Date()) {
+      log.warn("Login failed - account locked", { lockedUntil: user.lockedUntil });
+      return { error: 'Account is temporarily locked. Please try again later.' };
+    }
+
+    // Password verification (if user has a password set)
+    if (user.passwordHash) {
+      if (!password) {
+        log.warn("Login failed - password required but not provided");
+        return { error: 'Password is required.' };
+      }
+      
       const isValidPassword = await verifyPassword(password, user.passwordHash);
       if (!isValidPassword) {
-        log.warn("Login failed - invalid password");
+        // Increment login attempts
+        const newAttempts = (user.loginAttempts || 0) + 1;
+        const lockAccount = newAttempts >= 5;
+        
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            loginAttempts: newAttempts,
+            lockedUntil: lockAccount ? new Date(Date.now() + 15 * 60 * 1000) : null, // 15 min lockout
+          }
+        });
+        
+        log.warn("Login failed - invalid password", { attempts: newAttempts, locked: lockAccount });
         return { error: 'Invalid credentials.' };
       }
+      
+      // Reset login attempts on successful login
+      if (user.loginAttempts > 0) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { loginAttempts: 0, lockedUntil: null }
+        });
+      }
     }
-    */
+
+    // Update last login timestamp
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() }
+    });
 
     // Generate secure session token
     const sessionToken = generateSecureToken(32);

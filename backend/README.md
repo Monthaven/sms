@@ -1,101 +1,84 @@
-﻿/*
+/*
  * PROPRIETARY AND CONFIDENTIAL
- * 
- * Copyright © 2025 Always Improving LLC. All Rights Reserved.
- * 
+ *
+ * Copyright (c) 2025 Always Improving LLC. All Rights Reserved.
+ *
  * This software is the property of Always Improving LLC and is protected
  * under applicable intellectual property laws. Unauthorized copying,
  * modification, distribution, or use is strictly prohibited.
- * 
+ *
  * Access to this code is provided under the terms of the Shareholders'
- * Agreement of Monthaven Capital Inc., §8.3. No license is granted.
+ * Agreement of Monthaven Capital Inc., section 8.3. No license is granted.
  */
+
 # Backend Operator's Manual — Monthaven Acquisition Engine (MAE)
 
-This doc is for the Engine runners. Heavy scripts run locally, feed Neon, and the Storefront on Vercel reads/presents.
+This is the Engine side of MAE: batch ingest, scoring, staging imports, and EzTexting blasts. It owns the canonical Prisma schema (`backend/prisma/schema.prisma`) that is synced to the frontend via `npm run db:sync`.
 
-## 1. Responsibilities
-- Ingest massive DealMachine CSVs without timeouts.
-- Launch EzTexting SMS campaigns.
-- Capture telemetry (`IngestionJob`, `WebhookLog`) for the Storefront reports.
-- Maintain the canonical Prisma schema (`backend/prisma/schema.prisma`) and push migrations to Neon.
+## What exists
+- **Ingestion:** Streams DealMachine CSVs and stages legacy JSON into Properties/Contacts/Leads (`src/scripts/ingest.ts`, `import-staged.ts`).
+- **Scoring & hygiene:** Contact scoring, owner-match normalization, intent+DNC application, and flag backfills (`score-contacts.ts`, `normalize-ownerMatch.ts`, `apply-intent-dnc.ts`, `backfill-flags.ts`).
+- **Campaign ops (EzTexting):** Create campaigns and send blasts via EzTexting (`blast.ts`, `create-campaign.ts`); EzTexting client supports Basic auth or API key (`EZTEXTING_USER/PASS` or `EZTEXTING_API_KEY`).
+- **Telemetry:** Ingestion and webhook logging persisted to Neon (`IngestionJob`, `WebhookLog`) for storefront dashboards.
+- **Schema pipeline:** Backend schema is the source of truth; `npm run db:sync` copies it to `frontend/prisma/schema.prisma` and regenerates both Prisma clients.
 
-## 2. Prerequisites
-- Node 18+ (Node 24 verified), npm.
-- Neon **direct** connection string stored in `backend/.env` (use pooled only on the frontend).
-- EzTexting credentials (outbound SMS is EzTexting-only today). Twilio creds are fine to keep in env for health checks, but outbound Twilio paths are not implemented yet.
-- Ability to run Prisma migrations locally (this environment cannot run interactive `migrate dev`).
+## Gaps / TODO (high level)
+- **DealMachine pull (new):** A pull CLI now exists (`script:pull-dealmachine`) with a generic DealMachine client. You may need to align API parameters/fields to your actual account (see inline notes). Ingest still lands via the existing CSV pipeline.
+- **Twilio outbound from backend:** Twilio helper exists for office-line SMS, but blast/queue sending is EzTexting-only. Mirror `EzTextingClient` for Twilio if backend-driven sends are required.
+- **Runtime server:** Package scripts reference `src/server.ts`, but no Express server is present—current surface is CLI scripts only. Add an API surface if you need backend webhooks or health endpoints here (storefront currently hosts webhooks).
 
-## 3. Setup
-```
-powershell
+See `DEALMACHINE_PULL_PLAN.md` for a concrete pull-design draft (implemented as a first cut here).
+
+## Prerequisites
+- Node.js 18+ (Node 24 verified), npm.
+- Neon direct connection string in `backend/.env` (`DATABASE_URL` and `DIRECT_URL` both required by `env.ts`; use pooled only on the frontend).
+- EzTexting credentials: either `EZTEXTING_USER`/`EZTEXTING_PASS` (Basic) or `EZTEXTING_API_KEY` (Bearer). Optional `EZTEXTING_API_BASE` (defaults to `https://a.eztexting.com/v1`).
+- Twilio (optional): `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_MAIN_FROM` for office-line tests.
+- DealMachine pull (optional): `DEALMACHINE_API_KEY` required to run the pull, `DEALMACHINE_API_BASE` (defaults to `https://api.dealmachine.com`), `DEALMACHINE_PAGE_SIZE` (default 100).
+- Optional import protection: `IMPORT_API_KEY` (checked by `middleware/apiKey.ts` if you add HTTP endpoints).
+
+## Setup
+```powershell
 cd backend
 npm install
-cp .env.example .env  # edit DATABASE_URL to direct Neon URL, add EZTEXTING creds if needed
+cp .env.example .env  # fill DATABASE_URL/DIRECT_URL and messaging creds
 ```
 
-From repo root, keep schemas in sync:
-```
-powershell
-npm run db:sync  # copies backend Prisma schema -> frontend + regenerates clients
-```
-
-## 4. Operating the Engine
-### CSV Ingestion
-- Script: `backend/src/scripts/ingest.ts`
-```
-powershell
-cd backend
-npm run script:ingest -- ./path/to/dealmachine.csv CAMPAIGN_ID_OPTIONAL
-```
-- Streams the CSV, upserts contacts/properties, and (if `campaignId` given) creates leads with status NEW or QUEUED_FOR_CALL.
-- Logs telemetry in `IngestionJob` (status, rows processed, leads created, durations).
-
-### SMS Blast (EzTexting)
-- Script: `backend/src/scripts/blast.ts`
-```
-powershell
-cd backend
-npm run script:blast
-```
-- Prompts for campaign name + message, prints preflight summary, requires typing `LAUNCH`.
-- Syncs lead statuses to `SENT` and creates/updates the campaign row. Twilio outbound is not wired yet.
-
-### Telemetry / Webhook Logs
-- `IngestionJob` captures every ingest run.
-- `WebhookLog` records inbound EzTexting (and future Twilio) webhook calls, including duplicates/errors.
-
-### Legacy JSON ingest (parsed-extraction output)
-Use this when importing the normalized `commercial_contacts.json` / `interactions_consolidated.json` / `dnc_full.csv` that live under `parsed-extraction/`.
-
-```
-powershell
-cd backend
-npm run script:import-staged -- ^
-  --contacts ..\parsed-extraction\commercial_contacts.json ^
-  --interactions ..\parsed-extraction\interactions_consolidated.json ^
-  --dnc ..\parsed-extraction\dnc_full.csv ^
-  --campaign "Legacy Multifamily 2024"
+Keep schemas in sync from the repo root:
+```powershell
+npm run db:sync  # copies backend Prisma schema to frontend and regenerates both clients
 ```
 
-## 5. Prisma migrations
+## Operations (CLI scripts)
+- `npm run script:ingest -- <csvPath> [campaignId]`  
+  Stream DealMachine CSV → contacts/properties/leads (NEW/QUEUED_FOR_CALL if campaign provided). Logs to `IngestionJob`.
+- `npm run script:score-contacts`  
+  Recompute decision-maker scores and flags on existing contacts.
+- `npm run script:apply-intent-dnc`  
+  Apply DNC/intent labels from interactions to contacts/leads.
+- `npm run script:normalize-ownerMatch`  
+  Normalize owner match flags across contacts.
+- `npm run script:backfill-flags`  
+  Fill derived flags that may be missing on historical rows.
+- `npm run script:blast`  
+  EzTexting blast: prompts for campaign name/message, requires `LAUNCH` confirmation; updates lead statuses.
+- `npm run script:create-campaign`  
+  Create a campaign shell row.
+- `npm run script:pull-dealmachine -- --campaign <id> [--since <ISO>] [--limit <n>] [--dry-run]`  
+  Pull contacts/properties from DealMachine API, build a temp CSV, and feed the ingest pipeline. `--dry-run` skips DB writes and leaves the staged CSV for inspection.
+- `npm run script:import-staged -- --contacts <file> --interactions <file> --dnc <file> --campaign "<name>"`  
+  Import normalized JSON/CSV from `parsed-extraction` style exports.
+
+Supporting services live in `src/services/` and `src/utils/` (`phone.ts`, `smsLogic.ts`).
+
+## Prisma & migrations
 - Edit only `backend/prisma/schema.prisma`.
-- Run locally: `cd backend && npx prisma migrate dev --name <change>` against Neon (or a local shadow DB).
-- Commit the new `prisma/migrations/**`, then from repo root run `npm run db:sync` to copy schema to `/frontend` and regenerate both clients.
-- If Neon already has data, follow Prisma's baseline guide before the first migration.
+- Run: `cd backend && npx prisma migrate dev --name <change>` against Neon (or local shadow). Commit migrations.
+- After migrations: run root `npm run db:sync` to propagate schema and regenerate Prisma clients in both projects.
+- Inspect DB: `cd backend && npx prisma studio`.
 
-## 6. Troubleshooting
-- **Prisma version mismatch:** ensure both backend/frontend use Prisma `5.22.0` (or the pinned version). Reinstall if CLI bumps to v7.
-- **FK errors (P2003):** ensure the campaign exists, or run ingest without `campaignId` until one is created.
-- **Webhook failures:** confirm the frontend `DATABASE_URL` points to the pooled Neon URL with `?pgbouncer=true`. Check `WebhookLog` rows for details.
-- **Schema drift:** always run `npm run db:sync` after migrations so the Storefront stays aligned.
-
-## 7. Handy commands
-```
-powershell
-cd backend && npx prisma generate          # regenerate client
-cd backend && npx prisma studio            # inspect DB via browser
-npm run db:sync                            # copy schema + generate clients in both projects
-```
-
-For the full hybrid architecture (Engine + Storefront + Neon), see the root README.
+## Troubleshooting
+- **Prisma version drift:** Both apps pin Prisma `5.22.0`. Reinstall if CLI upgrades.
+- **FK errors (P2003) on ingest:** Ensure campaign exists or omit `campaignId` so leads stay unassigned.
+- **Missing creds:** Scripts that send via EzTexting require either `EZTEXTING_USER/PASS` or `EZTEXTING_API_KEY`.
+- **Schema drift:** Always run `npm run db:sync` after migrations to keep the storefront aligned.

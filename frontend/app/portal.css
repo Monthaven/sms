@@ -1,0 +1,192 @@
+/* Portal landing and tile styling */
+
+.portal-landing {
+  min-height: 100vh;
+  background: radial-gradient(circle at 20% 20%, rgba(52, 152, 219, 0.08), transparent 30%),
+    radial-gradient(circle at 80% 10%, rgba(102, 126, 234, 0.08), transparent 30%),
+    linear-gradient(135deg, #050b14, #0c1626);
+  color: #e5e7eb;
+  padding: 48px 16px;
+}
+
+.portal-landing__shell {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.portal-landing__header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+}
+
+.portal-landing__eyebrow {
+  color: #9ca3af;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.portal-landing__title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #f9fafb;
+  margin-top: 4px;
+}
+
+.portal-landing__subtitle {
+  color: #cbd5e1;
+  margin-top: 6px;
+  max-width: 680px;
+}
+
+.portal-landing__session {
+  display: grid;
+  gap: 8px;
+  min-width: 280px;
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95));
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.portal-landing__label {
+  color: #9ca3af;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.portal-landing__value {
+  color: #f9fafb;
+  font-weight: 600;
+}
+
+.portal-landing__badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.portal-landing__footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.portal-landing__button {
+  min-width: 160px;
+}
+
+.portal-tiles__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.portal-tiles__link {
+  text-decoration: none;
+}
+
+.portal-tiles__card {
+  height: 100%;
+  background: linear-gradient(135deg, rgba(24, 28, 35, 0.92), rgba(30, 36, 44, 0.96));
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.28);
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.portal-tiles__card--emerald {
+  background: radial-gradient(circle at 20% 20%, rgba(44, 183, 126, 0.16), transparent 45%),
+    linear-gradient(135deg, rgba(24, 28, 35, 0.92), rgba(30, 36, 44, 0.96));
+  border-color: rgba(44, 183, 126, 0.35);
+}
+
+.portal-tiles__card--amber {
+  background: radial-gradient(circle at 20% 20%, rgba(255, 186, 73, 0.22), transparent 45%),
+    linear-gradient(135deg, rgba(24, 28, 35, 0.92), rgba(30, 36, 44, 0.96));
+  border-color: rgba(255, 186, 73, 0.35);
+}
+
+.portal-tiles__card--blue {
+  background: radial-gradient(circle at 20% 20%, rgba(90, 180, 255, 0.18), transparent 45%),
+    linear-gradient(135deg, rgba(24, 28, 35, 0.92), rgba(30, 36, 44, 0.96));
+  border-color: rgba(90, 180, 255, 0.35);
+}
+
+.portal-tiles__card--violet {
+  background: radial-gradient(circle at 20% 20%, rgba(146, 119, 255, 0.22), transparent 45%),
+    linear-gradient(135deg, rgba(24, 28, 35, 0.92), rgba(30, 36, 44, 0.96));
+  border-color: rgba(146, 119, 255, 0.35);
+}
+
+.portal-tiles__card:hover {
+  transform: translateY(-6px) scale(1.01);
+  box-shadow: 0 26px 70px rgba(0, 0, 0, 0.35);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.portal-tiles__card-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.portal-tiles__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #e5e7eb;
+  font-size: 12px;
+}
+
+.portal-tiles__badge {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f9fafb;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+  padding: 2px 8px;
+  font-size: 12px;
+}
+
+.portal-tiles__badge.glass {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.35);
+}
+
+.portal-tiles__card-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.portal-tiles__card-body p {
+  color: #cbd5e1;
+  line-height: 1.6;
+}
+
+.portal-tiles__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #f9fafb;
+  font-weight: 600;
+}
+
+.portal-tiles__empty {
+  background: linear-gradient(135deg, rgba(24, 28, 35, 0.92), rgba(30, 36, 44, 0.96));
+  border: 1px dashed rgba(255, 255, 255, 0.08);
+  padding: 24px;
+}
+
+.portal-tiles__title {
+  color: #f9fafb;
+  font-weight: 600;
+}
+
+.portal-tiles__content {
+  color: #cbd5e1;
+}

@@ -122,6 +122,8 @@ export default function LeadDetailSlideOver({
                           type="button"
                           className="rounded-full p-2 text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors"
                           onClick={onClose}
+                          aria-label="Close lead details"
+                          title="Close"
                         >
                           <XMarkIcon className="h-5 w-5" />
                         </button>

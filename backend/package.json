@@ -14,6 +14,7 @@
     "script:blast": "ts-node src/scripts/blast.ts",
     "script:create-campaign": "ts-node src/scripts/create-campaign.ts",
     "script:import-staged": "ts-node src/scripts/import-staged.ts",
+    "script:pull-dealmachine": "ts-node src/scripts/pull-dealmachine.ts",
     "prisma:migrate": "prisma migrate dev --name init"
   },
   "dependencies": {

@@ -28,6 +28,8 @@ import {
   Clock,
   UserCircle,
   History,
+  GitBranch,
+  Zap,
   LucideIcon,
 } from "lucide-react";
 import clsx from "clsx";
@@ -60,6 +62,7 @@ const navItems: NavGroup[] = [
       { name: "Call Queue", href: "/dashboard/queue", icon: Phone },
       { name: "Chat", href: "/dashboard/chat", icon: MessageSquare },
       { name: "Campaigns", href: "/dashboard/campaigns", icon: Megaphone },
+      { name: "Sequences", href: "/sequences", icon: GitBranch },
       { name: "Intelligence", href: "/dashboard/intelligence", icon: BrainCircuit },
     ],
   },
@@ -81,7 +84,7 @@ const navItems: NavGroup[] = [
       { name: "Team", href: "/dashboard/admin/agents", icon: Users },
       { name: "User Management", href: "/dashboard/admin/users", icon: Users, roles: ["ADMIN"] },
       { name: "KPI Dashboard", href: "/dashboard/admin/kpis", icon: BarChart3 },
-      { name: "Auto-Pilot", href: "/dashboard/admin/automations", icon: Activity },
+      { name: "Auto-Pilot", href: "/dashboard/admin/automations", icon: Zap },
       { name: "Connections", href: "/dashboard/admin/integrations", icon: LinkIcon },
       { name: "Import Leads", href: "/dashboard/admin/import", icon: Upload, roles: ["ADMIN"] },
       { name: "Contracts", href: "/dashboard/admin/contracts", icon: FileSignature, roles: ["ADMIN"] },

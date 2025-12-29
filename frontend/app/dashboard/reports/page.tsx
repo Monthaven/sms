@@ -8,7 +8,7 @@
 
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { useIngestionJobs, useWebhookLogs } from '@/lib/hooks/useTelemetry';
 import Card from '@/components/ui/Card';
 import PageFooterRail from '@/components/PageFooterRail';
@@ -22,7 +22,9 @@ import {
   CheckCircle2,
   AlertCircle,
   Clock,
-  Download
+  Download,
+  Calendar,
+  X
 } from 'lucide-react';
 
 // ============================================================================
@@ -36,7 +38,7 @@ interface SparklineProps {
 }
 
 function Sparkline({ data, height = 32, color = '#3b82f6' }: SparklineProps) {
-  if (!data.length) return <div style={{ height }} className="bg-slate-800/50 rounded animate-pulse" />;
+  if (!data.length) return <div className="h-8 bg-slate-800/50 rounded animate-pulse" />;
   
   const max = Math.max(...data, 1);
   const width = 100;
@@ -47,7 +49,7 @@ function Sparkline({ data, height = 32, color = '#3b82f6' }: SparklineProps) {
   }).join(' ');
 
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} className="w-full" style={{ height }}>
+    <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-8">
       <defs>
         <linearGradient id={`sparkline-grad-${color}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={color} stopOpacity="0.3" />
@@ -140,42 +142,200 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 // ============================================================================
+// Date Range Picker Component
+// ============================================================================
+
+interface DateRange {
+  from: Date | null;
+  to: Date | null;
+  preset?: string;
+}
+
+const DATE_PRESETS = [
+  { label: 'Today', days: 0 },
+  { label: 'Last 7 days', days: 7 },
+  { label: 'Last 30 days', days: 30 },
+  { label: 'Last 90 days', days: 90 },
+  { label: 'All time', days: -1 },
+];
+
+function DateRangePicker({ 
+  value, 
+  onChange 
+}: { 
+  value: DateRange; 
+  onChange: (range: DateRange) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const handlePresetClick = (days: number) => {
+    if (days === -1) {
+      onChange({ from: null, to: null, preset: 'All time' });
+    } else {
+      const to = new Date();
+      const from = new Date();
+      from.setDate(from.getDate() - days);
+      const preset = DATE_PRESETS.find(p => p.days === days)?.label;
+      onChange({ from, to, preset });
+    }
+    setIsOpen(false);
+  };
+
+  const displayValue = value.preset || 
+    (value.from && value.to 
+      ? `${value.from.toLocaleDateString()} - ${value.to.toLocaleDateString()}`
+      : 'All time');
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-sm font-medium transition-all"
+      >
+        <Calendar size={16} />
+        {displayValue}
+      </button>
+
+      {isOpen && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
+          <div className="absolute right-0 top-full mt-2 w-48 bg-slate-900 border border-slate-700 rounded-xl shadow-xl z-20 py-1 overflow-hidden">
+            {DATE_PRESETS.map((preset) => (
+              <button
+                key={preset.label}
+                onClick={() => handlePresetClick(preset.days)}
+                className={`w-full px-4 py-2 text-left text-sm hover:bg-slate-800 transition-colors ${
+                  value.preset === preset.label ? 'text-blue-400 bg-blue-500/10' : 'text-slate-300'
+                }`}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ============================================================================
+// CSV Export Utility
+// ============================================================================
+
+function exportToCSV(data: Record<string, unknown>[], filename: string) {
+  if (data.length === 0) return;
+
+  const headers = Object.keys(data[0]);
+  const csvContent = [
+    headers.join(','),
+    ...data.map(row => 
+      headers.map(h => {
+        const val = row[h];
+        const str = val === null || val === undefined ? '' : String(val);
+        // Escape quotes and wrap in quotes if contains comma
+        return str.includes(',') || str.includes('"') 
+          ? `"${str.replace(/"/g, '""')}"` 
+          : str;
+      }).join(',')
+    )
+  ].join('\n');
+
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `${filename}_${new Date().toISOString().split('T')[0]}.csv`;
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+
+// ============================================================================
 // Main Reports Page
 // ============================================================================
 
 export default function ReportsPage() {
   const { data: jobs = [], isLoading: loadingJobs, error: jobsError } = useIngestionJobs();
   const { data: hooks = [], isLoading: loadingHooks, error: hooksError } = useWebhookLogs();
+  const [dateRange, setDateRange] = useState<DateRange>({ from: null, to: null, preset: 'All time' });
+
+  // Filter data by date range
+  const filteredJobs = useMemo(() => {
+    if (!dateRange.from || !dateRange.to) return jobs;
+    return jobs.filter(job => {
+      const jobDate = new Date(job.startedAt);
+      return jobDate >= dateRange.from! && jobDate <= dateRange.to!;
+    });
+  }, [jobs, dateRange]);
+
+  const filteredHooks = useMemo(() => {
+    if (!dateRange.from || !dateRange.to) return hooks;
+    return hooks.filter(hook => {
+      const hookDate = new Date(hook.createdAt);
+      return hookDate >= dateRange.from! && hookDate <= dateRange.to!;
+    });
+  }, [hooks, dateRange]);
+
+  // Export handlers
+  const handleExportJobs = useCallback(() => {
+    exportToCSV(filteredJobs.map(j => ({
+      id: j.id,
+      fileName: j.fileName,
+      status: j.status,
+      rowsProcessed: j.rowsProcessed,
+      contactsCreated: j.contactsCreated,
+      leadsCreated: j.leadsCreated,
+      durationSeconds: j.durationSeconds,
+      startedAt: j.startedAt,
+      finishedAt: j.finishedAt,
+      errorMessage: j.errorMessage || '',
+    })), 'ingestion_jobs');
+  }, [filteredJobs]);
+
+  const handleExportWebhooks = useCallback(() => {
+    exportToCSV(filteredHooks.map(h => ({
+      id: h.id,
+      provider: h.provider,
+      direction: h.direction,
+      status: h.status,
+      statusCode: h.statusCode,
+      createdAt: h.createdAt,
+      errorMessage: h.errorMessage || '',
+    })), 'webhook_logs');
+  }, [filteredHooks]);
+
+  const handleExportAll = useCallback(() => {
+    handleExportJobs();
+    setTimeout(handleExportWebhooks, 100); // Small delay to avoid browser blocking
+  }, [handleExportJobs, handleExportWebhooks]);
 
   // Compute metrics
   const metrics = useMemo(() => {
-    const totalLeads = jobs.reduce((sum, j) => sum + (j.leadsCreated || 0), 0);
-    const totalRows = jobs.reduce((sum, j) => sum + (j.rowsProcessed || 0), 0);
-    const successfulHooks = hooks.filter(h => (h.status || '').toLowerCase() === 'success').length;
-    const avgDuration = jobs.length 
-      ? (jobs.reduce((sum, j) => sum + (j.durationSeconds || 0), 0) / jobs.length).toFixed(1)
+    const totalLeads = filteredJobs.reduce((sum, j) => sum + (j.leadsCreated || 0), 0);
+    const totalRows = filteredJobs.reduce((sum, j) => sum + (j.rowsProcessed || 0), 0);
+    const successfulHooks = filteredHooks.filter(h => (h.status || '').toLowerCase() === 'success').length;
+    const avgDuration = filteredJobs.length 
+      ? (filteredJobs.reduce((sum, j) => sum + (j.durationSeconds || 0), 0) / filteredJobs.length).toFixed(1)
       : '0';
 
     // Generate sparkline data from recent jobs (last 7)
-    const recentJobs = jobs.slice(0, 7).reverse();
+    const recentJobs = filteredJobs.slice(0, 7).reverse();
     const leadsSparkline = recentJobs.map(j => j.leadsCreated || 0);
     const rowsSparkline = recentJobs.map(j => j.rowsProcessed || 0);
 
-    // Generate webhook sparkline from last 7 days (mocked grouping)
-    const hooksSparkline = hooks.slice(0, 7).map(() => Math.floor(Math.random() * 20 + 5));
+    // Generate webhook sparkline from last 7 days
+    const hooksSparkline = filteredHooks.slice(0, 7).map((_, i) => filteredHooks.length - i);
 
     return {
-      totalJobs: jobs.length,
+      totalJobs: filteredJobs.length,
       totalLeads,
       totalRows,
       successfulHooks,
-      totalHooks: hooks.length,
+      totalHooks: filteredHooks.length,
       avgDuration,
       leadsSparkline,
       rowsSparkline,
       hooksSparkline,
     };
-  }, [jobs, hooks]);
+  }, [filteredJobs, filteredHooks]);
 
   // Loading state
   if (loadingJobs && loadingHooks) {
@@ -221,7 +381,7 @@ export default function ReportsPage() {
   return (
     <div className="space-y-8 text-slate-100">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h2 className="text-2xl font-bold text-white flex items-center gap-3">
             <BarChart3 className="text-blue-400" size={28} />
@@ -229,10 +389,40 @@ export default function ReportsPage() {
           </h2>
           <p className="text-slate-400 text-sm">Operational telemetry from ingestion jobs and webhooks.</p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-sm font-medium transition-all">
-          <Download size={16} />
-          Export CSV
-        </button>
+        <div className="flex items-center gap-3">
+          <DateRangePicker value={dateRange} onChange={setDateRange} />
+          <div className="relative group">
+            <button 
+              onClick={handleExportAll}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-all"
+            >
+              <Download size={16} />
+              Export CSV
+            </button>
+            {/* Export dropdown on hover */}
+            <div className="absolute right-0 top-full mt-2 w-40 bg-slate-900 border border-slate-700 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20 py-1 overflow-hidden">
+              <button
+                onClick={handleExportJobs}
+                className="w-full px-4 py-2 text-left text-sm hover:bg-slate-800 text-slate-300 transition-colors"
+              >
+                Ingestion Jobs
+              </button>
+              <button
+                onClick={handleExportWebhooks}
+                className="w-full px-4 py-2 text-left text-sm hover:bg-slate-800 text-slate-300 transition-colors"
+              >
+                Webhook Logs
+              </button>
+              <hr className="border-slate-700 my-1" />
+              <button
+                onClick={handleExportAll}
+                className="w-full px-4 py-2 text-left text-sm hover:bg-slate-800 text-blue-400 transition-colors font-medium"
+              >
+                Export All
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Metric Cards with Sparklines */}
@@ -277,12 +467,12 @@ export default function ReportsPage() {
             <h3 className="text-lg font-semibold text-white">Ingestion Jobs</h3>
           </div>
           <span className="text-xs text-slate-500 uppercase tracking-[0.3em]">
-            {`${jobs.length} total`}
+            {dateRange.preset === 'All time' ? `${filteredJobs.length} total` : `${filteredJobs.length} of ${jobs.length}`}
           </span>
         </header>
         
         {/* Empty state */}
-        {jobs.length === 0 && (
+        {filteredJobs.length === 0 && (
           <div className="py-12 text-center">
             <FileText size={40} className="mx-auto text-slate-600 mb-3" />
             <div className="text-slate-400 font-medium">No ingestion jobs recorded yet</div>
@@ -291,9 +481,9 @@ export default function ReportsPage() {
         )}
 
         {/* Table */}
-        {jobs.length > 0 && (
+        {filteredJobs.length > 0 && (
           <div className="divide-y divide-white/5">
-            {jobs.slice(0, 10).map((job) => (
+            {filteredJobs.slice(0, 10).map((job) => (
               <div key={job.id} className="py-3 flex items-center justify-between hover:bg-slate-800/30 -mx-4 px-4 rounded-lg transition-colors">
                 <div className="flex items-center gap-4">
                   <div className="w-8 h-8 rounded-lg bg-slate-800/50 flex items-center justify-center">
@@ -334,12 +524,12 @@ export default function ReportsPage() {
             <h3 className="text-lg font-semibold text-white">Webhook Logs</h3>
           </div>
           <span className="text-xs text-slate-500 uppercase tracking-[0.3em]">
-            {`${hooks.length} total`}
+            {dateRange.preset === 'All time' ? `${filteredHooks.length} total` : `${filteredHooks.length} of ${hooks.length}`}
           </span>
         </header>
 
         {/* Empty state */}
-        {hooks.length === 0 && (
+        {filteredHooks.length === 0 && (
           <div className="py-12 text-center">
             <Webhook size={40} className="mx-auto text-slate-600 mb-3" />
             <div className="text-slate-400 font-medium">No webhook events yet</div>
@@ -348,9 +538,9 @@ export default function ReportsPage() {
         )}
 
         {/* Table */}
-        {hooks.length > 0 && (
+        {filteredHooks.length > 0 && (
           <div className="divide-y divide-white/5">
-            {hooks.slice(0, 10).map((hook) => (
+            {filteredHooks.slice(0, 10).map((hook) => (
               <div key={hook.id} className="py-3 flex items-center justify-between hover:bg-slate-800/30 -mx-4 px-4 rounded-lg transition-colors">
                 <div className="flex items-center gap-4">
                   <div className="w-8 h-8 rounded-lg bg-slate-800/50 flex items-center justify-center">
@@ -390,7 +580,7 @@ export default function ReportsPage() {
         description="Export your data to CSV for advanced analysis in spreadsheets or BI tools."
         actions={[
           { label: 'View Admin', href: '/dashboard/admin', variant: 'secondary' },
-          { label: 'Export All', variant: 'primary', onClick: () => console.log('Export clicked') },
+          { label: 'Export All', variant: 'primary', onClick: handleExportAll },
         ]}
       />
     </div>

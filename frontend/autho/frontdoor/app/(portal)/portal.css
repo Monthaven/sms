@@ -1,0 +1,102 @@
+/* Portal Tiles */
+.portal-tiles__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--space-lg);
+}
+
+.portal-tiles__link {
+  text-decoration: none;
+}
+
+.portal-tiles__card {
+  height: 100%;
+  background: linear-gradient(135deg, rgba(24, 28, 35, 0.92), rgba(30, 36, 44, 0.96));
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.28);
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.portal-tiles__card--emerald {
+  background: radial-gradient(circle at 20% 20%, rgba(44, 183, 126, 0.16), transparent 45%),
+    linear-gradient(135deg, rgba(24, 28, 35, 0.92), rgba(30, 36, 44, 0.96));
+  border-color: rgba(44, 183, 126, 0.35);
+}
+
+.portal-tiles__card--amber {
+  background: radial-gradient(circle at 20% 20%, rgba(255, 186, 73, 0.22), transparent 45%),
+    linear-gradient(135deg, rgba(24, 28, 35, 0.92), rgba(30, 36, 44, 0.96));
+  border-color: rgba(255, 186, 73, 0.35);
+}
+
+.portal-tiles__card--blue {
+  background: radial-gradient(circle at 20% 20%, rgba(90, 180, 255, 0.18), transparent 45%),
+    linear-gradient(135deg, rgba(24, 28, 35, 0.92), rgba(30, 36, 44, 0.96));
+  border-color: rgba(90, 180, 255, 0.35);
+}
+
+.portal-tiles__card--violet {
+  background: radial-gradient(circle at 20% 20%, rgba(146, 119, 255, 0.22), transparent 45%),
+    linear-gradient(135deg, rgba(24, 28, 35, 0.92), rgba(30, 36, 44, 0.96));
+  border-color: rgba(146, 119, 255, 0.35);
+}
+
+.portal-tiles__card:hover {
+  transform: translateY(-6px) scale(1.01);
+  box-shadow: 0 26px 70px rgba(0, 0, 0, 0.35);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.portal-tiles__card-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.portal-tiles__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  color: var(--stone-300);
+  font-size: var(--font-size-sm);
+}
+
+.portal-tiles__badge {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.portal-tiles__card-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.portal-tiles__card-body p {
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.portal-tiles__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  color: var(--text);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.01em;
+}
+
+.portal-tiles__empty {
+  background: linear-gradient(135deg, rgba(24, 28, 35, 0.92), rgba(30, 36, 44, 0.96));
+  border: 1px dashed rgba(255, 255, 255, 0.08);
+}
+
+.portal-tiles__title {
+  color: var(--text);
+}
+
+.portal-tiles__content {
+  color: var(--text-muted);
+}

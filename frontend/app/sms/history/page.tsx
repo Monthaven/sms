@@ -181,6 +181,8 @@ export default function HistoryPage() {
             value={filterType}
             onChange={(e) => setFilterType(e.target.value as FilterType)}
             className="rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none"
+            aria-label="Filter by type"
+            title="Filter by type"
           >
             <option value="all">All Types</option>
             <option value="calls">Calls Only</option>
@@ -193,6 +195,8 @@ export default function HistoryPage() {
           value={filterDirection}
           onChange={(e) => setFilterDirection(e.target.value as FilterDirection)}
           className="rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none"
+          aria-label="Filter by direction"
+          title="Filter by direction"
         >
           <option value="all">All Directions</option>
           <option value="inbound">Inbound</option>

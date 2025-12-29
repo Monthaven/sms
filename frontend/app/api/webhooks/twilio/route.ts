@@ -10,6 +10,7 @@ import { prisma } from "@/lib/db";
 import { normalizePhone } from "@/lib/utils";
 import { logger, generateRequestId } from "@/lib/logger";
 import { validateTwilioWebhook, formDataToParams } from "@/lib/twilio-webhook";
+import { notifications } from "@/lib/notifications";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -122,6 +123,33 @@ export async function POST(request: Request) {
         status: "CONVERSATION_ACTIVE",
       },
     });
+
+    // Get contact info for notification
+    const contactInfo = await prisma.contact.findUnique({
+      where: { id: contactId },
+      select: { firstName: true, lastName: true, phoneE164: true },
+    });
+    
+    // Get assigned agent for the lead to send notification
+    const leadWithAgent = await prisma.lead.findUnique({
+      where: { id: leadId },
+      select: { assignedToId: true },
+    });
+    
+    // Send notification for new message to assigned agent
+    if (leadWithAgent?.assignedToId) {
+      const contactName = contactInfo 
+        ? `${contactInfo.firstName || ''} ${contactInfo.lastName || ''}`.trim() || from
+        : from;
+      const preview = body ? body.substring(0, 100) + (body.length > 100 ? '...' : '') : 'New message received';
+      
+      await notifications.newMessage(
+        leadWithAgent.assignedToId,
+        contactName,
+        preview,
+        leadId
+      );
+    }
 
     log.info("Twilio webhook processed successfully", { contactId, leadId });
 

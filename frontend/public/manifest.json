@@ -1,0 +1,73 @@
+{
+  "name": "MAE Platform",
+  "short_name": "MAE",
+  "description": "Unified communication platform for real estate lead management",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#6366f1",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-180.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "apple touch icon"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "New Call",
+      "short_name": "Call",
+      "description": "Start a new outbound call",
+      "url": "/dashboard/dialer?action=call",
+      "icons": [{ "src": "/icons/call.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Messages",
+      "short_name": "SMS",
+      "description": "View SMS conversations",
+      "url": "/dashboard/sms",
+      "icons": [{ "src": "/icons/message.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Contacts",
+      "short_name": "Contacts",
+      "description": "Browse contacts",
+      "url": "/dashboard/contacts",
+      "icons": [{ "src": "/icons/contacts.png", "sizes": "96x96" }]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/dashboard.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide"
+    },
+    {
+      "src": "/screenshots/mobile.png",
+      "sizes": "750x1334",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "prefer_related_applications": false,
+  "related_applications": [],
+  "scope": "/",
+  "lang": "en-US",
+  "dir": "ltr"
+}

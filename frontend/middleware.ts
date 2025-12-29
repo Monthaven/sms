@@ -7,7 +7,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-// Security headers for all responses
 const securityHeaders = {
   "X-Content-Type-Options": "nosniff",
   "X-Frame-Options": "DENY",
@@ -16,44 +15,63 @@ const securityHeaders = {
   "Permissions-Policy": "camera=(), microphone=(self), geolocation=()",
 };
 
+const PUBLIC_PATHS = ["/signin", "/api/webhooks", "/api/health", "/api/twilio", "/api/cron", "/api/notifications"];
+
+function isPublic(pathname: string) {
+  return (
+    PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p)) ||
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/static") ||
+    pathname.startsWith("/favicon") ||
+    pathname.startsWith("/public")
+  );
+}
+
 export function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
   const hasSession = Boolean(request.cookies.get("mae_user")?.value);
   const role = request.cookies.get("mae_role")?.value || "AGENT";
-  
-  // Create response with security headers
+  const membership = request.cookies.get("mae_membership")?.value || request.cookies.get("mae_status")?.value || "accepted";
+
   const response = NextResponse.next();
-  Object.entries(securityHeaders).forEach(([key, value]) => {
-    response.headers.set(key, value);
-  });
+  Object.entries(securityHeaders).forEach(([key, value]) => response.headers.set(key, value));
 
-  // Block non-admin access to admin routes
-  if (request.nextUrl.pathname.startsWith("/dashboard/admin") && role !== "ADMIN") {
-    const redirectResponse = NextResponse.redirect(new URL("/dashboard", request.url));
-    Object.entries(securityHeaders).forEach(([key, value]) => {
-      redirectResponse.headers.set(key, value);
-    });
-    return redirectResponse;
+  // Allow public paths and static
+  if (isPublic(pathname)) {
+    return response;
   }
 
-  if (request.nextUrl.pathname.startsWith("/dashboard") && !hasSession) {
-    const redirectResponse = NextResponse.redirect(new URL("/", request.url));
-    Object.entries(securityHeaders).forEach(([key, value]) => {
-      redirectResponse.headers.set(key, value);
-    });
-    return redirectResponse;
+  // Legacy OM access: allow if intel_session or stack-access is present for /om paths
+  if (pathname.startsWith("/om")) {
+    const hasOmAccess = request.cookies.get("intel_session") || request.cookies.get("stack-access");
+    if (hasOmAccess) {
+      return response;
+    }
   }
 
-  if (request.nextUrl.pathname === "/" && hasSession) {
-    const redirectResponse = NextResponse.redirect(new URL("/dashboard", request.url));
-    Object.entries(securityHeaders).forEach(([key, value]) => {
-      redirectResponse.headers.set(key, value);
-    });
-    return redirectResponse;
+  // Require session for everything else
+  if (!hasSession) {
+    return NextResponse.redirect(new URL("/signin?next=" + encodeURIComponent(pathname), request.url));
+  }
+
+  // Membership gate
+  if (membership === "pending" && pathname !== "/awaiting-approval") {
+    return NextResponse.redirect(new URL("/awaiting-approval", request.url));
+  }
+
+  // Admin guard
+  if (pathname.startsWith("/dashboard/admin") && role !== "ADMIN") {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
+  // Manager guard
+  if (pathname.startsWith("/dashboard/manager") && !["MANAGER", "ADMIN"].includes(role)) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   return response;
 }
 
 export const config = {
-  matcher: ["/", "/dashboard/:path*"],
+  matcher: ["/:path*"],
 };

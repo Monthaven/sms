@@ -51,21 +51,28 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    // Identity for Twilio Client - used for routing inbound calls
+    const clientIdentity = `user_${user.id}`;
+
     const token = new AccessToken(accountSid, apiKey, apiSecret, {
-      identity: user.id,
+      identity: clientIdentity,
       ttl: 3600, // 1 hour
     });
 
     const grant = new VoiceGrant({
       outgoingApplicationSid: appSid,
-      incomingAllow: false,
+      // ENABLE INCOMING CALLS to browser
+      incomingAllow: true,
     });
 
     token.addGrant(grant);
 
-    log.info("Voice token generated", { userId: user.id });
+    log.info("Voice token generated with inbound enabled", { userId: user.id, clientIdentity });
     return NextResponse.json(
-      { token: token.toJwt() },
+      { 
+        token: token.toJwt(),
+        identity: clientIdentity,
+      },
       { headers: rateLimitHeaders(rateLimit) }
     );
   } catch (error: any) {

@@ -5,26 +5,25 @@
  */
 
 /**
- * In-memory rate limiter for Next.js API routes
- * For production at scale, consider Redis-based rate limiting
+ * Hybrid Rate Limiter for Next.js API routes
+ * - Uses Vercel KV REST API when available for production multi-instance support
+ * - Falls back to in-memory store for development/single instance
+ * 
+ * To enable Vercel KV in production:
+ * 1. Add a KV store to your Vercel project
+ * 2. Set KV_REST_API_URL and KV_REST_API_TOKEN env vars
  */
+
+import { logger } from "@/lib/logger";
+
+// ============================================================================
+// Types
+// ============================================================================
 
 interface RateLimitEntry {
   count: number;
   resetAt: number;
 }
-
-const rateLimitStore = new Map<string, RateLimitEntry>();
-
-// Cleanup old entries every 5 minutes
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, entry] of rateLimitStore.entries()) {
-    if (entry.resetAt < now) {
-      rateLimitStore.delete(key);
-    }
-  }
-}, 5 * 60 * 1000);
 
 export interface RateLimitConfig {
   /** Maximum requests allowed in the window */
@@ -40,20 +39,35 @@ export interface RateLimitResult {
   resetAt: number;
 }
 
-/**
- * Check rate limit for a given identifier (usually IP or user ID)
- */
-export function checkRateLimit(
+// ============================================================================
+// In-Memory Store (Development / Fallback)
+// ============================================================================
+
+const memoryStore = new Map<string, RateLimitEntry>();
+
+// Clean up expired entries every 5 minutes
+if (typeof setInterval !== "undefined") {
+  setInterval(() => {
+    const now = Date.now();
+    for (const [key, entry] of memoryStore.entries()) {
+      if (entry.resetAt < now) {
+        memoryStore.delete(key);
+      }
+    }
+  }, 5 * 60 * 1000);
+}
+
+function checkRateLimitMemory(
   identifier: string,
   config: RateLimitConfig
 ): RateLimitResult {
   const now = Date.now();
-  const key = identifier;
   const windowMs = config.windowSeconds * 1000;
+  const key = `ratelimit:${identifier}`;
 
-  let entry = rateLimitStore.get(key);
+  let entry = memoryStore.get(key);
 
-  // Reset if window has passed
+  // Reset if window expired
   if (!entry || entry.resetAt < now) {
     entry = {
       count: 0,
@@ -61,8 +75,9 @@ export function checkRateLimit(
     };
   }
 
-  entry.count++;
-  rateLimitStore.set(key, entry);
+  // Increment
+  entry.count += 1;
+  memoryStore.set(key, entry);
 
   const remaining = Math.max(0, config.limit - entry.count);
   const success = entry.count <= config.limit;
@@ -75,52 +90,231 @@ export function checkRateLimit(
   };
 }
 
+// ============================================================================
+// Vercel KV REST API (Production / Multi-Instance)
+// ============================================================================
+
+const KV_API_URL = process.env.KV_REST_API_URL;
+const KV_API_TOKEN = process.env.KV_REST_API_TOKEN;
+const kvEnabled = !!(KV_API_URL && KV_API_TOKEN);
+
 /**
- * Get client IP from Next.js request
+ * Make a REST API call to Vercel KV
  */
-export function getClientIP(request: Request): string {
-  // Check various headers for proxied requests
-  const forwarded = request.headers.get("x-forwarded-for");
-  if (forwarded) {
-    return forwarded.split(",")[0].trim();
-  }
+async function kvRequest(
+  command: string[]
+): Promise<{ result: unknown } | null> {
+  if (!KV_API_URL || !KV_API_TOKEN) return null;
 
-  const realIP = request.headers.get("x-real-ip");
-  if (realIP) {
-    return realIP;
-  }
+  try {
+    const response = await fetch(`${KV_API_URL}`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${KV_API_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(command),
+    });
 
-  // Fallback to a generic identifier
-  return "unknown";
+    if (!response.ok) {
+      throw new Error(`KV request failed: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (err) {
+    logger.warn("Vercel KV request failed", {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return null;
+  }
+}
+
+async function checkRateLimitKV(
+  identifier: string,
+  config: RateLimitConfig
+): Promise<RateLimitResult> {
+  const key = `ratelimit:${identifier}`;
+  const now = Date.now();
+  const windowMs = config.windowSeconds * 1000;
+
+  try {
+    // Increment the counter
+    const incrResult = await kvRequest(["INCR", key]);
+    if (!incrResult) {
+      return checkRateLimitMemory(identifier, config);
+    }
+
+    const count = incrResult.result as number;
+
+    // If this is the first request, set expiration
+    if (count === 1) {
+      await kvRequest(["PEXPIRE", key, String(windowMs)]);
+    }
+
+    // Get TTL to calculate reset time
+    const ttlResult = await kvRequest(["PTTL", key]);
+    const ttl = (ttlResult?.result as number) || windowMs;
+
+    const resetAt = ttl > 0 ? now + ttl : now + windowMs;
+    const remaining = Math.max(0, config.limit - count);
+    const success = count <= config.limit;
+
+    return {
+      success,
+      limit: config.limit,
+      remaining,
+      resetAt,
+    };
+  } catch (err) {
+    logger.error("Vercel KV rate limit error, falling back to memory", {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return checkRateLimitMemory(identifier, config);
+  }
+}
+
+// ============================================================================
+// Main API
+// ============================================================================
+
+/**
+ * Check rate limit for a given identifier (usually IP or user ID)
+ * Automatically uses Vercel KV in production, falls back to in-memory
+ */
+export async function checkRateLimitAsync(
+  identifier: string,
+  config: RateLimitConfig
+): Promise<RateLimitResult> {
+  if (kvEnabled) {
+    return checkRateLimitKV(identifier, config);
+  }
+  return checkRateLimitMemory(identifier, config);
 }
 
 /**
- * Rate limit configurations for different endpoints
+ * Synchronous rate limit check (in-memory only)
+ * Use this for middleware where async is not possible
  */
-export const RATE_LIMITS = {
-  // SMS sending - 10 per minute per IP
-  SMS_SEND: { limit: 10, windowSeconds: 60 },
+export function checkRateLimitSync(
+  identifier: string,
+  config: RateLimitConfig
+): RateLimitResult {
+  return checkRateLimitMemory(identifier, config);
+}
+
+/**
+ * Legacy compatibility export
+ * @deprecated Use checkRateLimitAsync instead
+ */
+export function checkRateLimit(
+  identifier: string,
+  config: RateLimitConfig
+): RateLimitResult {
+  return checkRateLimitMemory(identifier, config);
+}
+
+// ============================================================================
+// Preset Configurations
+// ============================================================================
+
+export const RATE_LIMIT_PRESETS = {
+  /** Standard API: 100 requests per minute */
+  api: { limit: 100, windowSeconds: 60 },
   
-  // Token generation - 5 per minute per IP
-  TOKEN_GEN: { limit: 5, windowSeconds: 60 },
+  /** Strict API: 30 requests per minute */
+  apiStrict: { limit: 30, windowSeconds: 60 },
   
-  // API general - 100 per minute per IP
+  /** Authentication: 5 attempts per 15 minutes */
+  auth: { limit: 5, windowSeconds: 900 },
+  
+  /** SMS sending: 10 messages per minute */
+  sms: { limit: 10, windowSeconds: 60 },
+  
+  /** Webhooks: 1000 requests per minute */
+  webhook: { limit: 1000, windowSeconds: 60 },
+  
+  /** AI/LLM requests: 20 per minute */
+  ai: { limit: 20, windowSeconds: 60 },
+  
+  // Legacy aliases for backward compatibility
+  /** @deprecated Use 'api' instead */
   API_GENERAL: { limit: 100, windowSeconds: 60 },
-  
-  // Login attempts - 5 per minute per IP
-  LOGIN: { limit: 5, windowSeconds: 60 },
-  
-  // Webhook processing - 1000 per minute (high volume expected)
-  WEBHOOK: { limit: 1000, windowSeconds: 60 },
+  /** @deprecated Use 'sms' instead */
+  SMS_SEND: { limit: 10, windowSeconds: 60 },
+  /** @deprecated Use 'auth' instead */
+  TOKEN_GEN: { limit: 20, windowSeconds: 60 },
 } as const;
 
 /**
- * Create rate limit headers for response
+ * Legacy alias for RATE_LIMIT_PRESETS
+ * @deprecated Use RATE_LIMIT_PRESETS instead
  */
-export function rateLimitHeaders(result: RateLimitResult): HeadersInit {
+export const RATE_LIMITS = RATE_LIMIT_PRESETS;
+
+// ============================================================================
+// Utility Functions
+// ============================================================================
+
+/**
+ * Get rate limit headers for API responses
+ */
+export function getRateLimitHeaders(result: RateLimitResult): HeadersInit {
   return {
-    "X-RateLimit-Limit": result.limit.toString(),
-    "X-RateLimit-Remaining": result.remaining.toString(),
-    "X-RateLimit-Reset": Math.ceil(result.resetAt / 1000).toString(),
+    "X-RateLimit-Limit": String(result.limit),
+    "X-RateLimit-Remaining": String(result.remaining),
+    "X-RateLimit-Reset": String(Math.ceil(result.resetAt / 1000)),
   };
+}
+
+/**
+ * Create a rate-limited response (429 Too Many Requests)
+ */
+export function rateLimitedResponse(result: RateLimitResult): Response {
+  return new Response(
+    JSON.stringify({
+      error: "Too many requests",
+      retryAfter: Math.ceil((result.resetAt - Date.now()) / 1000),
+    }),
+    {
+      status: 429,
+      headers: {
+        "Content-Type": "application/json",
+        ...getRateLimitHeaders(result),
+        "Retry-After": String(Math.ceil((result.resetAt - Date.now()) / 1000)),
+      },
+    }
+  );
+}
+
+/**
+ * Extract client identifier from request (IP address)
+ */
+export function getClientIdentifier(request: Request): string {
+  const forwarded = request.headers.get("x-forwarded-for");
+  const realIp = request.headers.get("x-real-ip");
+  
+  if (forwarded) {
+    return forwarded.split(",")[0].trim();
+  }
+  
+  return realIp || "unknown";
+}
+
+/**
+ * Legacy alias for getClientIdentifier
+ * @deprecated Use getClientIdentifier instead
+ */
+export const getClientIP = getClientIdentifier;
+
+/**
+ * Legacy alias for getRateLimitHeaders
+ * @deprecated Use getRateLimitHeaders instead
+ */
+export const rateLimitHeaders = getRateLimitHeaders;
+
+// Log KV status on module load
+if (kvEnabled) {
+  logger.info("Rate limiter: Vercel KV enabled");
+} else {
+  logger.debug("Rate limiter: Using in-memory store (set KV_REST_API_URL and KV_REST_API_TOKEN for production)");
 }

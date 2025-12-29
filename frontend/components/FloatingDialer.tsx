@@ -5,13 +5,12 @@
  * 
  * FloatingDialer - Bottom-right floating dialer with call/text options
  * Supports manual dialing, campaign mode, and quick SMS
- * Integrated with Twilio Voice SDK for real audio calls
+ * Uses shared TwilioCallProvider for Twilio Voice SDK calls
  */
 
 "use client";
 
 import React, { useState, useCallback, useEffect, useRef } from "react";
-import { Device, Call } from "@twilio/voice-sdk";
 import { 
   Phone, 
   PhoneCall, 
@@ -33,6 +32,7 @@ import {
 } from "lucide-react";
 import clsx from "clsx";
 import { useAcceptingMode } from "./AcceptingModeProvider";
+import { useTwilioCall } from "./TwilioCallProvider";
 
 type DialerMode = "collapsed" | "dialer" | "sms";
 type CallStatus = "idle" | "connecting" | "ringing" | "connected" | "ended" | "failed";
@@ -56,77 +56,27 @@ export default function FloatingDialer() {
   const [mode, setMode] = useState<DialerMode>("collapsed");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [smsMessage, setSmsMessage] = useState("");
-  const [callStatus, setCallStatus] = useState<CallStatus>("idle");
-  const [isMuted, setIsMuted] = useState(false);
-  const [duration, setDuration] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [smsSent, setSmsSent] = useState(false);
   
-  // Twilio Voice SDK state
-  const [device, setDevice] = useState<Device | null>(null);
-  const [activeCall, setActiveCall] = useState<Call | null>(null);
-  const [deviceReady, setDeviceReady] = useState(false);
+  // Use shared Twilio Call Provider
+  const { 
+    isReady: deviceReady, 
+    callStatus, 
+    activeCallNumber,
+    activeCallSid,
+    duration,
+    isMuted,
+    error: callError,
+    makeCall: providerMakeCall,
+    endCall: providerEndCall,
+    toggleMute: handleToggleMute,
+    sendDigits,
+  } = useTwilioCall();
   
   const { mode: acceptingMode, toggle: toggleAcceptingMode } = useAcceptingMode();
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const deviceRef = useRef<Device | null>(null);
-
-  // Initialize Twilio Device
-  useEffect(() => {
-    const initTwilioDevice = async () => {
-      try {
-        const res = await fetch("/api/twilio/token");
-        if (!res.ok) {
-          console.error("Failed to fetch Twilio token");
-          return;
-        }
-        const data = await res.json();
-        
-        const dev = new Device(data.token, {
-          codecPreferences: [Call.Codec.Opus, Call.Codec.PCMU],
-          // Enable incoming calls
-          allowIncomingWhileBusy: false,
-        });
-
-        dev.on("registered", () => {
-          console.log("Twilio Device registered");
-          setDevice(dev);
-          setDeviceReady(true);
-        });
-
-        dev.on("error", (e) => {
-          console.error("Twilio Device error:", e);
-          setError(`Device error: ${e.message}`);
-        });
-
-        dev.on("incoming", (call) => {
-          console.log("Incoming call from:", call.parameters.From);
-          // Auto-accept if in dialing mode, or show notification
-        });
-
-        await dev.register();
-        deviceRef.current = dev;
-      } catch (err) {
-        console.error("Twilio Device init failed:", err);
-      }
-    };
-
-    initTwilioDevice();
-
-    return () => {
-      deviceRef.current?.destroy();
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, []);
-
-  // Cleanup timer on unmount
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, []);
 
   // Focus input when opening dialer
   useEffect(() => {
@@ -182,9 +132,9 @@ export default function FloatingDialer() {
   };
 
   const handleDigitPress = (digit: string) => {
-    if (callStatus === "connected" && activeCall) {
+    if (callStatus === "connected") {
       // Send DTMF tone during active call
-      activeCall.sendDigits(digit);
+      sendDigits(digit);
     }
     setPhoneNumber(prev => prev + digit);
   };
@@ -193,118 +143,53 @@ export default function FloatingDialer() {
     setPhoneNumber(prev => prev.slice(0, -1));
   };
 
+  // Use the shared provider's makeCall
   const handleCall = useCallback(async () => {
     if (!phoneNumber || phoneNumber.length < 10) {
       setError("Enter a valid phone number");
       return;
     }
 
-    if (!device || !deviceReady) {
+    if (!deviceReady) {
       setError("Phone system not ready. Please wait...");
       return;
     }
 
     setError(null);
-    setCallStatus("connecting");
+    // Call is handled by the provider
+    await providerMakeCall(phoneNumber);
+  }, [phoneNumber, deviceReady, providerMakeCall]);
+
+  // Use the shared provider's endCall
+  const handleEndCall = useCallback(() => {
+    providerEndCall();
+  }, [providerEndCall]);
+
+  // Drop voicemail and end agent's side of the call
+  const handleVoicemailDrop = useCallback(async () => {
+    if (!activeCallSid) {
+      setError("Cannot drop voicemail - no active call");
+      return;
+    }
 
     try {
-      // Format phone to E.164 (+1XXXXXXXXXX)
-      const digits = phoneNumber.replace(/\D/g, "");
-      const formattedPhone = digits.startsWith("1") ? `+${digits}` : `+1${digits}`;
-      
-      // First, initiate the call on the server to get a call ID
-      const res = await fetch("/api/sms/call/initiate", {
+      const res = await fetch("/api/twilio/voicemail-drop", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ to: formattedPhone, source: "manual" }),
+        body: JSON.stringify({ callSid: activeCallSid }),
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error?.message || "Call failed");
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Voicemail drop failed");
+      }
 
-      const callId = data.data?.callId;
-      
-      // Connect using Twilio Device (this starts the actual call with audio)
-      const call = await device.connect({
-        params: {
-          To: formattedPhone,
-          CallId: callId || "",
-        },
-      });
-
-      setActiveCall(call);
-
-      // Handle call events
-      call.on("ringing", () => {
-        setCallStatus("ringing");
-      });
-
-      call.on("accept", () => {
-        setCallStatus("connected");
-        // Start duration timer
-        const startTime = Date.now();
-        timerRef.current = setInterval(() => {
-          setDuration(Math.floor((Date.now() - startTime) / 1000));
-        }, 1000);
-      });
-
-      call.on("disconnect", () => {
-        if (timerRef.current) {
-          clearInterval(timerRef.current);
-          timerRef.current = null;
-        }
-        setCallStatus("ended");
-        setActiveCall(null);
-        setDuration(0);
-        setTimeout(() => setCallStatus("idle"), 2000);
-      });
-
-      call.on("error", (err) => {
-        console.error("Call error:", err);
-        setError(err.message || "Call error");
-        setCallStatus("failed");
-        setActiveCall(null);
-      });
-
-      call.on("cancel", () => {
-        setCallStatus("ended");
-        setActiveCall(null);
-      });
-
+      // End our side of the call
+      providerEndCall();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Call failed");
-      setCallStatus("failed");
+      setError(err instanceof Error ? err.message : "Voicemail drop failed");
     }
-  }, [phoneNumber, device, deviceReady]);
-
-  const handleEndCall = useCallback(() => {
-    // Disconnect the active Twilio call
-    if (activeCall) {
-      activeCall.disconnect();
-    }
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-    setCallStatus("ended");
-    setActiveCall(null);
-    setDuration(0);
-    setTimeout(() => setCallStatus("idle"), 1500);
-  }, [activeCall]);
-
-  const handleToggleMute = () => {
-    if (activeCall) {
-      activeCall.mute(!isMuted);
-    }
-    setIsMuted(prev => !prev);
-  };
-  
-  // Send DTMF tones during active call
-  const sendDTMF = useCallback((digit: string) => {
-    if (activeCall && callStatus === "connected") {
-      activeCall.sendDigits(digit);
-    }
-  }, [activeCall, callStatus]);
+  }, [activeCallSid, providerEndCall]);
 
   const handleSendSMS = useCallback(async () => {
     if (!phoneNumber || phoneNumber.length < 10 || !smsMessage.trim()) {
@@ -579,10 +464,7 @@ export default function FloatingDialer() {
 
                   {/* Voicemail Drop */}
                   <button
-                    onClick={() => {
-                      // TODO: Implement voicemail drop
-                      handleEndCall();
-                    }}
+                    onClick={handleVoicemailDrop}
                     className="w-12 h-12 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-amber-400 transition-all"
                     title="Drop Voicemail"
                   >

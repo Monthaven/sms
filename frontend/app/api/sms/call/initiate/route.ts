@@ -40,12 +40,13 @@ export async function POST(req: Request) {
 
   const { leadId, to, source } = parsed.data;
 
-  // Manual call (no lead)
+  // Manual call (no lead) - for WebRTC browser calls
   if (source === "manual" && to) {
     const result = await initiateManualCall({
       to,
       userId: user.id,
       leadId: leadId, // Optional - may link to a lead for context
+      webrtc: true, // Browser calls use device.connect(), don't create REST API call
     });
 
     if (!result.success) {
@@ -77,6 +78,7 @@ export async function POST(req: Request) {
   const result = await initiateCall({
     leadId,
     userId: user.id,
+    webrtc: true, // Browser calls use device.connect(), don't create REST API call
   });
 
   if (!result.success) {

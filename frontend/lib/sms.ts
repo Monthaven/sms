@@ -33,6 +33,8 @@ export type SendSMSParams = {
   to: string;
   message: string;
   provider: SMSProvider;
+  mediaUrls?: string[]; // For MMS support
+  fromNumber?: string; // Optional caller ID override
 };
 
 export type SendSMSResult = {
@@ -40,6 +42,7 @@ export type SendSMSResult = {
   provider: SMSProvider;
   externalId?: string | null;
   error?: string;
+  isMms?: boolean;
 };
 
 /**
@@ -54,24 +57,62 @@ function normalizePhone(phone: string): string {
 
 /**
  * Send SMS via Twilio with retry logic
+ * Supports MMS with mediaUrls parameter
  */
-async function sendViaTwilio(to: string, message: string): Promise<string> {
-  // Prefer an explicit SMS sender if provided, then fall back to configured numbers
-  const twilioFrom = process.env.TWILIO_SMS_FROM || process.env.TWILIO_FROM_NUMBER || process.env.TWILIO_MAIN_FROM;
+async function sendViaTwilio(
+  to: string, 
+  message: string, 
+  mediaUrls?: string[],
+  fromNumber?: string
+): Promise<{ sid: string; isMms: boolean }> {
+  // Use provided from number or fall back to configured defaults
+  const twilioFrom = fromNumber || 
+    process.env.TWILIO_SMS_FROM || 
+    process.env.TWILIO_FROM_NUMBER || 
+    process.env.TWILIO_MAIN_FROM;
+    
   if (!twilioFrom) {
     throw new Error("Twilio not configured - missing TWILIO_FROM_NUMBER");
   }
 
+  // Validate media URLs if provided
+  const validMediaUrls = mediaUrls?.filter(url => {
+    try {
+      const parsed = new URL(url);
+      // Must be HTTPS and have valid image/video extension or content type query params
+      return parsed.protocol === "https:" && 
+        (url.match(/\.(jpg|jpeg|png|gif|mp4|mpeg|3gpp)$/i) || 
+         url.includes("content-type=image") ||
+         url.includes("content-type=video"));
+    } catch {
+      return false;
+    }
+  });
+
+  const isMms = validMediaUrls && validMediaUrls.length > 0;
+  
   const twilioClient = getTwilioClient();
   
   const result = await withRetry(
     async () => {
-      const msg = await twilioClient.messages.create({
+      const msgParams: {
+        body: string;
+        to: string;
+        from: string;
+        mediaUrl?: string[];
+      } = {
         body: message,
         to: normalizePhone(to),
         from: twilioFrom,
-      });
-      return msg.sid;
+      };
+      
+      // Add media URLs for MMS
+      if (isMms) {
+        msgParams.mediaUrl = validMediaUrls.slice(0, 10); // Twilio supports up to 10 media URLs
+      }
+      
+      const msg = await twilioClient.messages.create(msgParams);
+      return { sid: msg.sid, isMms: !!isMms };
     },
     RETRY_CONFIGS.TWILIO
   );
@@ -126,10 +167,10 @@ async function sendViaEzTexting(to: string, message: string): Promise<string> {
 /**
  * Send SMS via Twilio or EzTexting
  * This is the core SMS sending function used by both API routes and server actions
- * Includes retry logic and proper logging
+ * Includes retry logic, MMS support, and proper logging
  */
 export async function sendSMS(params: SendSMSParams): Promise<SendSMSResult> {
-  const { leadId, to, message, provider } = params;
+  const { leadId, to, message, provider, mediaUrls, fromNumber } = params;
   const log = logger.child({ provider, to: to.slice(-4), leadId });
 
   if (!to || !message) {
@@ -139,12 +180,15 @@ export async function sendSMS(params: SendSMSParams): Promise<SendSMSResult> {
 
   let externalId: string | null = null;
   let channel: "TWILIO" | "EZTEXTING" = "TWILIO";
+  let isMms = false;
 
   try {
     if (provider === "twilio") {
-      externalId = await sendViaTwilio(to, message);
+      const result = await sendViaTwilio(to, message, mediaUrls, fromNumber);
+      externalId = result.sid;
+      isMms = result.isMms;
       channel = "TWILIO";
-      log.info("SMS sent via Twilio", { externalId });
+      log.info("SMS sent via Twilio", { externalId, isMms });
       
     } else if (provider === "eztexting") {
       externalId = await sendViaEzTexting(to, message);
@@ -170,6 +214,10 @@ export async function sendSMS(params: SendSMSParams): Promise<SendSMSResult> {
             direction: "OUTBOUND",
             body: message,
             externalId: externalId,
+            // Store media URLs in metadata if MMS
+            ...(isMms && mediaUrls && { 
+              metadata: JSON.stringify({ mediaUrls, isMms: true }) 
+            }),
           },
         });
 
@@ -185,6 +233,7 @@ export async function sendSMS(params: SendSMSParams): Promise<SendSMSResult> {
       success: true,
       provider,
       externalId,
+      isMms,
     };
   } catch (error: any) {
     logger.error("SMS send error", { error: error?.message || String(error), provider });

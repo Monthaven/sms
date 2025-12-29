@@ -87,6 +87,8 @@ export default function BottomSheet({
                       type="button"
                       className="rounded-full p-2 text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors"
                       onClick={onClose}
+                      aria-label="Close dialog"
+                      title="Close"
                     >
                       <XMarkIcon className="h-5 w-5" />
                     </button>
@@ -94,7 +96,7 @@ export default function BottomSheet({
                 )}
 
                 {/* Content */}
-                <div className="overflow-y-auto p-4" style={{ maxHeight: "calc(100% - 80px)" }}>
+                <div className="overflow-y-auto p-4 max-h-[calc(100%-80px)]">
                   {children}
                 </div>
               </Dialog.Panel>

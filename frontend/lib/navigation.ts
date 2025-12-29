@@ -13,6 +13,7 @@ import {
   Bot,
   Plug,
   Megaphone,
+  GitBranch,
 } from "lucide-react";
 
 export const NAVIGATION_CONFIG = [
@@ -23,6 +24,7 @@ export const NAVIGATION_CONFIG = [
       { id: "/dashboard/queue", label: "Call Queue", icon: ListTodo },
       { id: "/dashboard/chat", label: "Inbox", icon: MessageSquare },
       { id: "/dashboard/campaigns", label: "Campaigns", icon: Megaphone },
+      { id: "/sequences", label: "Sequences", icon: GitBranch },
       { id: "/dashboard/intelligence", label: "Intelligence", icon: BarChart3 },
     ],
   },

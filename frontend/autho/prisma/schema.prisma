@@ -1,0 +1,159 @@
+// Prisma schema for the unified front-door/auth domain.
+// Includes: users, access grants, NDAs, RBAC (roles/user_roles),
+// documents/user_documents for doc gating, audit logs, webhook events, final docs.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum NdaStatus {
+  pending
+  completed
+  declined
+  revoked
+}
+
+enum DocumentStatus {
+  pending
+  signed
+  declined
+  revoked
+}
+
+model User {
+  id           String          @id @default(uuid())
+  email        String          @unique
+  fullName     String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @default(now())
+  ndas         Nda[]
+  accessGrants AccessGrant[]
+  userRoles    UserRole[]
+  userDocs     UserDocument[]
+  auditLogs    AuditLog[]
+}
+
+model Nda {
+  id          String    @id @default(uuid())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  envelopeId  String    @unique
+  status      NdaStatus @default(pending)
+  completedAt DateTime?
+  metadata    Json      @default("{}")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now())
+}
+
+model AccessGrant {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  scope     String
+  source    String   @default("manual")
+  active    Boolean  @default(true)
+  grantedAt DateTime @default(now())
+  expiresAt DateTime?
+  revokedAt DateTime?
+  metadata  Json     @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
+  @@unique([userId, scope])
+}
+
+model Role {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now())
+  userRoles   UserRole[]
+}
+
+model UserRole {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  roleId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
+  @@unique([userId, roleId])
+}
+
+model Document {
+  id          String   @id @default(uuid())
+  kind        String   @unique
+  title       String
+  description String?
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+  userDocs    UserDocument[]
+}
+
+model UserDocument {
+  id          String          @id @default(uuid())
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  document    Document        @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  documentId  String
+  status      DocumentStatus  @default(pending)
+  envelopeId  String?
+  hmacSecret  String?
+  signedAt    DateTime?
+  metadata    Json            @default("{}")
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @default(now())
+
+  @@unique([userId, documentId])
+}
+
+model AuditLog {
+  id        BigInt   @id @default(autoincrement())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId    String?
+  action    String
+  entity    String?
+  entityId  String?
+  metadata  Json     @default("{}")
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model WebhookEvent {
+  id          BigInt   @id @default(autoincrement())
+  source      String
+  eventType   String
+  envelopeId  String?
+  email       String?
+  status      String?
+  payload     Json
+  payloadRaw  Bytes?
+  signature   String?
+  receivedAt  DateTime @default(now())
+
+  @@index([envelopeId])
+  @@index([email])
+  @@unique([source, envelopeId, eventType])
+}
+
+model FinalDocument {
+  id           String   @id @default(uuid())
+  notionPageId String   @unique
+  storageKey   String
+  sha256       String
+  contentType  String?
+  byteLength   Int?
+  metadata     Json     @default("{}")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now())
+}

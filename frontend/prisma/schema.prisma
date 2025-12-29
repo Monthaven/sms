@@ -13,19 +13,43 @@ model User {
   email              String         @unique
   name               String?
   role               UserRole       @default(AGENT)
+  passwordHash       String?        // For secure password authentication
+  lastLoginAt        DateTime?      // Track last login
+  loginAttempts      Int            @default(0) // For rate limiting
+  lockedUntil        DateTime?      // Account lockout
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
   contractEnvelopeId String?
   contractSignedAt   DateTime?
   sections           String[]       @default([])
-  twilioNumber       String?
+  twilioNumber       String?        // Twilio number assigned to this agent
+  forwardNumber      String?        // Personal cell to forward calls to
+  acceptsInbound     Boolean        @default(true) // Whether agent accepts inbound calls
   settings           Json?
+  
+  // Agent status tracking
+  isOnline           Boolean        @default(false)
+  status             AgentStatus    @default(OFFLINE)
+  statusSince        DateTime?
+  lastActiveAt       DateTime?
+  currentCallId      String?        // Currently active call SID
+  breakReason        String?        // Lunch, Personal, Training
+  shiftStart         DateTime?
+  shiftEnd           DateTime?
+  assignedNumbers    String[]       @default([]) // Multiple caller IDs
+  pushSubscription   Json?          // Web push subscription
+  
   activityLogs       AuditLog[]
   calls              Call[]
   ingestionJobs      IngestionJob[] @relation("IngestionStartedBy")
   interactions       Interaction[]
   assignedLeads      Lead[]
   auditLogs          LeadAudit[]
+  notifications      Notification[]
+  statusLogs         AgentStatusLog[]
+  qualityScores      QualityScore[] @relation("ScoredBy")
+  smsTemplates       SmsTemplate[]
+  scheduledMessages  ScheduledMessage[]
 }
 
 model Contact {
@@ -76,6 +100,21 @@ model Contact {
   ownerNameMatch                        Boolean       @default(false)
   phoneValid                            Boolean       @default(true)
   smsConsent                            Boolean       @default(false)
+  
+  // Consent tracking
+  smsConsentAt       DateTime?
+  smsConsentSource   String?   // 'FORM', 'REPLY', 'IMPORT'
+  callConsent        Boolean   @default(false)
+  callConsentAt      DateTime?
+  callConsentSource  String?
+  emailConsent       Boolean   @default(false)
+  emailConsentAt     DateTime?
+  emailConsentSource String?
+  emailBounced       Boolean   @default(false)
+  phoneInvalid       Boolean   @default(false)
+  timezone           String?   // IANA timezone
+  doNotContactReason String?   // OPT_OUT, DNC_LIST, LITIGATION
+  
   calls                                 Call[]
   Property_Contact_propertyIdToProperty Property?     @relation("Contact_propertyIdToProperty", fields: [propertyId], references: [id])
   interactions                          Interaction[]
@@ -83,6 +122,7 @@ model Contact {
   Message                               Message[]
   PhoneFlag                             PhoneFlag[]
   properties                            Property[]
+  scheduledMessages                     ScheduledMessage[]
 
   @@index([phoneE164])
   @@index([priority, score])
@@ -151,12 +191,13 @@ model Lead {
   assignedAt     DateTime?
   callbackAt     DateTime?
   lockExpiresAt  DateTime?
-  calls          Call[]
-  assignedTo     User?       @relation(fields: [assignedToId], references: [id])
-  campaign       Campaign    @relation(fields: [campaignId], references: [id])
-  contact        Contact     @relation(fields: [contactId], references: [id])
-  property       Property?   @relation(fields: [propertyId], references: [id])
-  audits         LeadAudit[]
+  calls               Call[]
+  assignedTo          User?       @relation(fields: [assignedToId], references: [id])
+  campaign            Campaign    @relation(fields: [campaignId], references: [id])
+  contact             Contact     @relation(fields: [contactId], references: [id])
+  property            Property?   @relation(fields: [propertyId], references: [id])
+  audits              LeadAudit[]
+  scheduledMessages   ScheduledMessage[]
 
   @@unique([campaignId, contactId, propertyId])
   @@index([status])
@@ -208,13 +249,31 @@ model Call {
   startedAt     DateTime  @default(now())
   answeredAt    DateTime?
   endedAt       DateTime?
+  
+  // Enhanced call features
+  fromNumber       String?
+  toNumber         String?
+  transcription    String?   @db.Text
+  aiSummary        String?   @db.Text
+  aiInterestScore  Int?
+  holdStartedAt    DateTime?
+  holdDuration     Int?
+  transferredFrom  String?   // userId
+  transferredTo    String?   // userId
+  monitoredBy      String?   // managerId
+  recordingDuration Int?
+  voicemailUrl     String?
+  callerIdUsed     String?
+  
   contact       Contact?  @relation(fields: [contactId], references: [id])
   lead          Lead?     @relation(fields: [leadId], references: [id])
   user          User      @relation(fields: [userId], references: [id])
+  qualityScore  QualityScore?
 
   @@index([userId, startedAt])
   @@index([leadId])
   @@index([twilioCallSid])
+  @@index([status])
 }
 
 model AuditLog {
@@ -305,6 +364,66 @@ model SequenceContact {
   Sequence     Sequence  @relation(fields: [sequence_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([sequence_id, contact_id])
+}
+
+// ============================================================================
+// Automation Models - Rule-based workflow triggers
+// ============================================================================
+
+model Automation {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String
+  description String?
+  isActive    Boolean   @default(false)
+  
+  // Trigger configuration
+  triggerType String    // lead_score_change, new_lead, contact_update, call_ended, sms_received, etc.
+  triggerConditions Json?  // Conditions that must be met (e.g., { "scoreGte": 80 })
+  
+  // Action configuration
+  actionType  String    // send_sms, enroll_sequence, assign_agent, update_status, send_notification, etc.
+  actionConfig Json?    // Action-specific config (e.g., { "templateId": "xxx", "sequenceId": "yyy" })
+  
+  // Rate limiting / scheduling
+  maxExecutionsPerDay Int?  @default(100)
+  executionCount Int      @default(0)
+  lastExecutedAt DateTime?
+  
+  // Targeting
+  targetTiers  String[]  @default([])  // Which dm_tier values to target
+  targetStatuses String[] @default([]) // Which lead statuses to target
+  
+  // Statistics
+  totalExecutions Int     @default(0)
+  successCount    Int     @default(0)
+  failureCount    Int     @default(0)
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // Relations
+  logs        AutomationLog[]
+}
+
+model AutomationLog {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  automationId  String    @db.Uuid
+  contactId     String?
+  leadId        String?
+  
+  status        String    // success, failed, skipped
+  triggerData   Json?     // The data that triggered the automation
+  actionResult  Json?     // The result of the action
+  errorMessage  String?
+  
+  executedAt    DateTime  @default(now())
+  durationMs    Int?
+  
+  automation    Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  
+  @@index([automationId, executedAt])
+  @@index([contactId])
+  @@index([leadId])
 }
 
 model access_grants {
@@ -960,4 +1079,252 @@ enum IngestionJobStatus {
   RUNNING
   SUCCESS
   FAILED
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// NEW MODELS FOR COMPLETE CALLER SYSTEM
+// ═══════════════════════════════════════════════════════════════════
+
+enum AgentStatus {
+  ONLINE
+  ON_BREAK
+  OFFLINE
+  ON_CALL
+  WRAPPING
+}
+
+enum NotificationType {
+  CALL_INCOMING
+  CALL_MISSED
+  VOICEMAIL
+  SMS_RECEIVED
+  EMAIL_RECEIVED
+  CALLBACK_DUE
+  LEAD_ASSIGNED
+  LEAD_HOT
+  TRANSFER_REQUEST
+  MANAGER_ALERT
+  SYSTEM
+}
+
+enum Priority {
+  CRITICAL
+  HIGH
+  NORMAL
+  LOW
+}
+
+enum DncSource {
+  INTERNAL
+  FTC
+  STATE
+  CARRIER
+  LITIGATION
+}
+
+enum ScheduleStatus {
+  PENDING
+  SENT
+  FAILED
+  CANCELLED
+}
+
+// Notification System
+model Notification {
+  id          String           @id @default(cuid())
+  userId      String
+  type        NotificationType
+  priority    Priority         @default(NORMAL)
+  title       String
+  body        String?
+  actionUrl   String?
+  actionLabel String?
+  relatedType String?
+  relatedId   String?
+  read        Boolean          @default(false)
+  readAt      DateTime?
+  dismissed   Boolean          @default(false)
+  expiresAt   DateTime?
+  createdAt   DateTime         @default(now())
+  user        User             @relation(fields: [userId], references: [id])
+
+  @@index([userId, read, createdAt])
+  @@index([type, createdAt])
+}
+
+// SMS Templates
+model SmsTemplate {
+  id         String   @id @default(cuid())
+  name       String
+  body       String   @db.Text
+  category   String?
+  variables  String[] @default([])
+  isActive   Boolean  @default(true)
+  usageCount Int      @default(0)
+  createdBy  String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  creator    User     @relation(fields: [createdBy], references: [id])
+
+  @@index([category])
+  @@index([isActive])
+}
+
+// Scheduled Messages
+model ScheduledMessage {
+  id          String         @id @default(cuid())
+  contactId   String
+  leadId      String?
+  userId      String
+  body        String         @db.Text
+  mediaUrls   String[]       @default([])
+  scheduledAt DateTime
+  status      ScheduleStatus @default(PENDING)
+  sentAt      DateTime?
+  error       String?
+  createdAt   DateTime       @default(now())
+  contact     Contact        @relation(fields: [contactId], references: [id])
+  lead        Lead?          @relation(fields: [leadId], references: [id])
+  user        User           @relation(fields: [userId], references: [id])
+
+  @@index([scheduledAt, status])
+  @@index([userId])
+}
+
+// DNC List
+model DncEntry {
+  id        String    @id @default(cuid())
+  phone     String    @unique
+  source    DncSource @default(INTERNAL)
+  addedAt   DateTime  @default(now())
+  addedBy   String?
+  expiresAt DateTime?
+  notes     String?
+
+  @@index([phone])
+  @@index([source])
+}
+
+// Agent Status Log
+model AgentStatusLog {
+  id        String      @id @default(cuid())
+  userId    String
+  status    AgentStatus
+  reason    String?
+  createdAt DateTime    @default(now())
+  user      User        @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+}
+
+// Lead Assignment Rules
+model AssignmentRule {
+  id         String   @id @default(cuid())
+  name       String
+  priority   Int      @default(0)
+  conditions Json
+  assignTo   String?
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([priority])
+  @@index([isActive])
+}
+
+// Call Quality Scoring
+model QualityScore {
+  id             String   @id @default(cuid())
+  callId         String   @unique
+  scoredBy       String
+  greeting       Int      @default(0)
+  discovery      Int      @default(0)
+  objections     Int      @default(0)
+  closing        Int      @default(0)
+  compliance     Int      @default(0)
+  overall        Int      @default(0)
+  notes          String?  @db.Text
+  coachingPoints String[] @default([])
+  scoredAt       DateTime @default(now())
+  call           Call     @relation(fields: [callId], references: [id])
+  scorer         User     @relation("ScoredBy", fields: [scoredBy], references: [id])
+
+  @@index([scoredBy])
+  @@index([scoredAt])
+}
+
+// Event Log for real-time events
+model EventLog {
+  id        String   @id @default(cuid())
+  userId    String
+  eventType String
+  payload   Json?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([eventType, createdAt])
+}
+
+// Front-door / portal additions
+enum DocumentStatus {
+  PENDING
+  SIGNED
+  DECLINED
+  EXPIRED
+}
+
+model PortalRole {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  permissions Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  users       PortalUserRole[]
+}
+
+model PortalUserRole {
+  id        String     @id @default(cuid())
+  userId    String
+  roleId    String
+  createdAt DateTime   @default(now())
+  user      User       @relation(fields: [userId], references: [id])
+  role      PortalRole @relation(fields: [roleId], references: [id])
+
+  @@unique([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
+}
+
+model Document {
+  id          String         @id @default(cuid())
+  kind        String
+  title       String
+  description String?
+  required    Boolean        @default(true)
+  metadata    Json?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  userDocs    UserDocument[]
+
+  @@index([kind])
+}
+
+model UserDocument {
+  id          String         @id @default(cuid())
+  userId      String
+  documentId  String
+  status      DocumentStatus @default(PENDING)
+  signedAt    DateTime?
+  signUrl     String?
+  metadata    Json?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  user        User           @relation(fields: [userId], references: [id])
+  document    Document       @relation(fields: [documentId], references: [id])
+
+  @@unique([userId, documentId])
+  @@index([status])
+  @@index([userId])
+  @@index([documentId])
 }

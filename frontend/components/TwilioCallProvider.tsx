@@ -11,23 +11,28 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from "react";
 import { Device, Call } from "@twilio/voice-sdk";
+import { IncomingCallModal } from "./IncomingCallModal";
 
-type CallStatus = "idle" | "connecting" | "ringing" | "connected" | "ended" | "failed";
+type CallStatus = "idle" | "connecting" | "ringing" | "connected" | "ended" | "failed" | "incoming";
 
 interface TwilioCallContextValue {
   // State
   isReady: boolean;
   callStatus: CallStatus;
   activeCallNumber: string | null;
+  activeCallSid: string | null;
   duration: number;
   isMuted: boolean;
   error: string | null;
+  incomingCall: Call | null;
   
   // Actions
   makeCall: (phoneNumber: string, leadId?: string) => Promise<void>;
   endCall: () => void;
   toggleMute: () => void;
   sendDigits: (digits: string) => void;
+  answerIncoming: () => void;
+  rejectIncoming: () => void;
 }
 
 const TwilioCallContext = createContext<TwilioCallContextValue | null>(null);
@@ -47,9 +52,11 @@ interface TwilioCallProviderProps {
 export function TwilioCallProvider({ children }: TwilioCallProviderProps) {
   const [device, setDevice] = useState<Device | null>(null);
   const [activeCall, setActiveCall] = useState<Call | null>(null);
+  const [incomingCall, setIncomingCall] = useState<Call | null>(null);
   const [isReady, setIsReady] = useState(false);
   const [callStatus, setCallStatus] = useState<CallStatus>("idle");
   const [activeCallNumber, setActiveCallNumber] = useState<string | null>(null);
+  const [activeCallSid, setActiveCallSid] = useState<string | null>(null);
   const [duration, setDuration] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -74,7 +81,7 @@ export function TwilioCallProvider({ children }: TwilioCallProviderProps) {
         });
 
         dev.on("registered", () => {
-          console.log("Twilio Device registered (global)");
+          console.log("Twilio Device registered (global) - inbound enabled");
           setDevice(dev);
           setIsReady(true);
         });
@@ -82,6 +89,37 @@ export function TwilioCallProvider({ children }: TwilioCallProviderProps) {
         dev.on("error", (e) => {
           console.error("Twilio Device error:", e);
           setError(e.message);
+        });
+
+        // HANDLE INCOMING CALLS
+        dev.on("incoming", (call: Call) => {
+          console.log("Incoming call from:", call.parameters?.From);
+          setIncomingCall(call);
+          setCallStatus("incoming");
+          setActiveCallNumber(call.parameters?.From || "Unknown");
+
+          // Listen for caller hanging up
+          call.on("cancel", () => {
+            console.log("Incoming call cancelled");
+            setIncomingCall(null);
+            setCallStatus("idle");
+            setActiveCallNumber(null);
+          });
+
+          call.on("disconnect", () => {
+            console.log("Incoming call disconnected");
+            if (timerRef.current) {
+              clearInterval(timerRef.current);
+              timerRef.current = null;
+            }
+            setIncomingCall(null);
+            setActiveCall(null);
+            setCallStatus("ended");
+            setTimeout(() => {
+              setCallStatus("idle");
+              setActiveCallNumber(null);
+            }, 2000);
+          });
         });
 
         await dev.register();
@@ -151,11 +189,17 @@ export function TwilioCallProvider({ children }: TwilioCallProviderProps) {
       });
 
       setActiveCall(call);
+      // Store call SID for voicemail drop and other operations
+      const callSid = call.parameters?.CallSid || null;
+      setActiveCallSid(callSid);
 
       call.on("ringing", () => setCallStatus("ringing"));
       
       call.on("accept", () => {
         setCallStatus("connected");
+        // Update call SID after connection (may have changed)
+        const sid = call.parameters?.CallSid;
+        if (sid) setActiveCallSid(sid);
         const startTime = Date.now();
         timerRef.current = setInterval(() => {
           setDuration(Math.floor((Date.now() - startTime) / 1000));
@@ -169,6 +213,7 @@ export function TwilioCallProvider({ children }: TwilioCallProviderProps) {
         }
         setCallStatus("ended");
         setActiveCall(null);
+        setActiveCallSid(null);
         setDuration(0);
         setIsMuted(false);
         setTimeout(() => {
@@ -229,22 +274,96 @@ export function TwilioCallProvider({ children }: TwilioCallProviderProps) {
     }
   }, [activeCall, callStatus]);
 
+  // Answer incoming call
+  const answerIncoming = useCallback(() => {
+    if (!incomingCall) return;
+
+    try {
+      incomingCall.accept();
+      setActiveCall(incomingCall);
+      setIncomingCall(null);
+      setCallStatus("connected");
+      
+      // Start duration timer
+      const startTime = Date.now();
+      timerRef.current = setInterval(() => {
+        setDuration(Math.floor((Date.now() - startTime) / 1000));
+      }, 1000);
+
+      // Add disconnect handler
+      incomingCall.on("disconnect", () => {
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
+        setCallStatus("ended");
+        setActiveCall(null);
+        setDuration(0);
+        setIsMuted(false);
+        setTimeout(() => {
+          setCallStatus("idle");
+          setActiveCallNumber(null);
+        }, 2000);
+      });
+
+      console.log("Answered incoming call");
+    } catch (err) {
+      console.error("Failed to answer call:", err);
+      setError("Failed to answer call");
+    }
+  }, [incomingCall]);
+
+  // Reject incoming call
+  const rejectIncoming = useCallback(() => {
+    if (!incomingCall) return;
+
+    try {
+      incomingCall.reject();
+      setIncomingCall(null);
+      setCallStatus("idle");
+      setActiveCallNumber(null);
+      console.log("Rejected incoming call");
+    } catch (err) {
+      console.error("Failed to reject call:", err);
+    }
+  }, [incomingCall]);
+
   const value: TwilioCallContextValue = {
     isReady,
     callStatus,
     activeCallNumber,
+    activeCallSid,
     duration,
     isMuted,
     error,
+    incomingCall,
     makeCall,
     endCall,
     toggleMute,
     sendDigits,
+    answerIncoming,
+    rejectIncoming,
   };
 
   return (
     <TwilioCallContext.Provider value={value}>
       {children}
+      {/* Incoming Call Modal - renders when there's an incoming call */}
+      {incomingCall && callStatus === "incoming" && (
+        <IncomingCallModal
+          call={incomingCall}
+          callerInfo={{
+            phone: activeCallNumber || undefined,
+          }}
+          onAnswer={answerIncoming}
+          onReject={rejectIncoming}
+          onClose={() => {
+            setIncomingCall(null);
+            setCallStatus("idle");
+            setActiveCallNumber(null);
+          }}
+        />
+      )}
     </TwilioCallContext.Provider>
   );
 }

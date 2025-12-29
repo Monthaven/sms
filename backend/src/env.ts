@@ -32,7 +32,13 @@ export const env = {
 
   TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID ?? '',
   TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN ?? '',
-  TWILIO_MAIN_FROM: process.env.TWILIO_MAIN_FROM ?? ''
+  TWILIO_MAIN_FROM: process.env.TWILIO_MAIN_FROM ?? '',
+  TWILIO_MESSAGING_SERVICE_SID: optional('TWILIO_MESSAGING_SERVICE_SID'),
+
+  // DealMachine API (pull integration)
+  DEALMACHINE_API_BASE: optional('DEALMACHINE_API_BASE') || 'https://api.dealmachine.com',
+  DEALMACHINE_API_KEY: optional('DEALMACHINE_API_KEY'),
+  DEALMACHINE_PAGE_SIZE: Number(process.env.DEALMACHINE_PAGE_SIZE || 100)
 };
 
 // Indicate whether EzTexting credentials are present. Do not throw here so

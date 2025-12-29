@@ -22,6 +22,7 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { useToast } from "@/components/ToastProvider";
+import { NotificationSettings as BrowserPushSection } from "@/components/PushPermissionPrompt";
 
 type UserSettings = {
   name: string;
@@ -250,6 +251,9 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      {/* Browser Push Notifications */}
+      <BrowserPushSection />
+
       {/* Quiet Hours Section */}
       <div className="glass-panel rounded-xl p-6">
         <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
@@ -348,7 +352,7 @@ function ToggleOption({
         title={`Toggle ${label}`}
         aria-label={`${label}: ${checked ? 'on' : 'off'}`}
         role="switch"
-        aria-checked={checked}
+        aria-checked={checked ? "true" : "false"}
       >
         <div
           className={clsx(

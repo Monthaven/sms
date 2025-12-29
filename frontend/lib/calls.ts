@@ -32,6 +32,7 @@ export type InitiateCallParams = {
   leadId: string;
   userId: string;
   statusCallbackUrl?: string;
+  webrtc?: boolean; // If true, skip Twilio REST call - WebRTC device.connect() handles call
 };
 
 export type InitiateCallResult = {
@@ -109,11 +110,13 @@ export function isVoiceConfigured(): boolean {
 
 /**
  * Initiate an outbound call to a lead via Twilio
+ * For WebRTC browser calls, set webrtc=true to skip Twilio REST call (device.connect handles it)
  */
 export async function initiateCall({
   leadId,
   userId,
   statusCallbackUrl,
+  webrtc = false,
 }: InitiateCallParams): Promise<InitiateCallResult> {
   try {
     // Validate voice is configured
@@ -154,7 +157,23 @@ export async function initiateCall({
       },
     });
 
-    // Initiate Twilio call
+    // For WebRTC calls, don't create Twilio REST call - device.connect() handles it
+    if (webrtc) {
+      logger.info("WebRTC lead call record created (device.connect will initiate)", {
+        callId: call.id,
+        leadId,
+        to,
+      });
+
+      return {
+        success: true,
+        callId: call.id,
+        to,
+        contactName,
+      };
+    }
+
+    // For non-WebRTC calls, create Twilio REST call
     const client = getTwilioClient();
     const callbackUrl = statusCallbackUrl || `${appUrl}/api/webhooks/twilio/voice/status`;
     
@@ -198,16 +217,19 @@ export type InitiateManualCallParams = {
   userId: string;
   leadId?: string; // Optional - for context linking
   statusCallbackUrl?: string;
+  webrtc?: boolean; // If true, skip Twilio REST call - WebRTC device.connect() handles call
 };
 
 /**
  * Initiate an outbound call to an arbitrary phone number (manual dialing)
+ * For WebRTC browser calls, set webrtc=true to skip Twilio REST call (device.connect handles it)
  */
 export async function initiateManualCall({
   to,
   userId,
   leadId,
   statusCallbackUrl,
+  webrtc = false, // If true, skip Twilio REST API call - WebRTC device.connect() will handle it
 }: InitiateManualCallParams): Promise<InitiateCallResult> {
   try {
     // Validate voice is configured
@@ -251,7 +273,21 @@ export async function initiateManualCall({
       },
     });
 
-    // Initiate Twilio call
+    // For WebRTC calls, don't create a Twilio REST call - the device.connect() will handle it
+    if (webrtc) {
+      logger.info("WebRTC call record created (device.connect will initiate)", {
+        callId: call.id,
+        to: formattedTo,
+      });
+
+      return {
+        success: true,
+        callId: call.id,
+        to: formattedTo,
+      };
+    }
+
+    // For non-WebRTC calls (e.g., server-initiated), create Twilio REST call
     const client = getTwilioClient();
     const callbackUrl = statusCallbackUrl || `${appUrl}/api/webhooks/twilio/voice/status`;
     

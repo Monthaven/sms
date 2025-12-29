@@ -12,6 +12,8 @@ import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
 import FloatingDialer from "@/components/FloatingDialer";
 import { TwilioCallProvider } from "@/components/TwilioCallProvider";
+import { RealtimeProvider } from "@/components/RealtimeProvider";
+import { PushPermissionModal } from "@/components/PushPermissionPrompt";
 
 export default function DashboardLayout({
   children,
@@ -22,6 +24,7 @@ export default function DashboardLayout({
 
   return (
     <TwilioCallProvider>
+    <RealtimeProvider>
     <div className="flex h-screen w-full bg-[#050b14] overflow-hidden">
       
       {/* 1. Sidebar - hidden on mobile */}
@@ -52,7 +55,11 @@ export default function DashboardLayout({
 
       {/* 4. Floating Dialer - call/SMS with mode toggle */}
       <FloatingDialer />
+
+      {/* 5. Push Notification Permission Modal - shows once on first visit */}
+      <PushPermissionModal />
     </div>
+    </RealtimeProvider>
     </TwilioCallProvider>
   );
 }

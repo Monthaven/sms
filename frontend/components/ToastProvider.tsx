@@ -24,6 +24,7 @@ type Toast = {
   title: string;
   message?: string;
   duration?: number;
+  icon?: ReactNode;
 };
 
 type ToastContextType = {
@@ -134,7 +135,7 @@ function ToastContainer({
   return (
     <div className="fixed bottom-4 right-4 z-50 space-y-3 max-w-sm">
       {toasts.map((toast) => {
-        const Icon = toastIcons[toast.type];
+        const DefaultIcon = toastIcons[toast.type];
         return (
           <div
             key={toast.id}
@@ -144,7 +145,11 @@ function ToastContainer({
               toastColors[toast.type]
             )}
           >
-            <Icon size={20} className={toastIconColors[toast.type]} />
+            {toast.icon ? (
+              <span className={toastIconColors[toast.type]}>{toast.icon}</span>
+            ) : (
+              <DefaultIcon size={20} className={toastIconColors[toast.type]} />
+            )}
             <div className="flex-1 min-w-0">
               <p className="font-medium text-white text-sm">{toast.title}</p>
               {toast.message && (

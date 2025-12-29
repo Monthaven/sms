@@ -1,91 +1,179 @@
 /**
- * PROPRIETARY — Always Improving LLC
- * Copyright © 2025. All Rights Reserved.
- * No license granted. Access under Shareholders' Agreement §8.3.
+ * PROPRIETARY AND CONFIDENTIAL
+ *
+ * Landing portal with RBAC-aware tiles. Requires session cookies set by the app
+ * (`mae_user`, `mae_role`). If no session, redirect to /signin.
  */
 
-'use client';
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { ArrowUpRight, BadgeCheck, Gauge, MessageSquare, ShieldCheck } from "lucide-react";
 
-import React from 'react';
-import { Lock, ChevronRight, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
-import Card from '@/components/ui/Card';
-import { useFormStatus } from 'react-dom';
-import { loginAction } from './actions';
+import Card from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { getRolesFromCookies } from "@/lib/rbac";
+import "@/app/portal.css";
 
-interface LoginState {
-  error?: string;
+type PortalTile = {
+  id: string;
+  title: string;
+  description: string;
+  href: string;
+  badge?: string;
+  accent?: "emerald" | "amber" | "blue" | "violet";
+  requiredPermissions?: string[];
+  allowRoles?: string[];
+};
+
+const DESTINATIONS: PortalTile[] = [
+  {
+    id: "sms",
+    title: "SMS Operations",
+    description: "Lead queue, caller controls, and script management with compliant sender IDs.",
+    href: "/dashboard",
+    badge: "SMS",
+    accent: "blue",
+    requiredPermissions: ["sms:send", "sms:callers:manage", "sms:scripts:edit"],
+  },
+  {
+    id: "om",
+    title: "OM / Investors",
+    description: "Offering memorandums, investor views, NDAs, and gated document delivery.",
+    href: "/om",
+    badge: "OM",
+    accent: "emerald",
+    allowRoles: ["investor", "om_ops"],
+    requiredPermissions: ["om:view", "investor:read"],
+  },
+  {
+    id: "deals",
+    title: "Deals Workspace",
+    description: "Pipeline, LOIs, PSAs, and capital stack tracking with audit-ready history.",
+    href: "/deals",
+    badge: "Deals",
+    accent: "violet",
+    allowRoles: ["deals_ops"],
+    requiredPermissions: ["deals:view", "deals:edit"],
+  },
+  {
+    id: "admin",
+    title: "Admin Control",
+    description: "User provisioning, grant approvals, and platform telemetry with overrides.",
+    href: "/dashboard/admin",
+    badge: "Admin",
+    accent: "amber",
+    allowRoles: ["admin", "manager"],
+  },
+  {
+    id: "dev",
+    title: "Developer Console",
+    description: "Staging links, feature flags, and smoke tests for stack and database health.",
+    href: "/tools",
+    badge: "Dev",
+    accent: "blue",
+    allowRoles: ["dev"],
+    requiredPermissions: ["deals:view"],
+  },
+];
+
+const iconMap: Record<NonNullable<PortalTile["accent"]>, typeof Gauge> = {
+  emerald: ShieldCheck,
+  amber: BadgeCheck,
+  blue: MessageSquare,
+  violet: Gauge,
+};
+
+function normalizeRoles(roles: string[]) {
+  return roles.map((role) => role.trim().toLowerCase()).filter(Boolean);
 }
 
-const initialState: LoginState = { error: "" };
+function isTileAllowed(tile: PortalTile, roles: string[], can: (perm: string) => boolean) {
+  const normalized = normalizeRoles(roles);
+  const roleSet = new Set(normalized);
 
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button disabled={pending} className="w-full mt-2" icon={!pending ? <ChevronRight size={16} /> : undefined}>
-      {pending ? <Loader2 className="animate-spin" size={18} /> : "Authenticate"}
-    </Button>
-  );
+  if (roleSet.has("admin")) return true;
+  if (tile.allowRoles?.some((role) => roleSet.has(role))) return true;
+  if (!tile.requiredPermissions?.length) return true;
+  return tile.requiredPermissions.some((perm) => can(perm));
 }
 
-export default function LoginPage() {
-  const [state, formAction] = React.useActionState(loginAction, initialState);
+export default function PortalLanding() {
+  const cookieStore = cookies();
+  const hasSession = Boolean(cookieStore.get("mae_user")?.value);
+  if (!hasSession) {
+    redirect("/signin");
+  }
+
+  const { roles, can, membership, emailDisplay } = getRolesFromCookies(cookieStore);
+  if (membership === "pending") {
+    redirect("/awaiting-approval");
+  }
+
+  const allowedTiles = DESTINATIONS.filter((tile) => isTileAllowed(tile, roles, can));
 
   return (
-    <div className="h-screen w-full flex items-center justify-center bg-[#050b14] relative overflow-hidden">
-      {/* Background Effects */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_#1e293b_1px,_transparent_1px)] bg-[length:40px_40px] opacity-20"></div>
-      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-50"></div>
-
-      <div className="w-full max-w-md p-8 relative z-10">
-        <Card className="shadow-2xl border-slate-700/50">
-          
-          <div className="text-center mb-8">
-            <div className="w-12 h-12 mx-auto bg-gradient-to-tr from-blue-600 to-cyan-400 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20 mb-4">
-              <Lock className="text-white" size={24} />
-            </div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">Monthaven</h1>
-            <p className="text-slate-400 text-sm mt-2">Secure Access Gateway</p>
-          </div>
-
-          <form action={formAction} className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Agent Email</label>
-              <input 
-                name="email"
-                type="email" 
-                required
-                placeholder="Enter your email"
-                className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition-all"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Passkey</label>
-              <input 
-                name="passkey"
-                type="password" 
-                required
-                placeholder="Enter passkey"
-                className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition-all"
-              />
-            </div>
-
-            {state?.error && (
-              <div className="text-rose-400 text-sm bg-rose-500/10 border border-rose-500/30 rounded-lg px-3 py-2">
-                {state.error}
-              </div>
-            )}
-
-            <SubmitButton />
-          </form>
-
-          <div className="mt-6 text-center">
-            <p className="text-[10px] text-slate-500 font-mono">
-              SYSTEM STATUS: <span className="text-emerald-500">OPERATIONAL</span>
+    <div className="portal-landing">
+      <div className="portal-landing__shell">
+        <header className="portal-landing__header">
+          <div>
+            <p className="portal-landing__eyebrow">Unified Access</p>
+            <h1 className="portal-landing__title">Monthaven Command Portal</h1>
+            <p className="portal-landing__subtitle">
+              Single sign-on across SMS, OM/Investors, and Deals with role-aware routing.
             </p>
           </div>
-        </Card>
+          <Card className="portal-landing__session">
+            <div>
+              <p className="portal-landing__label">Signed in as</p>
+              <p className="portal-landing__value">{emailDisplay}</p>
+            </div>
+            <div className="portal-landing__badges">
+              <span className="portal-tiles__badge">membership: {membership}</span>
+              {roles.length ? <span className="portal-tiles__badge glass">{roles.join(", ")}</span> : <span className="portal-tiles__badge glass">no-roles</span>}
+            </div>
+          </Card>
+        </header>
+
+        <section className="portal-tiles__grid">
+          {allowedTiles.length === 0 ? (
+            <Card className="portal-tiles__empty">
+              <p className="portal-tiles__title">No destinations available</p>
+              <p className="portal-tiles__content">Your account is active, but no roles map to portal destinations. Contact an admin to request access.</p>
+            </Card>
+          ) : (
+            allowedTiles.map((tile) => {
+              const Icon = iconMap[tile.accent ?? "emerald"] ?? Gauge;
+              return (
+                <a key={tile.id} href={tile.href} className="portal-tiles__link">
+                  <Card className={`portal-tiles__card${tile.accent ? ` portal-tiles__card--${tile.accent}` : ""}`}>
+                    <div className="portal-tiles__card-header">
+                      <div className="portal-tiles__eyebrow">
+                        {tile.badge ? <span className="portal-tiles__badge">{tile.badge}</span> : null}
+                        <Icon aria-hidden="true" size={16} />
+                      </div>
+                      <h3>{tile.title}</h3>
+                    </div>
+                    <div className="portal-tiles__card-body">
+                      <p>{tile.description}</p>
+                      <span className="portal-tiles__cta">
+                        Open
+                        <ArrowUpRight size={16} aria-hidden="true" />
+                      </span>
+                    </div>
+                  </Card>
+                </a>
+              );
+            })
+          )}
+        </section>
+
+        <div className="portal-landing__footer">
+          <a href="/signin" className="portal-landing__button">
+            <Button variant="secondary" className="w-full">
+              Switch account
+            </Button>
+          </a>
+        </div>
       </div>
     </div>
   );

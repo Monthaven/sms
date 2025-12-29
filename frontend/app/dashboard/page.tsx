@@ -11,7 +11,7 @@ import Link from 'next/link';
 import { useDashboardStats } from '@/lib/hooks/useDashboardStats';
 import { KPICard } from '@/components/dashboard/KPICard';
 import { SystemGauge } from '@/components/dashboard/SystemGauge';
-import { Phone, DollarSign, Activity, Users, Inbox, MessageSquare, PhoneCall, BarChart3, Settings } from 'lucide-react';
+import { Phone, DollarSign, Activity, Users, Inbox, MessageSquare, PhoneCall, BarChart3, Settings, GitBranch } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import type { Lead } from '@/lib/api';
 import type { AgentPresence } from '@/lib/hooks/useAgents';
@@ -20,7 +20,7 @@ import type { AgentPresence } from '@/lib/hooks/useAgents';
 const quickActions = [
   { label: "Inbox", href: "/dashboard/inbox", icon: Inbox, color: "blue" },
   { label: "Call Queue", href: "/dashboard/queue", icon: PhoneCall, color: "emerald" },
-  { label: "Chat", href: "/dashboard/chat", icon: MessageSquare, color: "purple" },
+  { label: "Sequences", href: "/sequences", icon: GitBranch, color: "purple" },
   { label: "Reports", href: "/dashboard/reports", icon: BarChart3, color: "amber" },
 ];
 

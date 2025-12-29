@@ -1,18 +1,91 @@
 /**
  * PROPRIETARY — Always Improving LLC
- * Copyright © 2025. All Rights Reserved.
- * No license granted. Access under Shareholders' Agreement §8.3.
+ * Quiet Hours Enforcement - TCPA Compliance
  */
 
-/**
- * Quiet Hours enforcement utilities.
- * Ensures messages are only sent during business hours in recipient's timezone.
- * 
- * TCPA compliance: 8am-9pm local time
- */
+import { logger } from "./logger";
 
-// ZIP code to timezone mapping (first 3 digits of ZIP)
-// This is a simplified mapping - production should use a full database
+interface TimeWindow {
+  start: number; // 24-hour format (e.g., 8 for 8 AM)
+  end: number;   // 24-hour format (e.g., 21 for 9 PM)
+}
+
+// State-specific quiet hours (using TCPA minimums where state law is silent)
+// Default: 8 AM - 9 PM local time per TCPA
+const STATE_QUIET_HOURS: Record<string, TimeWindow> = {
+  // States with stricter laws
+  CA: { start: 8, end: 21 },    // California - 8 AM to 9 PM
+  FL: { start: 8, end: 20 },    // Florida - 8 AM to 8 PM (stricter)
+  GA: { start: 8, end: 21 },    // Georgia - TCPA default
+  IL: { start: 8, end: 21 },    // Illinois - TCPA default
+  MI: { start: 9, end: 21 },    // Michigan - 9 AM to 9 PM
+  NC: { start: 8, end: 21 },    // North Carolina - TCPA default
+  NJ: { start: 8, end: 21 },    // New Jersey - TCPA default
+  NY: { start: 8, end: 21 },    // New York - TCPA default (some local stricter)
+  OH: { start: 8, end: 21 },    // Ohio - TCPA default
+  PA: { start: 8, end: 21 },    // Pennsylvania - TCPA default
+  TN: { start: 8, end: 21 },    // Tennessee - TCPA default
+  TX: { start: 8, end: 21 },    // Texas - TCPA default
+  VA: { start: 8, end: 21 },    // Virginia - TCPA default
+  WA: { start: 8, end: 20 },    // Washington - 8 AM to 8 PM (stricter)
+  DEFAULT: { start: 8, end: 21 }, // Federal TCPA default
+};
+
+// Timezone mappings by state
+const STATE_TIMEZONES: Record<string, string> = {
+  AL: "America/Chicago",
+  AK: "America/Anchorage",
+  AZ: "America/Phoenix",
+  AR: "America/Chicago",
+  CA: "America/Los_Angeles",
+  CO: "America/Denver",
+  CT: "America/New_York",
+  DE: "America/New_York",
+  FL: "America/New_York",
+  GA: "America/New_York",
+  HI: "Pacific/Honolulu",
+  ID: "America/Boise",
+  IL: "America/Chicago",
+  IN: "America/Indiana/Indianapolis",
+  IA: "America/Chicago",
+  KS: "America/Chicago",
+  KY: "America/Kentucky/Louisville",
+  LA: "America/Chicago",
+  ME: "America/New_York",
+  MD: "America/New_York",
+  MA: "America/New_York",
+  MI: "America/Detroit",
+  MN: "America/Chicago",
+  MS: "America/Chicago",
+  MO: "America/Chicago",
+  MT: "America/Denver",
+  NE: "America/Chicago",
+  NV: "America/Los_Angeles",
+  NH: "America/New_York",
+  NJ: "America/New_York",
+  NM: "America/Denver",
+  NY: "America/New_York",
+  NC: "America/New_York",
+  ND: "America/Chicago",
+  OH: "America/New_York",
+  OK: "America/Chicago",
+  OR: "America/Los_Angeles",
+  PA: "America/New_York",
+  RI: "America/New_York",
+  SC: "America/New_York",
+  SD: "America/Chicago",
+  TN: "America/Chicago",
+  TX: "America/Chicago",
+  UT: "America/Denver",
+  VT: "America/New_York",
+  VA: "America/New_York",
+  WA: "America/Los_Angeles",
+  WV: "America/New_York",
+  WI: "America/Chicago",
+  WY: "America/Denver",
+};
+
+// Also keep ZIP code to timezone mapping for additional precision
 const ZIP_TIMEZONE_MAP: Record<string, string> = {
   // Eastern Time
   "100": "America/New_York", "101": "America/New_York", "102": "America/New_York", // NY
@@ -324,7 +397,7 @@ export interface QuietHoursResult {
  * Check if a message can be sent now based on recipient's ZIP code.
  * Returns canSend: true if within 8am-9pm local time.
  */
-export function checkQuietHours(zip: string | null | undefined): QuietHoursResult {
+export function checkQuietHoursLegacy(zip: string | null | undefined): QuietHoursResult {
   const timezone = getTimezoneForZip(zip);
   const now = new Date();
   const localHour = getLocalHour(timezone, now);
@@ -366,9 +439,153 @@ export function checkQuietHours(zip: string | null | undefined): QuietHoursResul
  * Returns the next valid send time.
  */
 export function getNextSendTime(zip: string | null | undefined): Date {
-  const result = checkQuietHours(zip);
+  const result = checkQuietHoursLegacy(zip);
   if (result.canSend) {
     return new Date();
   }
   return result.nextSendAt ?? new Date();
 }
+
+// =============================================================================
+// Enhanced Quiet Hours API (State + Timezone based)
+// =============================================================================
+
+export interface EnhancedQuietHoursResult {
+  allowed: boolean;
+  reason?: string;
+  nextAllowedTime?: Date;
+  localTime?: string;
+  timezone?: string;
+}
+
+/**
+ * Check if messaging is allowed based on recipient's state/timezone
+ */
+export function checkQuietHours(
+  state?: string | null,
+  contactTimezone?: string | null
+): EnhancedQuietHoursResult {
+  const log = logger.child({ fn: "checkQuietHours" });
+  
+  // Determine timezone from state if not provided directly
+  const timezone = contactTimezone || 
+    (state && STATE_TIMEZONES[state.toUpperCase()]) || 
+    "America/New_York";
+
+  // Get current time in recipient's timezone
+  const now = new Date();
+  const localTimeStr = now.toLocaleString("en-US", { 
+    timeZone: timezone,
+    hour12: false,
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  
+  const [hourStr] = localTimeStr.split(":");
+  const currentHour = parseInt(hourStr, 10);
+
+  // Get quiet hours for state
+  const quietHours = state ? 
+    (STATE_QUIET_HOURS[state.toUpperCase()] || STATE_QUIET_HOURS.DEFAULT) :
+    STATE_QUIET_HOURS.DEFAULT;
+
+  // Check if current time is within allowed window
+  const isAllowed = currentHour >= quietHours.start && currentHour < quietHours.end;
+
+  if (isAllowed) {
+    return {
+      allowed: true,
+      localTime: localTimeStr,
+      timezone,
+    };
+  }
+
+  // Calculate next allowed time
+  let nextAllowedTime: Date;
+  if (currentHour < quietHours.start) {
+    // Before morning start - next allowed is today at start
+    nextAllowedTime = new Date(now);
+    nextAllowedTime.setHours(quietHours.start, 0, 0, 0);
+  } else {
+    // After evening end - next allowed is tomorrow at start
+    nextAllowedTime = new Date(now);
+    nextAllowedTime.setDate(nextAllowedTime.getDate() + 1);
+    nextAllowedTime.setHours(quietHours.start, 0, 0, 0);
+  }
+
+  const reason = currentHour < quietHours.start
+    ? `Too early: ${localTimeStr} local time (allowed: ${quietHours.start}:00 - ${quietHours.end}:00)`
+    : `Too late: ${localTimeStr} local time (allowed: ${quietHours.start}:00 - ${quietHours.end}:00)`;
+
+  log.debug("Message blocked by quiet hours", { 
+    state, 
+    timezone, 
+    localTimeStr, 
+    currentHour,
+    quietHours,
+  });
+
+  return {
+    allowed: false,
+    reason,
+    nextAllowedTime,
+    localTime: localTimeStr,
+    timezone,
+  };
+}
+
+/**
+ * Schedule optimal send time respecting quiet hours
+ */
+export function getOptimalSendTime(
+  preferredTime: Date,
+  state?: string | null,
+  contactTimezone?: string | null
+): Date {
+  const check = checkQuietHours(state, contactTimezone);
+  
+  if (check.allowed) {
+    return preferredTime;
+  }
+
+  // Return next allowed time
+  return check.nextAllowedTime || new Date(preferredTime.getTime() + 12 * 60 * 60 * 1000);
+}
+
+/**
+ * Check multiple contacts and return which can be messaged now
+ */
+export function filterByQuietHours<T extends { state?: string | null; timezone?: string | null }>(
+  contacts: T[]
+): { allowed: T[]; blocked: Array<T & { blockReason: string }> } {
+  const allowed: T[] = [];
+  const blocked: Array<T & { blockReason: string }> = [];
+
+  for (const contact of contacts) {
+    const result = checkQuietHours(contact.state, contact.timezone);
+    if (result.allowed) {
+      allowed.push(contact);
+    } else {
+      blocked.push({ ...contact, blockReason: result.reason || "Quiet hours" });
+    }
+  }
+
+  return { allowed, blocked };
+}
+
+/**
+ * Get business hours summary for UI display
+ */
+export function getBusinessHoursDisplay(state?: string): string {
+  const hours = state ? 
+    (STATE_QUIET_HOURS[state.toUpperCase()] || STATE_QUIET_HOURS.DEFAULT) :
+    STATE_QUIET_HOURS.DEFAULT;
+
+  const formatHour = (h: number) => {
+    if (h === 0) return "12 AM";
+    if (h === 12) return "12 PM";
+    if (h < 12) return `${h} AM`;
+    return `${h - 12} PM`;
+  };
+
+  return `${formatHour(hours.start)} - ${formatHour(hours.end)}`;}
