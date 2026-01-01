@@ -12,7 +12,7 @@ import { ArrowUpRight, BadgeCheck, Gauge, MessageSquare, ShieldCheck } from "luc
 import { FadeIn } from "@/components/motion/FadeIn";
 import { Stagger, StaggerItem } from "@/components/motion/Stagger";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Card, { CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { cn } from "@/lib/utils";
 
 export type PortalTile = {

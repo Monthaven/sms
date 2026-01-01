@@ -8,7 +8,7 @@
 
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -76,7 +76,10 @@ async function fetchContacts(params: {
   query.set('offset', String(params.offset || 0));
   
   const res = await fetch(`/api/contacts?${query}`);
-  if (!res.ok) throw new Error('Failed to fetch contacts');
+  if (!res.ok) {
+    const msg = await res.text().catch(() => 'Failed to fetch contacts');
+    throw new Error(msg || 'Failed to fetch contacts');
+  }
   return res.json();
 }
 
@@ -100,6 +103,11 @@ export default function EnrollPage() {
   const [tierFilter, setTierFilter] = useState('all');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [enrollResult, setEnrollResult] = useState<EnrollmentResult | null>(null);
+  const [page, setPage] = useState(0);
+  const pageSize = 100;
+  useEffect(() => {
+    setPage(0);
+  }, [search, tierFilter]);
 
   const { data: sequence, isLoading: loadingSequence } = useQuery({
     queryKey: ['sequence', sequenceId],
@@ -107,9 +115,9 @@ export default function EnrollPage() {
     enabled: !!sequenceId,
   });
 
-  const { data: contactsData, isLoading: loadingContacts } = useQuery({
-    queryKey: ['contacts', { search, tier: tierFilter }],
-    queryFn: () => fetchContacts({ search, tier: tierFilter, limit: 100 }),
+  const { data: contactsData, isLoading: loadingContacts, isError: contactsError, error: contactsErrorObj, isFetching } = useQuery({
+    queryKey: ['contacts', { search, tier: tierFilter, page }],
+    queryFn: () => fetchContacts({ search, tier: tierFilter, limit: pageSize, offset: page * pageSize }),
   });
 
   const enrollMutation = useMutation({
@@ -120,10 +128,18 @@ export default function EnrollPage() {
       queryClient.invalidateQueries({ queryKey: ['sequence', sequenceId] });
       queryClient.invalidateQueries({ queryKey: ['sequences'] });
     },
+    onError: (err: any) => {
+      setEnrollResult({
+        enrolled: 0,
+        skipped: 0,
+        errors: [err?.message || 'Failed to enroll contacts'],
+      });
+    },
   });
 
   const contacts = contactsData?.contacts || [];
   const totalContacts = contactsData?.total || 0;
+  const maxPage = Math.max(0, Math.ceil(totalContacts / pageSize) - 1);
 
   const toggleSelect = (id: string) => {
     const newSelected = new Set(selectedIds);
@@ -260,6 +276,32 @@ export default function EnrollPage() {
         </select>
       </div>
 
+      {/* Pagination Controls */}
+      <div className="flex items-center justify-between text-sm text-slate-400">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            disabled={page === 0 || isFetching}
+            className="px-3 py-1 rounded-lg border border-slate-700 hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Prev
+          </button>
+          <button
+            onClick={() => {
+              setPage((p) => Math.min(maxPage, p + 1));
+            }}
+            disabled={isFetching || contacts.length + page * pageSize >= totalContacts}
+            className="px-3 py-1 rounded-lg border border-slate-700 hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Next
+          </button>
+        </div>
+        <div>
+          Page {page + 1} • Showing {contacts.length} of {totalContacts}
+          {isFetching && <span className="ml-2 text-blue-400">Loading…</span>}
+        </div>
+      </div>
+
       {/* Selection Actions */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -301,11 +343,29 @@ export default function EnrollPage() {
             <Loader2 size={32} className="mx-auto animate-spin text-blue-400 mb-4" />
             <p className="text-slate-400">Loading contacts...</p>
           </div>
+        ) : contactsError ? (
+          <div className="p-8 text-center space-y-3">
+            <AlertCircle size={32} className="mx-auto text-amber-400" />
+            <p className="text-slate-300">Failed to load contacts</p>
+            <p className="text-slate-500 text-sm">{(contactsErrorObj as Error)?.message || 'Unknown error'}</p>
+            <button
+              onClick={() => queryClient.invalidateQueries({ queryKey: ['contacts', { search, tier: tierFilter, page }] })}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors"
+            >
+              Retry
+            </button>
+          </div>
         ) : contacts.length === 0 ? (
           <div className="p-12 text-center">
             <Users size={48} className="mx-auto text-slate-600 mb-4" />
             <h3 className="text-lg font-medium text-white mb-2">No contacts found</h3>
-            <p className="text-slate-400 text-sm">Try adjusting your search or filters</p>
+            <p className="text-slate-400 text-sm mb-4">Try adjusting your search or filters, or import new contacts.</p>
+            <Link
+              href="/dashboard/import"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors"
+            >
+              Import contacts
+            </Link>
           </div>
         ) : (
           <div className="overflow-x-auto">

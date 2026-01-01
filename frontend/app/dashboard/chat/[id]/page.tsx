@@ -26,6 +26,7 @@ import {
   Phone,
   TrendingUp,
   User,
+  Sparkles,
 } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -207,6 +208,21 @@ export default async function LeadDetailPage({
                       {new Date(lead.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                     </span>
                   </div>
+                </div>
+
+                {/* Quick Actions */}
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <Link
+                    href={`/sequences?contactId=${lead.contact.id}`}
+                    className="inline-flex items-center gap-2 rounded-lg border border-blue-500/40 bg-blue-500/10 px-3 py-1.5 text-sm text-blue-200 hover:bg-blue-500/20 transition"
+                  >
+                    <Sparkles size={14} />
+                    Enroll in sequence
+                  </Link>
+                  <TwilioPhoneLink phoneNumber={lead.contact.phoneE164} leadId={lead.id} className="inline-flex items-center gap-2 rounded-lg border border-slate-700 px-3 py-1.5 text-sm text-slate-200 hover:bg-slate-800/60">
+                    <Phone size={14} />
+                    Call now
+                  </TwilioPhoneLink>
                 </div>
               </div>
             </div>

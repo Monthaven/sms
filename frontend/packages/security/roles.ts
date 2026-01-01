@@ -28,14 +28,14 @@ export function permissionsForRoles(roles: string[] | undefined) {
   for (const rawRole of roles ?? []) {
     const role = normalizeRole(rawRole) as Role | null;
     if (!role) continue;
-    const list = rolePermissions[role];
+    const list = rolePermissions[role] as readonly Permission[];
     if (!list) continue;
-    if (list.includes("*")) {
+    if ((list as readonly Permission[]).includes("*")) {
       perms.clear();
       perms.add("*");
       return perms;
     }
-    list.forEach((p) => perms.add(p));
+    list.forEach((p) => perms.add(p as Permission));
   }
   return perms;
 }
@@ -43,5 +43,5 @@ export function permissionsForRoles(roles: string[] | undefined) {
 export function can(roles: string[] | undefined, permission: string) {
   if (!roles?.length) return false;
   const perms = permissionsForRoles(roles);
-  return perms.has("*") || perms.has(permission);
+  return perms.has("*") || perms.has(permission as Permission);
 }

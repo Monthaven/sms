@@ -10,6 +10,7 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
+import { checkRateLimit, getClientIP, RATE_LIMITS, rateLimitHeaders } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -22,11 +23,20 @@ const db = prisma as any;
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: any
 ) {
-  const { id } = await params;
+  const { id } = params;
   
   try {
+    const clientIP = getClientIP(request);
+    const rateLimit = checkRateLimit(`automation_exec:${id}:${clientIP}`, RATE_LIMITS.api);
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { error: 'Too many requests' },
+        { status: 429, headers: rateLimitHeaders(rateLimit) }
+      );
+    }
+
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -114,7 +124,7 @@ export async function POST(
       log,
       durationMs,
       ...(errorMessage && { error: errorMessage }),
-    });
+    }, { headers: rateLimitHeaders(rateLimit) });
   } catch (error: any) {
     console.error('Failed to execute automation:', error);
     return NextResponse.json(
@@ -255,10 +265,13 @@ async function executeAction(
     }
 
     case 'webhook': {
-      // Call external webhook
+      // Call external webhook with allowlist validation
       if (!config.webhookUrl) throw new Error('Webhook URL required in action config');
+      const parsed = safeWebhookUrl(config.webhookUrl);
+      if (!parsed) throw new Error('Invalid webhook URL');
+      if (!isWebhookAllowed(parsed)) throw new Error('Webhook host not allowed');
       
-      const response = await fetch(config.webhookUrl, {
+      const response = await fetch(parsed.toString(), {
         method: config.method || 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -280,7 +293,7 @@ async function executeAction(
 
       return { 
         webhookCalled: true, 
-        url: config.webhookUrl,
+        url: parsed.toString(),
         status: response.status,
       };
     }
@@ -299,4 +312,23 @@ async function executeAction(
     default:
       throw new Error(`Unknown action type: ${actionType}`);
   }
+}
+
+function safeWebhookUrl(raw: string): URL | null {
+  try {
+    const url = new URL(raw);
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') return null;
+    return url;
+  } catch {
+    return null;
+  }
+}
+
+function isWebhookAllowed(url: URL): boolean {
+  const allowlist = process.env.ALLOWED_WEBHOOK_HOSTS
+    ?.split(',')
+    .map((h) => h.trim().toLowerCase())
+    .filter(Boolean);
+  if (!allowlist || allowlist.length === 0) return false;
+  return allowlist.includes(url.hostname.toLowerCase());
 }

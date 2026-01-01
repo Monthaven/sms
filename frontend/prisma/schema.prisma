@@ -9,101 +9,103 @@ datasource db {
 }
 
 model User {
-  id                 String         @id @default(cuid())
-  email              String         @unique
+  id                 String    @id @default(cuid())
+  email              String    @unique
   name               String?
-  role               UserRole       @default(AGENT)
-  passwordHash       String?        // For secure password authentication
-  lastLoginAt        DateTime?      // Track last login
-  loginAttempts      Int            @default(0) // For rate limiting
-  lockedUntil        DateTime?      // Account lockout
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
+  role               UserRole  @default(AGENT)
+  passwordHash       String? // For secure password authentication
+  lastLoginAt        DateTime? // Track last login
+  loginAttempts      Int       @default(0) // For rate limiting
+  lockedUntil        DateTime? // Account lockout
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
   contractEnvelopeId String?
   contractSignedAt   DateTime?
-  sections           String[]       @default([])
-  twilioNumber       String?        // Twilio number assigned to this agent
-  forwardNumber      String?        // Personal cell to forward calls to
-  acceptsInbound     Boolean        @default(true) // Whether agent accepts inbound calls
+  sections           String[]  @default([])
+  twilioNumber       String? // Twilio number assigned to this agent
+  forwardNumber      String? // Personal cell to forward calls to
+  acceptsInbound     Boolean   @default(true) // Whether agent accepts inbound calls
   settings           Json?
-  
+
   // Agent status tracking
-  isOnline           Boolean        @default(false)
-  status             AgentStatus    @default(OFFLINE)
-  statusSince        DateTime?
-  lastActiveAt       DateTime?
-  currentCallId      String?        // Currently active call SID
-  breakReason        String?        // Lunch, Personal, Training
-  shiftStart         DateTime?
-  shiftEnd           DateTime?
-  assignedNumbers    String[]       @default([]) // Multiple caller IDs
-  pushSubscription   Json?          // Web push subscription
-  
-  activityLogs       AuditLog[]
-  calls              Call[]
-  ingestionJobs      IngestionJob[] @relation("IngestionStartedBy")
-  interactions       Interaction[]
-  assignedLeads      Lead[]
-  auditLogs          LeadAudit[]
-  notifications      Notification[]
-  statusLogs         AgentStatusLog[]
-  qualityScores      QualityScore[] @relation("ScoredBy")
-  smsTemplates       SmsTemplate[]
-  scheduledMessages  ScheduledMessage[]
+  isOnline         Boolean     @default(false)
+  status           AgentStatus @default(OFFLINE)
+  statusSince      DateTime?
+  lastActiveAt     DateTime?
+  currentCallId    String? // Currently active call SID
+  breakReason      String? // Lunch, Personal, Training
+  shiftStart       DateTime?
+  shiftEnd         DateTime?
+  assignedNumbers  String[]    @default([]) // Multiple caller IDs
+  pushSubscription Json? // Web push subscription
+
+  activityLogs      AuditLog[]
+  calls             Call[]
+  ingestionJobs     IngestionJob[]     @relation("IngestionStartedBy")
+  interactions      Interaction[]
+  assignedLeads     Lead[]
+  auditLogs         LeadAudit[]
+  notifications     Notification[]
+  statusLogs        AgentStatusLog[]
+  qualityScores     QualityScore[]     @relation("ScoredBy")
+  smsTemplates      SmsTemplate[]
+  scheduledMessages ScheduledMessage[]
+  portalRoles       PortalUserRole[]
+  userDocuments     UserDocument[]
 }
 
 model Contact {
-  id                                    String        @id @default(cuid())
-  phoneE164                             String        @unique
-  phoneType                             String?
-  firstName                             String?
-  lastName                              String?
-  email                                 String?
-  source                                String        @default("DEALMACHINE")
-  priority                              String        @default("LOW")
-  score                                 Int?
-  smsAllowed                            Boolean       @default(false)
-  callOnly                              Boolean       @default(false)
-  doNotContact                          Boolean       @default(false)
-  ownerMatch                            Boolean       @default(false)
-  blockReason                           String?
-  createdAt                             DateTime      @default(now())
-  updatedAt                             DateTime      @updatedAt
-  intent                                String?
-  intentSource                          String?
-  sendCount                             Int?          @default(0)
-  receiveCount                          Int?          @default(0)
-  lastSentAt                            DateTime?     @db.Timestamp(6)
-  lastReceivedAt                        DateTime?     @db.Timestamp(6)
-  lastContactedAt                       DateTime?     @db.Timestamp(6)
-  flagsRaw                              String?
-  blockDate                             DateTime?     @db.Timestamp(6)
-  archived                              Boolean?      @default(false)
-  sourceFile                            String?
-  decision_maker                        Boolean       @default(false)
-  dm_score                              Float?
-  dm_tier                               String?
-  first_name                            String?
-  full_name                             String?
-  has_title                             Boolean       @default(false)
-  is_primary                            Boolean       @default(false)
-  last_name                             String?
-  owner_match                           Boolean       @default(false)
-  phone_1                               String?
-  phone_1_type                          String?
-  phone_2                               String?
-  phone_2_type                          String?
-  phone_3                               String?
-  phone_3_type                          String?
-  propertyId                            String?
-  title                                 String?
-  ownerNameMatch                        Boolean       @default(false)
-  phoneValid                            Boolean       @default(true)
-  smsConsent                            Boolean       @default(false)
-  
+  id              String    @id @default(cuid())
+  phoneE164       String    @unique
+  phoneType       String?
+  firstName       String?
+  lastName        String?
+  email           String?
+  source          String    @default("DEALMACHINE")
+  priority        String    @default("LOW")
+  score           Int?
+  smsAllowed      Boolean   @default(false)
+  callOnly        Boolean   @default(false)
+  doNotContact    Boolean   @default(false)
+  ownerMatch      Boolean   @default(false)
+  blockReason     String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  intent          String?
+  intentSource    String?
+  sendCount       Int?      @default(0)
+  receiveCount    Int?      @default(0)
+  lastSentAt      DateTime? @db.Timestamp(6)
+  lastReceivedAt  DateTime? @db.Timestamp(6)
+  lastContactedAt DateTime? @db.Timestamp(6)
+  flagsRaw        String?
+  blockDate       DateTime? @db.Timestamp(6)
+  archived        Boolean?  @default(false)
+  sourceFile      String?
+  decision_maker  Boolean   @default(false)
+  dm_score        Float?
+  dm_tier         String?
+  first_name      String?
+  full_name       String?
+  has_title       Boolean   @default(false)
+  is_primary      Boolean   @default(false)
+  last_name       String?
+  owner_match     Boolean   @default(false)
+  phone_1         String?
+  phone_1_type    String?
+  phone_2         String?
+  phone_2_type    String?
+  phone_3         String?
+  phone_3_type    String?
+  propertyId      String?
+  title           String?
+  ownerNameMatch  Boolean   @default(false)
+  phoneValid      Boolean   @default(true)
+  smsConsent      Boolean   @default(false)
+
   // Consent tracking
   smsConsentAt       DateTime?
-  smsConsentSource   String?   // 'FORM', 'REPLY', 'IMPORT'
+  smsConsentSource   String? // 'FORM', 'REPLY', 'IMPORT'
   callConsent        Boolean   @default(false)
   callConsentAt      DateTime?
   callConsentSource  String?
@@ -112,11 +114,11 @@ model Contact {
   emailConsentSource String?
   emailBounced       Boolean   @default(false)
   phoneInvalid       Boolean   @default(false)
-  timezone           String?   // IANA timezone
-  doNotContactReason String?   // OPT_OUT, DNC_LIST, LITIGATION
-  
+  timezone           String? // IANA timezone
+  doNotContactReason String? // OPT_OUT, DNC_LIST, LITIGATION
+
   calls                                 Call[]
-  Property_Contact_propertyIdToProperty Property?     @relation("Contact_propertyIdToProperty", fields: [propertyId], references: [id])
+  Property_Contact_propertyIdToProperty Property?          @relation("Contact_propertyIdToProperty", fields: [propertyId], references: [id])
   interactions                          Interaction[]
   leads                                 Lead[]
   Message                               Message[]
@@ -177,27 +179,27 @@ model Campaign {
 }
 
 model Lead {
-  id             String      @id @default(cuid())
-  campaignId     String
-  contactId      String
-  propertyId     String?
-  status         LeadStatus  @default(NEW)
-  sentimentScore Int         @default(0)
-  assignedToId   String?
-  isFlagged      Boolean     @default(false)
-  notes          String?
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
-  assignedAt     DateTime?
-  callbackAt     DateTime?
-  lockExpiresAt  DateTime?
-  calls               Call[]
-  assignedTo          User?       @relation(fields: [assignedToId], references: [id])
-  campaign            Campaign    @relation(fields: [campaignId], references: [id])
-  contact             Contact     @relation(fields: [contactId], references: [id])
-  property            Property?   @relation(fields: [propertyId], references: [id])
-  audits              LeadAudit[]
-  scheduledMessages   ScheduledMessage[]
+  id                String             @id @default(cuid())
+  campaignId        String
+  contactId         String
+  propertyId        String?
+  status            LeadStatus         @default(NEW)
+  sentimentScore    Int                @default(0)
+  assignedToId      String?
+  isFlagged         Boolean            @default(false)
+  notes             String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  assignedAt        DateTime?
+  callbackAt        DateTime?
+  lockExpiresAt     DateTime?
+  calls             Call[]
+  assignedTo        User?              @relation(fields: [assignedToId], references: [id])
+  campaign          Campaign           @relation(fields: [campaignId], references: [id])
+  contact           Contact            @relation(fields: [contactId], references: [id])
+  property          Property?          @relation(fields: [propertyId], references: [id])
+  audits            LeadAudit[]
+  scheduledMessages ScheduledMessage[]
 
   @@unique([campaignId, contactId, propertyId])
   @@index([status])
@@ -249,26 +251,26 @@ model Call {
   startedAt     DateTime  @default(now())
   answeredAt    DateTime?
   endedAt       DateTime?
-  
+
   // Enhanced call features
-  fromNumber       String?
-  toNumber         String?
-  transcription    String?   @db.Text
-  aiSummary        String?   @db.Text
-  aiInterestScore  Int?
-  holdStartedAt    DateTime?
-  holdDuration     Int?
-  transferredFrom  String?   // userId
-  transferredTo    String?   // userId
-  monitoredBy      String?   // managerId
+  fromNumber        String?
+  toNumber          String?
+  transcription     String?   @db.Text
+  aiSummary         String?   @db.Text
+  aiInterestScore   Int?
+  holdStartedAt     DateTime?
+  holdDuration      Int?
+  transferredFrom   String? // userId
+  transferredTo     String? // userId
+  monitoredBy       String? // managerId
   recordingDuration Int?
-  voicemailUrl     String?
-  callerIdUsed     String?
-  
-  contact       Contact?  @relation(fields: [contactId], references: [id])
-  lead          Lead?     @relation(fields: [leadId], references: [id])
-  user          User      @relation(fields: [userId], references: [id])
-  qualityScore  QualityScore?
+  voicemailUrl      String?
+  callerIdUsed      String?
+
+  contact      Contact?      @relation(fields: [contactId], references: [id])
+  lead         Lead?         @relation(fields: [leadId], references: [id])
+  user         User          @relation(fields: [userId], references: [id])
+  qualityScore QualityScore?
 
   @@index([userId, startedAt])
   @@index([leadId])
@@ -371,56 +373,56 @@ model SequenceContact {
 // ============================================================================
 
 model Automation {
-  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id          String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name        String
   description String?
-  isActive    Boolean   @default(false)
-  
+  isActive    Boolean @default(false)
+
   // Trigger configuration
-  triggerType String    // lead_score_change, new_lead, contact_update, call_ended, sms_received, etc.
-  triggerConditions Json?  // Conditions that must be met (e.g., { "scoreGte": 80 })
-  
+  triggerType       String // lead_score_change, new_lead, contact_update, call_ended, sms_received, etc.
+  triggerConditions Json? // Conditions that must be met (e.g., { "scoreGte": 80 })
+
   // Action configuration
-  actionType  String    // send_sms, enroll_sequence, assign_agent, update_status, send_notification, etc.
-  actionConfig Json?    // Action-specific config (e.g., { "templateId": "xxx", "sequenceId": "yyy" })
-  
+  actionType   String // send_sms, enroll_sequence, assign_agent, update_status, send_notification, etc.
+  actionConfig Json? // Action-specific config (e.g., { "templateId": "xxx", "sequenceId": "yyy" })
+
   // Rate limiting / scheduling
-  maxExecutionsPerDay Int?  @default(100)
-  executionCount Int      @default(0)
-  lastExecutedAt DateTime?
-  
+  maxExecutionsPerDay Int?      @default(100)
+  executionCount      Int       @default(0)
+  lastExecutedAt      DateTime?
+
   // Targeting
-  targetTiers  String[]  @default([])  // Which dm_tier values to target
+  targetTiers    String[] @default([]) // Which dm_tier values to target
   targetStatuses String[] @default([]) // Which lead statuses to target
-  
+
   // Statistics
-  totalExecutions Int     @default(0)
-  successCount    Int     @default(0)
-  failureCount    Int     @default(0)
-  
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  
+  totalExecutions Int @default(0)
+  successCount    Int @default(0)
+  failureCount    Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  logs        AutomationLog[]
+  logs AutomationLog[]
 }
 
 model AutomationLog {
-  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  automationId  String    @db.Uuid
-  contactId     String?
-  leadId        String?
-  
-  status        String    // success, failed, skipped
-  triggerData   Json?     // The data that triggered the automation
-  actionResult  Json?     // The result of the action
-  errorMessage  String?
-  
-  executedAt    DateTime  @default(now())
-  durationMs    Int?
-  
-  automation    Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
-  
+  id           String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  automationId String  @db.Uuid
+  contactId    String?
+  leadId       String?
+
+  status       String // success, failed, skipped
+  triggerData  Json? // The data that triggered the automation
+  actionResult Json? // The result of the action
+  errorMessage String?
+
+  executedAt DateTime @default(now())
+  durationMs Int?
+
+  automation Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+
   @@index([automationId, executedAt])
   @@index([contactId])
   @@index([leadId])
@@ -1274,12 +1276,12 @@ enum DocumentStatus {
 }
 
 model PortalRole {
-  id          String   @id @default(cuid())
-  name        String   @unique
+  id          String           @id @default(cuid())
+  name        String           @unique
   description String?
   permissions Json?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
   users       PortalUserRole[]
 }
 
@@ -1311,17 +1313,17 @@ model Document {
 }
 
 model UserDocument {
-  id          String         @id @default(cuid())
-  userId      String
-  documentId  String
-  status      DocumentStatus @default(PENDING)
-  signedAt    DateTime?
-  signUrl     String?
-  metadata    Json?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  user        User           @relation(fields: [userId], references: [id])
-  document    Document       @relation(fields: [documentId], references: [id])
+  id         String         @id @default(cuid())
+  userId     String
+  documentId String
+  status     DocumentStatus @default(PENDING)
+  signedAt   DateTime?
+  signUrl    String?
+  metadata   Json?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  user       User           @relation(fields: [userId], references: [id])
+  document   Document       @relation(fields: [documentId], references: [id])
 
   @@unique([userId, documentId])
   @@index([status])

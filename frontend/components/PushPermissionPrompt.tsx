@@ -275,7 +275,7 @@ export function NotificationSettings() {
           <div>
             <h3 className="text-white font-semibold">Push Notifications</h3>
             <p className="text-slate-400 text-sm">
-              Your browser doesn't support push notifications.
+              Your browser doesn&apos;t support push notifications.
             </p>
           </div>
         </div>
@@ -360,8 +360,8 @@ export function NotificationSettings() {
             <div className="text-sm text-amber-200">
               <p className="font-medium mb-1">Notifications are blocked</p>
               <p className="text-amber-300/80">
-                To enable notifications, click the lock icon in your browser's address bar 
-                and change the notification setting to "Allow".
+                To enable notifications, click the lock icon in your browser&apos;s address bar 
+                and change the notification setting to &quot;Allow&quot;.
               </p>
             </div>
           </div>

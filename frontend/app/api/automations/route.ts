@@ -273,11 +273,14 @@ async function getSystemAutomations(): Promise<SystemAutomation[]> {
   ];
 }
 
+type AutomationStatus = SystemAutomation["status"];
+type AutomationPayload = { status: AutomationStatus };
+
 function deriveJobStatus(job?: {
   status: string;
   startedAt: Date;
   finishedAt: Date | null;
-}): AutomationPayload["status"] {
+}): AutomationStatus {
   if (!job) return "warning";
   if (job.status === "FAILED") return "paused";
 
@@ -286,7 +289,7 @@ function deriveJobStatus(job?: {
   return "warning";
 }
 
-function deriveWebhookStatus(latest?: { createdAt: Date }): AutomationPayload["status"] {
+function deriveWebhookStatus(latest?: { createdAt: Date }): AutomationStatus {
   if (!latest) return "warning";
   const diffMs = Date.now() - latest.createdAt.getTime();
   if (diffMs < 1000 * 60 * 5) return "healthy";
@@ -294,7 +297,7 @@ function deriveWebhookStatus(latest?: { createdAt: Date }): AutomationPayload["s
   return "paused";
 }
 
-function deriveHeartbeatStatus(jobs: { status: string }[]): AutomationPayload["status"] {
+function deriveHeartbeatStatus(jobs: { status: string }[]): AutomationStatus {
   const failures = jobs.filter((job) => job.status === "FAILED").length;
   if (failures >= 2) return "paused";
   if (failures === 1) return "warning";

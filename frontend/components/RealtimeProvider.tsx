@@ -65,6 +65,11 @@ export function useRealtime() {
   return context;
 }
 
+// Safe variant that returns null instead of throwing when provider is absent
+export function useRealtimeOptional() {
+  return useContext(RealtimeContext);
+}
+
 interface RealtimeProviderProps {
   children: React.ReactNode;
   userId?: string;

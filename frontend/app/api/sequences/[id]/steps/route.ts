@@ -19,9 +19,9 @@ import { getCurrentUser } from "@/lib/auth";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  context: any
 ) {
-  const { id } = await params;
+  const { id } = context.params;
   
   const currentUser = await getCurrentUser();
   if (!currentUser) {
@@ -50,9 +50,9 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  context: any
 ) {
-  const { id } = await params;
+  const { id } = context.params;
   
   const currentUser = await getCurrentUser();
   if (!currentUser) {
@@ -108,9 +108,9 @@ export async function POST(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  context: any
 ) {
-  const { id } = await params;
+  const { id } = context.params;
   
   const currentUser = await getCurrentUser();
   if (!currentUser) {

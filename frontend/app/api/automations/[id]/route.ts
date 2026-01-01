@@ -19,9 +19,9 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: any
 ) {
-  const { id } = await params;
+  const { id } = params;
   
   try {
     const user = await getCurrentUser();
@@ -79,9 +79,9 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: any
 ) {
-  const { id } = await params;
+  const { id } = params;
   
   try {
     const user = await getCurrentUser();
@@ -148,9 +148,9 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: any
 ) {
-  const { id } = await params;
+  const { id } = params;
   
   try {
     const user = await getCurrentUser();

@@ -97,8 +97,8 @@ function isTileAllowed(tile: PortalTile, roles: string[], can: (perm: string) =>
   return tile.requiredPermissions.some((perm) => can(perm));
 }
 
-export default function PortalLanding() {
-  const cookieStore = cookies();
+export default async function PortalLanding() {
+  const cookieStore = await cookies();
   const hasSession = Boolean(cookieStore.get("mae_user")?.value);
   if (!hasSession) {
     redirect("/signin");

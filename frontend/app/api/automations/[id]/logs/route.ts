@@ -18,9 +18,9 @@ const db = prisma as any;
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: any
 ) {
-  const { id } = await params;
+  const { id } = params;
   
   try {
     const user = await getCurrentUser();

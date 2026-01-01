@@ -9,10 +9,10 @@ import { redirect } from "next/navigation";
 import { Section } from "@/app/(ui)/Section";
 import { FadeIn } from "@/components/motion/FadeIn";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Card, { CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { getSessionFromCookies } from "@/lib/auth/get-session";
 import { rolesFromSession } from "@/lib/rbac";
-import { type PortalTile, PortalTiles } from "@/app/(portal)/components/PortalTiles";
+import { type PortalTile, PortalTiles } from "./components/PortalTiles";
 import { can as canWithRoles } from "@/packages/security/roles";
 
 export const metadata = { title: "Access Portal ƒ?› Monthaven" };

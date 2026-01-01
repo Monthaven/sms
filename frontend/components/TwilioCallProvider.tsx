@@ -12,6 +12,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from "react";
 import { Device, Call } from "@twilio/voice-sdk";
 import { IncomingCallModal } from "./IncomingCallModal";
+import { useToast } from "@/components/ToastProvider";
 
 type CallStatus = "idle" | "connecting" | "ringing" | "connected" | "ended" | "failed" | "incoming";
 
@@ -63,6 +64,7 @@ export function TwilioCallProvider({ children }: TwilioCallProviderProps) {
   
   const deviceRef = useRef<Device | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const { addToast } = useToast();
 
   // Initialize Twilio Device on mount
   useEffect(() => {
@@ -327,6 +329,17 @@ export function TwilioCallProvider({ children }: TwilioCallProviderProps) {
       console.error("Failed to reject call:", err);
     }
   }, [incomingCall]);
+
+  // Surface device/call errors via toast
+  useEffect(() => {
+    if (!error) return;
+    addToast({
+      type: "error",
+      title: "Call error",
+      message: error,
+      duration: 6000,
+    });
+  }, [error, addToast]);
 
   const value: TwilioCallContextValue = {
     isReady,

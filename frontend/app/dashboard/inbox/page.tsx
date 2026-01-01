@@ -30,6 +30,7 @@ import clsx from "clsx";
 import LeadActionButtons from "@/components/LeadActionButtons";
 import CallLogButton from "@/components/CallLogButton";
 import ReplyComposer from "@/components/ReplyComposer";
+import { Sparkles } from "lucide-react";
 
 type StatusKey =
   | "RESP_HOT"
@@ -296,6 +297,17 @@ export default function InboxPage() {
                       >
                         Call
                       </TwilioCallButton>
+                    )}
+                    {selected.contact && (
+                      <Button
+                        className="text-xs"
+                        icon={<Sparkles size={14} />}
+                        onClick={() => {
+                          window.location.href = `/sequences?contactId=${selected.contact?.phoneE164 ?? ""}`;
+                        }}
+                      >
+                        Enroll
+                      </Button>
                     )}
                     <Button
                       className="text-xs"

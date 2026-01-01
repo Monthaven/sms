@@ -10,7 +10,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Flame, MessageCircle, Phone, Bell, Check, Trash2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { useRealtime, type RealtimeEvent } from "./RealtimeProvider";
+import { useRealtimeOptional, type RealtimeEvent } from "./RealtimeProvider";
 
 type Notification = {
   id: string;
@@ -26,14 +26,7 @@ export default function NotificationsPanel() {
   const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
-  
-  // Try to use realtime context - may not exist if not wrapped in provider
-  let realtimeContext: ReturnType<typeof useRealtime> | null = null;
-  try {
-    realtimeContext = useRealtime();
-  } catch {
-    // Not in a RealtimeProvider context, that's okay
-  }
+  const realtimeContext = useRealtimeOptional();
 
   // Handle real-time events
   const handleRealtimeEvent = useCallback((event: RealtimeEvent) => {

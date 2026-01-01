@@ -4,8 +4,6 @@
  * No license granted. Access under Shareholders' Agreement A8.3.
  */
 
-import type { JWTPayload } from "jose";
-
 import type { PortalSession } from "@/lib/auth/get-session";
 import { can as canWithRoles, permissionsForRoles } from "@/packages/security/roles";
 
@@ -25,7 +23,7 @@ function normalizeStringList(value: unknown): string[] {
   return [];
 }
 
-function extractRolesFromClaims(claims: JWTPayload | undefined) {
+function extractRolesFromClaims(claims: any | undefined) {
   if (!claims) return [];
   const direct = normalizeStringList((claims as Record<string, unknown>).roles);
   const role = typeof claims.role === "string" ? claims.role : null;

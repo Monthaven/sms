@@ -147,7 +147,10 @@ export function DialPad({ leadId, contactName }: DialPadProps) {
     const setup = async () => {
       try {
         const res = await fetch("/api/twilio/token");
-        if (!res.ok) throw new Error("Unable to fetch Twilio token");
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(text || "Unable to fetch Twilio token");
+        }
         const data = await res.json();
         const dev = new Device(data.token, { codecPreferences: [Call.Codec.Opus, Call.Codec.PCMU] });
         dev.on("registered", () => setDevice(dev));
@@ -174,12 +177,20 @@ export function DialPad({ leadId, contactName }: DialPadProps) {
   };
 
   const startCall = useCallback(async () => {
-    if (!device) {
-      setError("Device not ready");
+    if (callerIds.length > 0 && !selectedCallerId) {
+      setError("Select a caller ID before dialing");
       return;
     }
     const sanitizedManual = manualNumber.replace(/[^\d+]/g, "");
     const useManual = sanitizedManual.length > 0;
+    if (useManual && sanitizedManual.length < 7) {
+      setError("Enter a valid destination number");
+      return;
+    }
+    if (!device) {
+      setError("Device not ready");
+      return;
+    }
     setError(null);
     setStatus("connecting");
     try {
@@ -250,7 +261,7 @@ export function DialPad({ leadId, contactName }: DialPadProps) {
       setError(err instanceof Error ? err.message : "Call failed");
       setStatus("failed");
     }
-  }, [device, leadId, endCall, manualNumber, selectedCallerId]);
+  }, [device, leadId, endCall, manualNumber, selectedCallerId, callerIds.length]);
 
   const formatDuration = (s: number) => {
     const mins = Math.floor(s / 60);
@@ -324,7 +335,7 @@ export function DialPad({ leadId, contactName }: DialPadProps) {
           inputMode="tel"
           autoComplete="tel"
         />
-        <p className="text-[11px] text-slate-500">Enter to override queue target and dial directly.</p>
+            <p className="text-[11px] text-slate-500">Enter to override queue target and dial directly.</p>
       </div>
 
       {/* Caller ID Selection */}

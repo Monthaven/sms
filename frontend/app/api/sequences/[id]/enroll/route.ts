@@ -25,15 +25,60 @@ export async function GET() {
   return NextResponse.json(sequences);
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(req: NextRequest, context: any) {
   const currentUser = await getCurrentUser();
   if (!currentUser) {
     return NextResponse.json({ error: { message: "Unauthorized" } }, { status: 401 });
   }
 
-  const { name, description } = await req.json();
-  const sequence = await prisma.sequence.create({
-    data: { name, description },
-  });
-  return NextResponse.json(sequence, { status: 201 });
+  const { id } = context.params;
+  const body = await req.json().catch(() => ({}));
+  const contactIds: string[] = Array.isArray(body.contactIds) ? body.contactIds : [];
+
+  if (!contactIds.length) {
+    return NextResponse.json(
+      { error: { message: "contactIds array is required" } },
+      { status: 400 }
+    );
+  }
+
+  const sequence = await prisma.sequence.findUnique({ where: { id } });
+  if (!sequence) {
+    return NextResponse.json(
+      { error: { message: "Sequence not found" } },
+      { status: 404 }
+    );
+  }
+
+  let enrolled = 0;
+  let skipped = 0;
+  const errors: string[] = [];
+
+  for (const contactId of contactIds) {
+    try {
+      await prisma.sequenceContact.upsert({
+        where: {
+          sequence_id_contact_id: {
+            sequence_id: id,
+            contact_id: contactId,
+          },
+        },
+        update: {
+          status: "active",
+        },
+        create: {
+          sequence_id: id,
+          contact_id: contactId,
+          status: "active",
+          current_step: 0,
+        },
+      });
+      enrolled += 1;
+    } catch (err: any) {
+      skipped += 1;
+      errors.push(`contact ${contactId}: ${err?.message || "failed"}`);
+    }
+  }
+
+  return NextResponse.json({ enrolled, skipped, errors });
 }
