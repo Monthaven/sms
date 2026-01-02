@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { logger, generateRequestId } from "@/lib/logger";
 
 export async function GET(req: NextRequest) {
   const currentUser = await getCurrentUser();
@@ -60,7 +61,8 @@ export async function GET(req: NextRequest) {
       hasMore: offset + logs.length < total,
     });
   } catch (error) {
-    console.error("Audit logs error:", error);
-    return NextResponse.json({ error: "Failed to fetch audit logs" }, { status: 500 });
+    const requestId = generateRequestId();
+    logger.error("Audit logs error", { requestId }, error as Error);
+    return NextResponse.json({ error: "Failed to fetch audit logs", requestId }, { status: 500 });
   }
 }

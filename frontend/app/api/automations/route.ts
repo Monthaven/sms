@@ -11,6 +11,7 @@
 import { NextResponse, NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { logger, generateRequestId } from "@/lib/logger";
 
 const db = prisma as any;
 
@@ -98,7 +99,7 @@ export async function GET(request: NextRequest) {
         type: 'user' as const,
       }));
     } catch (err: any) {
-      console.debug('User automations query failed:', err?.message);
+      logger.debug('User automations query failed', { error: err?.message });
     }
   }
 
@@ -195,9 +196,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ automation }, { status: 201 });
   } catch (error: any) {
-    console.error('Failed to create automation:', error);
+    const requestId = generateRequestId();
+    logger.error('Failed to create automation', { requestId }, error);
     return NextResponse.json(
-      { error: 'Failed to create automation', details: error.message },
+      { error: 'Failed to create automation', requestId, details: error.message },
       { status: 500 }
     );
   }
@@ -232,7 +234,7 @@ async function getSystemAutomations(): Promise<SystemAutomation[]> {
     jobs = results[0] || [];
     webhooks = results[1] || [];
   } catch (err: any) {
-    console.debug("System automations query failed:", err?.message);
+    logger.debug("System automations query failed", { error: err?.message });
     jobs = [];
     webhooks = [];
   }

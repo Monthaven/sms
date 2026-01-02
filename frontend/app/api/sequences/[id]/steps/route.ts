@@ -12,6 +12,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { logger, generateRequestId } from "@/lib/logger";
 
 // ============================================================================
 // GET - Get all steps for a sequence
@@ -36,9 +37,10 @@ export async function GET(
 
     return NextResponse.json(steps);
   } catch (error: any) {
-    console.error("Failed to fetch steps:", error);
+    const requestId = generateRequestId();
+    logger.error("Failed to fetch steps", { requestId, sequenceId: id }, error);
     return NextResponse.json(
-      { error: { message: "Failed to fetch steps" } },
+      { error: { message: "Failed to fetch steps", requestId } },
       { status: 500 }
     );
   }
@@ -94,9 +96,10 @@ export async function POST(
 
     return NextResponse.json(step, { status: 201 });
   } catch (error: any) {
-    console.error("Failed to create step:", error);
+    const requestId = generateRequestId();
+    logger.error("Failed to create step", { requestId, sequenceId: id }, error);
     return NextResponse.json(
-      { error: { message: "Failed to create step" } },
+      { error: { message: "Failed to create step", requestId } },
       { status: 500 }
     );
   }
@@ -140,9 +143,10 @@ export async function PUT(
 
     return NextResponse.json({ updated: updates.length });
   } catch (error: any) {
-    console.error("Failed to update steps:", error);
+    const requestId = generateRequestId();
+    logger.error("Failed to update steps", { requestId, sequenceId: id }, error);
     return NextResponse.json(
-      { error: { message: "Failed to update steps" } },
+      { error: { message: "Failed to update steps", requestId } },
       { status: 500 }
     );
   }

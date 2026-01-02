@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { logger, generateRequestId } from "@/lib/logger";
 
 export async function POST(req: NextRequest) {
   // Verify cron secret
@@ -51,7 +52,8 @@ export async function POST(req: NextRequest) {
       // deletedEvents: deletedEvents.count,
     });
   } catch (error) {
-    console.error("Cleanup expired error:", error);
-    return NextResponse.json({ error: "Internal error" }, { status: 500 });
+    const requestId = generateRequestId();
+    logger.error("Cleanup expired error", { requestId }, error as Error);
+    return NextResponse.json({ error: "Internal error", requestId }, { status: 500 });
   }
 }

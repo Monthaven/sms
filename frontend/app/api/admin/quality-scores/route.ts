@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { z } from "zod";
+import { logger, generateRequestId } from "@/lib/logger";
 
 const createScoreSchema = z.object({
   callId: z.string(),
@@ -83,8 +84,9 @@ export async function GET(req: NextRequest) {
       offset,
     });
   } catch (error) {
-    console.error("Quality scores error:", error);
-    return NextResponse.json({ error: "Failed to fetch scores" }, { status: 500 });
+    const requestId = generateRequestId();
+    logger.error("Quality scores error", { requestId }, error as Error);
+    return NextResponse.json({ error: "Failed to fetch scores", requestId }, { status: 500 });
   }
 }
 
@@ -165,7 +167,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(score, { status: 201 });
   } catch (error) {
-    console.error("Create score error:", error);
-    return NextResponse.json({ error: "Failed to create score" }, { status: 500 });
+    const requestId = generateRequestId();
+    logger.error("Create score error", { requestId }, error as Error);
+    return NextResponse.json({ error: "Failed to create score", requestId }, { status: 500 });
   }
 }

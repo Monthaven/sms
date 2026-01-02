@@ -11,6 +11,7 @@ import { NextResponse, NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
 import { checkRateLimit, getClientIP, RATE_LIMITS, rateLimitHeaders } from '@/lib/rate-limit';
+import { logger, generateRequestId } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -126,9 +127,10 @@ export async function POST(
       ...(errorMessage && { error: errorMessage }),
     }, { headers: rateLimitHeaders(rateLimit) });
   } catch (error: any) {
-    console.error('Failed to execute automation:', error);
+    const requestId = generateRequestId();
+    logger.error('Failed to execute automation', { requestId, automationId: id }, error);
     return NextResponse.json(
-      { error: 'Failed to execute automation', details: error.message },
+      { error: 'Failed to execute automation', requestId, details: error.message },
       { status: 500 }
     );
   }

@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { logger, generateRequestId } from "@/lib/logger";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,7 +20,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Manager access required" }, { status: 403 });
   }
 
-  const now = new Date();
+  try {
+    const now = new Date();
   const todayStart = new Date(now);
   todayStart.setHours(0, 0, 0, 0);
 
@@ -161,4 +163,9 @@ export async function GET(req: NextRequest) {
     statusBreakdown,
     timestamp: now.toISOString(),
   });
+  } catch (error) {
+    const requestId = generateRequestId();
+    logger.error("Dashboard live fetch error", { requestId }, error as Error);
+    return NextResponse.json({ error: "Failed to fetch live data", requestId }, { status: 500 });
+  }
 }

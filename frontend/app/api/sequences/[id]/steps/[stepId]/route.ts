@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { logger, generateRequestId } from "@/lib/logger";
 
 export async function PATCH(request: NextRequest, context: any) {
   const { id, stepId } = context.params;
@@ -32,11 +33,12 @@ export async function PATCH(request: NextRequest, context: any) {
 
     return NextResponse.json(step);
   } catch (error: any) {
-    console.error("Failed to update step:", error);
+    const requestId = generateRequestId();
+    logger.error("Failed to update step", { requestId, stepId }, error);
     if (error.code === "P2025") {
-      return NextResponse.json({ error: { message: "Step not found" } }, { status: 404 });
+      return NextResponse.json({ error: { message: "Step not found", requestId } }, { status: 404 });
     }
-    return NextResponse.json({ error: { message: "Failed to update step" } }, { status: 500 });
+    return NextResponse.json({ error: { message: "Failed to update step", requestId } }, { status: 500 });
   }
 }
 
@@ -53,10 +55,11 @@ export async function DELETE(request: NextRequest, context: any) {
     });
     return NextResponse.json({ success: true, deleted: stepId });
   } catch (error: any) {
-    console.error("Failed to delete step:", error);
+    const requestId = generateRequestId();
+    logger.error("Failed to delete step", { requestId, stepId }, error);
     if (error.code === "P2025") {
-      return NextResponse.json({ error: { message: "Step not found" } }, { status: 404 });
+      return NextResponse.json({ error: { message: "Step not found", requestId } }, { status: 404 });
     }
-    return NextResponse.json({ error: { message: "Failed to delete step" } }, { status: 500 });
+    return NextResponse.json({ error: { message: "Failed to delete step", requestId } }, { status: 500 });
   }
 }

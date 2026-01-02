@@ -10,6 +10,7 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
+import { logger, generateRequestId } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -78,9 +79,10 @@ export async function GET(
       },
     });
   } catch (error: any) {
-    console.error('Failed to get automation logs:', error);
+    const requestId = generateRequestId();
+    logger.error('Failed to get automation logs', { requestId, automationId: id }, error);
     return NextResponse.json(
-      { error: 'Failed to get automation logs', details: error.message },
+      { error: 'Failed to get automation logs', requestId, details: error.message },
       { status: 500 }
     );
   }

@@ -7,6 +7,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { Prisma } from "@prisma/client";
+import { logger, generateRequestId } from "@/lib/logger";
 
 export async function POST() {
   const currentUser = await getCurrentUser();
@@ -25,7 +26,8 @@ export async function POST() {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Failed to unsubscribe from push:", error);
-    return NextResponse.json({ error: "Failed to unsubscribe" }, { status: 500 });
+    const requestId = generateRequestId();
+    logger.error("Failed to unsubscribe from push", { requestId }, error as Error);
+    return NextResponse.json({ error: "Failed to unsubscribe", requestId }, { status: 500 });
   }
 }

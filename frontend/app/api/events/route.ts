@@ -6,6 +6,7 @@
 import { NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { logger } from "@/lib/logger";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -84,7 +85,7 @@ export async function GET(req: NextRequest) {
           controller.enqueue(encoder.encode(`: heartbeat ${Date.now()}\n\n`));
 
         } catch (error) {
-          console.error("SSE poll error:", error);
+          logger.error("SSE poll error", { userId: user.id }, error as Error);
         }
       }, 3000);
 

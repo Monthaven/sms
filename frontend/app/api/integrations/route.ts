@@ -8,6 +8,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { evaluateTwilioStatus } from "@/lib/integrations";
 import { getCurrentUser } from "@/lib/auth";
+import { logger } from "@/lib/logger";
 
 const db = prisma as any;
 
@@ -46,7 +47,7 @@ export async function GET() {
     logs = results[0] || [];
     twilioStatus = results[1] || twilioStatus;
   } catch (err: any) {
-    console.debug && console.debug("Integrations route: prisma query failed, returning defaults.", err?.code || err?.message || err);
+    logger.debug("Integrations route: prisma query failed, returning defaults", { error: err?.code || err?.message });
     logs = [];
     twilioStatus = { status: "missing" };
   }

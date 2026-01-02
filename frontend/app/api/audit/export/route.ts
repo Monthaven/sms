@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { logger, generateRequestId } from "@/lib/logger";
 
 export async function GET(req: NextRequest) {
   const currentUser = await getCurrentUser();
@@ -63,7 +64,8 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Audit export error:", error);
-    return NextResponse.json({ error: "Failed to export audit logs" }, { status: 500 });
+    const requestId = generateRequestId();
+    logger.error("Audit export error", { requestId }, error as Error);
+    return NextResponse.json({ error: "Failed to export audit logs", requestId }, { status: 500 });
   }
 }

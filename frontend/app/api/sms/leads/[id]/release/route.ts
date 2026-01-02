@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { publishEvent, events } from "@/lib/events";
+import { logger, generateRequestId } from "@/lib/logger";
 
 export async function POST(
   req: NextRequest,
@@ -65,7 +66,8 @@ export async function POST(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Release lead error:", error);
-    return NextResponse.json({ error: "Failed to release lead" }, { status: 500 });
+    const requestId = generateRequestId();
+    logger.error("Release lead error", { requestId, leadId: id }, error as Error);
+    return NextResponse.json({ error: "Failed to release lead", requestId }, { status: 500 });
   }
 }

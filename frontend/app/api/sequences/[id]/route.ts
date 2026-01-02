@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { logger, generateRequestId } from "@/lib/logger";
 
 // ============================================================================
 // GET - Get single sequence by ID
@@ -49,9 +50,10 @@ export async function GET(
 
     return NextResponse.json(sequence);
   } catch (error: any) {
-    console.error("Failed to fetch sequence:", error);
+    const requestId = generateRequestId();
+    logger.error("Failed to fetch sequence", { requestId, sequenceId: id }, error);
     return NextResponse.json(
-      { error: { message: "Failed to fetch sequence" } },
+      { error: { message: "Failed to fetch sequence", requestId } },
       { status: 500 }
     );
   }
@@ -91,15 +93,16 @@ export async function PUT(
 
     return NextResponse.json(sequence);
   } catch (error: any) {
-    console.error("Failed to update sequence:", error);
+    const requestId = generateRequestId();
+    logger.error("Failed to update sequence", { requestId, sequenceId: id }, error);
     if (error.code === 'P2025') {
       return NextResponse.json(
-        { error: { message: "Sequence not found" } },
+        { error: { message: "Sequence not found", requestId } },
         { status: 404 }
       );
     }
     return NextResponse.json(
-      { error: { message: "Failed to update sequence" } },
+      { error: { message: "Failed to update sequence", requestId } },
       { status: 500 }
     );
   }
@@ -137,15 +140,16 @@ export async function DELETE(
 
     return NextResponse.json({ success: true, deleted: id });
   } catch (error: any) {
-    console.error("Failed to delete sequence:", error);
+    const requestId = generateRequestId();
+    logger.error("Failed to delete sequence", { requestId, sequenceId: id }, error);
     if (error.code === 'P2025') {
       return NextResponse.json(
-        { error: { message: "Sequence not found" } },
+        { error: { message: "Sequence not found", requestId } },
         { status: 404 }
       );
     }
     return NextResponse.json(
-      { error: { message: "Failed to delete sequence" } },
+      { error: { message: "Failed to delete sequence", requestId } },
       { status: 500 }
     );
   }

@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { logger, generateRequestId } from "@/lib/logger";
 
 export async function POST(req: NextRequest) {
   const currentUser = await getCurrentUser();
@@ -35,7 +36,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Failed to mark notification as read:", error);
-    return NextResponse.json({ error: "Failed to update" }, { status: 500 });
+    const requestId = generateRequestId();
+    logger.error("Failed to mark notification as read", { requestId }, error as Error);
+    return NextResponse.json({ error: "Failed to update", requestId }, { status: 500 });
   }
 }

@@ -9,6 +9,7 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
+import { logger, generateRequestId } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -65,9 +66,10 @@ export async function GET(
         : 0,
     });
   } catch (error: any) {
-    console.error('Failed to get automation:', error);
+    const requestId = generateRequestId();
+    logger.error('Failed to get automation', { requestId, automationId: id }, error);
     return NextResponse.json(
-      { error: 'Failed to get automation', details: error.message },
+      { error: 'Failed to get automation', requestId, details: error.message },
       { status: 500 }
     );
   }
@@ -134,9 +136,10 @@ export async function PUT(
 
     return NextResponse.json({ automation });
   } catch (error: any) {
-    console.error('Failed to update automation:', error);
+    const requestId = generateRequestId();
+    logger.error('Failed to update automation', { requestId, automationId: id }, error);
     return NextResponse.json(
-      { error: 'Failed to update automation', details: error.message },
+      { error: 'Failed to update automation', requestId, details: error.message },
       { status: 500 }
     );
   }
@@ -180,9 +183,10 @@ export async function DELETE(
 
     return NextResponse.json({ success: true, deleted: id });
   } catch (error: any) {
-    console.error('Failed to delete automation:', error);
+    const requestId = generateRequestId();
+    logger.error('Failed to delete automation', { requestId, automationId: id }, error);
     return NextResponse.json(
-      { error: 'Failed to delete automation', details: error.message },
+      { error: 'Failed to delete automation', requestId, details: error.message },
       { status: 500 }
     );
   }

@@ -6,6 +6,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { logger, generateRequestId } from "@/lib/logger";
 
 export async function GET() {
   const currentUser = await getCurrentUser();
@@ -51,7 +52,8 @@ export async function GET() {
       total: callsWithDuration.length,
     });
   } catch (error) {
-    console.error("Live calls error:", error);
-    return NextResponse.json({ error: "Failed to fetch live calls" }, { status: 500 });
+    const requestId = generateRequestId();
+    logger.error("Live calls error", { requestId }, error as Error);
+    return NextResponse.json({ error: "Failed to fetch live calls", requestId }, { status: 500 });
   }
 }

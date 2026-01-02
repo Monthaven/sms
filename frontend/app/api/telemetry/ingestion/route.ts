@@ -8,6 +8,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import type { PrismaClient } from "@prisma/client";
+import { logger, generateRequestId } from "@/lib/logger";
 
 // Extended Prisma type for optional models that may not exist in all environments
 type ExtendedPrismaClient = PrismaClient & {
@@ -32,17 +33,23 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const delegate = db?.ingestionJob;
-  if (!delegate) {
-    return NextResponse.json([]);
+  try {
+    const delegate = db?.ingestionJob;
+    if (!delegate) {
+      return NextResponse.json([]);
+    }
+    const jobs = await delegate.findMany({
+      orderBy: { startedAt: "desc" },
+      take: 25,
+    include: {
+      campaign: { select: { name: true } },
+      startedBy: { select: { name: true, email: true } },
+    }
+    });
+    return NextResponse.json(jobs);
+  } catch (error) {
+    const requestId = generateRequestId();
+    logger.error("Telemetry ingestion fetch error", { requestId }, error as Error);
+    return NextResponse.json({ error: "Failed to fetch ingestion jobs", requestId }, { status: 500 });
   }
-  const jobs = await delegate.findMany({
-    orderBy: { startedAt: "desc" },
-    take: 25,
-  include: {
-    campaign: { select: { name: true } },
-    startedBy: { select: { name: true, email: true } },
-  }
-  });
-  return NextResponse.json(jobs);
 }

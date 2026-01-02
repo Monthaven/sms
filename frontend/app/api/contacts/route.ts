@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { checkRateLimit, getClientIP, RATE_LIMITS, rateLimitHeaders } from "@/lib/rate-limit";
+import { logger, generateRequestId } from "@/lib/logger";
 
 export async function GET(request: NextRequest) {
   const currentUser = await getCurrentUser();
@@ -24,8 +25,9 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const searchParams = request.nextUrl.searchParams;
-  const search = searchParams.get("search")?.trim();
+  try {
+    const searchParams = request.nextUrl.searchParams;
+    const search = searchParams.get("search")?.trim();
   const tier = searchParams.get("tier");
   const take = Math.min(Number(searchParams.get("limit") || 50), 200);
   const skip = Number(searchParams.get("offset") || 0);
@@ -68,4 +70,12 @@ export async function GET(request: NextRequest) {
     { contacts, total },
     { headers: rateLimitHeaders(rateLimit) }
   );
+  } catch (error) {
+    const requestId = generateRequestId();
+    logger.error("Contacts fetch error", { requestId }, error as Error);
+    return NextResponse.json(
+      { error: { message: "Failed to fetch contacts", requestId } },
+      { status: 500 }
+    );
+  }
 }

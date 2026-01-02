@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { publishEvent, events } from "@/lib/events";
+import { logger, generateRequestId } from "@/lib/logger";
 
 export async function POST(req: NextRequest) {
   // Verify cron secret
@@ -77,7 +78,8 @@ export async function POST(req: NextRequest) {
       notificationsSent,
     });
   } catch (error) {
-    console.error("Callback reminders error:", error);
-    return NextResponse.json({ error: "Internal error" }, { status: 500 });
+    const requestId = generateRequestId();
+    logger.error("Callback reminders error", { requestId }, error as Error);
+    return NextResponse.json({ error: "Internal error", requestId }, { status: 500 });
   }
 }
