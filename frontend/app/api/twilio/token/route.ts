@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
   const log = logger.child({ endpoint: "/api/twilio/token", clientIP });
 
   // Rate limiting - prevent token generation abuse
-  const rateLimit = checkRateLimit(`twilio_token:${clientIP}`, RATE_LIMITS.TOKEN_GEN);
+  const rateLimit = await checkRateLimit(`twilio_token:${clientIP}`, RATE_LIMITS.TOKEN_GEN);
   if (!rateLimit.success) {
     log.warn("Rate limit exceeded for token generation");
     return NextResponse.json(

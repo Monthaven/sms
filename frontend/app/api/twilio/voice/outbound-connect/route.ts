@@ -6,17 +6,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import twilio from "twilio";
 import { parseFormData } from "@/lib/twilio-parser";
+import { validateTwilioWebhook, formDataToParams } from "@/lib/twilio-webhook";
 
 const VoiceResponse = twilio.twiml.VoiceResponse;
+const APP_URL = (process.env.NEXT_PUBLIC_APP_URL || "https://sms.monthavencapital.com").replace(/\/$/, "");
 
 export async function POST(req: NextRequest) {
   try {
+    const form = await req.formData();
+    const params = formDataToParams(form);
+
+    const signatureValidation = validateTwilioWebhook(req, params);
+    if (!signatureValidation.valid) {
+      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+    }
+
     const data = await parseFormData(req);
     const response = new VoiceResponse();
 
     // Get the phone number to dial from the request params
-    const to = data.To || data.PhoneNumber;
-    const callerId = process.env.TWILIO_MAIN_FROM;
+    const toRaw = data.To || data.PhoneNumber;
+    const to = toRaw ? (toRaw.startsWith("+") ? toRaw : `+${toRaw.replace(/[^\d]/g, "")}`) : "";
+    const callerId =
+      process.env.TWILIO_MAIN_FROM ||
+      process.env.TWILIO_PHONE_NUMBER ||
+      process.env.TWILIO_FROM_NUMBER ||
+      "";
 
     if (!to) {
       response.say("Sorry, no phone number was specified.");
@@ -29,7 +44,7 @@ export async function POST(req: NextRequest) {
     const dial = response.dial({
       callerId,
       record: "record-from-answer-dual",
-      recordingStatusCallback: "/api/twilio/voice/recording",
+      recordingStatusCallback: `${APP_URL}/api/twilio/voice/recording`,
       recordingStatusCallbackEvent: ["completed"],
       answerOnBridge: true,
       timeout: 30,
@@ -37,7 +52,7 @@ export async function POST(req: NextRequest) {
 
     dial.number(
       {
-        statusCallback: "/api/twilio/voice/dial-status",
+        statusCallback: `${APP_URL}/api/twilio/voice/dial-status`,
         statusCallbackEvent: ["initiated", "ringing", "answered", "completed"],
       },
       to

@@ -22,7 +22,7 @@ export async function POST(
   // Rate limiting by user or IP
   const currentUser = await getCurrentUser();
   const identifier = currentUser?.id || req.headers.get("x-forwarded-for") || "anonymous";
-  const rateLimit = checkRateLimit(identifier, RATE_LIMITS.SMS_SEND);
+  const rateLimit = await checkRateLimit(identifier, RATE_LIMITS.SMS_SEND);
   
   if (!rateLimit.success) {
     log.warn("Rate limit exceeded", { identifier });

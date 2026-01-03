@@ -150,8 +150,8 @@ async function main() {
     if (entry.dnc) {
       await prisma.dncList.upsert({
         where: { phoneE164: phone },
-        update: { reason: "Legacy file flag" },
-        create: { phoneE164: phone, reason: "Legacy file flag" },
+        update: { reason: "Legacy file flag", updatedAt: new Date() },
+        create: { phoneE164: phone, reason: "Legacy file flag", updatedAt: new Date() },
       });
       stats.dncTagged++;
     }
@@ -180,6 +180,7 @@ async function resolveCampaignId(explicitId?: string, campaignName?: string): Pr
     data: {
       name: campaignName,
       status: "IMPORTED",
+      updatedAt: new Date(),
     },
   });
   return created.id;
@@ -330,8 +331,8 @@ async function importDncCsv(dncPath: string) {
     if (!phone) continue;
     await prisma.dncList.upsert({
       where: { phoneE164: phone },
-      update: { reason: row.reason || row.message?.slice(0, 250) },
-      create: { phoneE164: phone, reason: row.reason || row.message?.slice(0, 250) },
+      update: { reason: row.reason || row.message?.slice(0, 250), updatedAt: new Date() },
+      create: { phoneE164: phone, reason: row.reason || row.message?.slice(0, 250), updatedAt: new Date() },
     });
   }
 }

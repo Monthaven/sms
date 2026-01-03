@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
 
   // Rate limiting - searches can be expensive
   const clientIP = getClientIP(request);
-  const rateLimit = checkRateLimit(clientIP, RATE_LIMITS.API_GENERAL);
+  const rateLimit = await checkRateLimit(clientIP, RATE_LIMITS.API_GENERAL);
   
   if (!rateLimit.success) {
     log.warn('Rate limit exceeded', { clientIP });

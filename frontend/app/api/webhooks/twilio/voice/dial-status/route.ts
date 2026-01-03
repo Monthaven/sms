@@ -14,7 +14,7 @@ import { NextResponse } from "next/server";
 import twilio from "twilio";
 import { prisma } from "@/lib/db";
 import { logger } from "@/lib/logger";
-import { formDataToParams } from "@/lib/twilio-webhook";
+import { formDataToParams, validateTwilioWebhook } from "@/lib/twilio-webhook";
 
 const VoiceResponse = twilio.twiml.VoiceResponse;
 
@@ -33,6 +33,14 @@ export async function POST(request: Request) {
   try {
     const form = await request.formData();
     const params = formDataToParams(form);
+
+    const signatureValidation = validateTwilioWebhook(request, params);
+    if (!signatureValidation.valid) {
+      return NextResponse.json(
+        { error: signatureValidation.error || "Invalid signature" },
+        { status: 401 }
+      );
+    }
 
     const dialCallStatus = params["DialCallStatus"] ?? "";
     const dialCallDuration = parseInt(params["DialCallDuration"] ?? "0", 10);

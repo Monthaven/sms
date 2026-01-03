@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
 
   // Rate limit
   const clientIp = request.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown';
-  const rateLimitResult = checkRateLimit(`integration-status:${clientIp}`, { limit: 30, windowSeconds: 60 });
+  const rateLimitResult = await checkRateLimit(`integration-status:${clientIp}`, { limit: 30, windowSeconds: 60 });
   if (!rateLimitResult.success) {
     return NextResponse.json(
       { error: 'Rate limit exceeded' },

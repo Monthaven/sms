@@ -58,7 +58,7 @@ const DEFAULT_RETRY: RetryConfig = {
   backoffMultiplier: 2,
 };
 
-const authHeader = env.DEALMACHINE_API_KEY
+const authHeader: Record<string, string> = env.DEALMACHINE_API_KEY
   ? { Authorization: `Bearer ${env.DEALMACHINE_API_KEY}` }
   : {};
 

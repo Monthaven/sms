@@ -6,9 +6,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { parseFormData } from "@/lib/twilio-parser";
+import { validateTwilioWebhook, formDataToParams } from "@/lib/twilio-webhook";
+import { logger } from "@/lib/logger";
 
 export async function POST(req: NextRequest) {
+  const log = logger.child({ endpoint: "/api/twilio/voice/recording" });
   try {
+    const form = await req.formData();
+    const params = formDataToParams(form);
+
+    const signatureValidation = validateTwilioWebhook(req, params);
+    if (!signatureValidation.valid) {
+      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+    }
+    
     const data = await parseFormData(req);
     
     const {
@@ -41,7 +52,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Recording callback error:", error);
+    log.error("Recording callback error", { error: (error as any)?.message || String(error) });
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 }

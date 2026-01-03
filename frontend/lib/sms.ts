@@ -8,6 +8,7 @@ import { prisma } from "@/lib/db";
 import twilio from "twilio";
 import { withRetry, RETRY_CONFIGS } from "@/lib/retry";
 import { logger } from "@/lib/logger";
+import { LeadStatus } from "@prisma/client";
 
 // Initialize Twilio client lazily (singleton)
 let _twilioClient: ReturnType<typeof twilio> | null = null;
@@ -43,6 +44,7 @@ export type SendSMSResult = {
   externalId?: string | null;
   error?: string;
   isMms?: boolean;
+  leadId?: string;
 };
 
 /**
@@ -53,6 +55,93 @@ function normalizePhone(phone: string): string {
   if (digits.length === 10) return `+1${digits}`;
   if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
   return phone.startsWith("+") ? phone : `+${digits}`;
+}
+
+const INBOUND_CAMPAIGN_ID = process.env.INBOUND_CAMPAIGN_ID;
+
+async function resolveInboundCampaignId(): Promise<string> {
+  if (INBOUND_CAMPAIGN_ID) {
+    const exists = await prisma.campaign.findUnique({
+      where: { id: INBOUND_CAMPAIGN_ID },
+      select: { id: true },
+    });
+    if (exists?.id) {
+      return exists.id;
+    }
+    const created = await prisma.campaign.create({
+      data: {
+        id: INBOUND_CAMPAIGN_ID,
+        name: "Inbound Calls",
+        status: "ACTIVE",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      select: { id: true },
+    });
+    return created.id;
+  }
+
+  const fallbackName = "Inbound Calls";
+  const fallback = await prisma.campaign.findFirst({
+    where: { name: fallbackName },
+    select: { id: true },
+  });
+  if (fallback?.id) return fallback.id;
+
+  const created = await prisma.campaign.create({
+    data: {
+      name: fallbackName,
+      status: "ACTIVE",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+    select: { id: true },
+  });
+  return created.id;
+}
+
+async function ensureLeadForPhone(phone: string): Promise<{ leadId: string; contactId: string } | null> {
+  const phoneE164 = normalizePhone(phone);
+  const contact = await prisma.contact.findUnique({
+    where: { phoneE164 },
+    include: { leads: { orderBy: { createdAt: "desc" }, take: 1 } },
+  });
+
+  if (contact?.leads?.[0]) {
+    return { leadId: contact.leads[0].id, contactId: contact.id };
+  }
+
+  // Create contact + lead if missing
+  const createdContact = contact
+    ? contact
+    : await prisma.contact.create({
+        data: {
+          phoneE164,
+          firstName: "Unknown",
+          lastName: "Contact",
+          source: "OUTBOUND_SMS",
+        },
+      });
+
+  try {
+    const campaignId = await resolveInboundCampaignId();
+    const lead = await prisma.lead.create({
+      data: {
+        campaignId,
+        contactId: createdContact.id,
+        status: LeadStatus.RESP_HOT,
+        notes: "Created from outbound SMS",
+      },
+      select: { id: true },
+    });
+    return { leadId: lead.id, contactId: createdContact.id };
+  } catch (err) {
+    logger.warn("Failed to create lead for outbound SMS", {
+      error: (err as any)?.message,
+      phone: phoneE164,
+    });
+    return null;
+  }
 }
 
 /**
@@ -199,31 +288,45 @@ export async function sendSMS(params: SendSMSParams): Promise<SendSMSResult> {
       return { success: false, provider, error: "Invalid provider. Use 'twilio' or 'eztexting'" };
     }
 
-    // Log interaction if leadId provided
+    // Log interaction (attach to lead if present, otherwise auto-link by phone)
+    let resolvedLeadId = leadId || null;
+    let contactId: string | null = null;
+
     if (leadId) {
       const lead = await prisma.lead.findUnique({
         where: { id: leadId },
         select: { contactId: true },
       });
-
       if (lead) {
-        await prisma.interaction.create({
-          data: {
-            contactId: lead.contactId,
-            channel: channel,
-            direction: "OUTBOUND",
-            body: message,
-            externalId: externalId,
-            // Store media URLs in metadata if MMS
-            ...(isMms && mediaUrls && { 
-              metadata: JSON.stringify({ mediaUrls, isMms: true }) 
-            }),
-          },
-        });
+        contactId = lead.contactId;
+      }
+    }
 
-        // Update lead status to active conversation
+    if (!contactId) {
+      const resolved = await ensureLeadForPhone(to);
+      if (resolved) {
+        resolvedLeadId = resolved.leadId;
+        contactId = resolved.contactId;
+      }
+    }
+
+    if (contactId) {
+      await prisma.interaction.create({
+        data: {
+          contactId,
+          channel: channel,
+          direction: "OUTBOUND",
+          body: message,
+          externalId: externalId,
+          ...(isMms && mediaUrls && {
+            metadata: JSON.stringify({ mediaUrls, isMms: true }),
+          }),
+        },
+      });
+
+      if (resolvedLeadId) {
         await prisma.lead.update({
-          where: { id: leadId },
+          where: { id: resolvedLeadId },
           data: { status: "CONVERSATION_ACTIVE" },
         });
       }
@@ -234,6 +337,7 @@ export async function sendSMS(params: SendSMSParams): Promise<SendSMSResult> {
       provider,
       externalId,
       isMms,
+      leadId: resolvedLeadId || undefined,
     };
   } catch (error: any) {
     logger.error("SMS send error", { error: error?.message || String(error), provider });

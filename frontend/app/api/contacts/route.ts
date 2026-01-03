@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
   }
 
   const clientIP = getClientIP(request);
-  const rateLimit = checkRateLimit(`contacts:${clientIP}`, RATE_LIMITS.API_GENERAL);
+  const rateLimit = await checkRateLimit(`contacts:${clientIP}`, RATE_LIMITS.API_GENERAL);
   if (!rateLimit.success) {
     return NextResponse.json(
       { error: "Too many requests" },

@@ -10,6 +10,7 @@ import "./generated.css"; // precompiled Tailwind (globals processed)
 import ReactQueryProvider from "@/components/ReactQueryProvider";
 import AcceptingModeProvider from "@/components/AcceptingModeProvider";
 import { ToastProvider } from "@/components/ToastProvider";
+import PushClient from "@/components/PushClient";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
@@ -56,6 +57,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <AcceptingModeProvider>
             <ToastProvider>
               {children}
+              <PushClient />
             </ToastProvider>
           </AcceptingModeProvider>
         </ReactQueryProvider>

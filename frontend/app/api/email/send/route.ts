@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Rate limiting
-  const rateLimit = checkRateLimit(`email_send:${clientIP}`, RATE_LIMITS.SMS_SEND);
+  const rateLimit = await checkRateLimit(`email_send:${clientIP}`, RATE_LIMITS.SMS_SEND);
   if (!rateLimit.success) {
     log.warn("Rate limit exceeded for email send");
     return NextResponse.json(

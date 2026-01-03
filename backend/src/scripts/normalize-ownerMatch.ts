@@ -15,7 +15,7 @@ async function main() {
 
   // Count rows where ownerMatch is boolean or non-text-like values
   try {
-    const sample = await prisma.$queryRawUnsafe(`SELECT id, ownerMatch FROM contact LIMIT 20`);
+    const sample = await prisma.$queryRawUnsafe(`SELECT id, ownerMatch FROM contact LIMIT 20`) as any[];
     console.log('[normalize-ownerMatch] sample rows:', sample.length);
   } catch (e) {
     console.warn('[normalize-ownerMatch] sample query failed', e);

@@ -12,6 +12,7 @@ import { prisma } from "@/lib/db";
 import { updateCallStatus, type CallStatus } from "@/lib/calls";
 import { logger } from "@/lib/logger";
 import { validateTwilioWebhook, formDataToParams } from "@/lib/twilio-webhook";
+import { incrementCounter } from "@/lib/metrics";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -39,6 +40,7 @@ export async function POST(request: Request) {
     // Validate Twilio signature
     const signatureValidation = validateTwilioWebhook(request, payload);
     if (!signatureValidation.valid) {
+      incrementCounter("twilio.voice.status.invalid_signature");
       return NextResponse.json(
         { error: signatureValidation.error || "Invalid signature" },
         { status: 401 }
@@ -65,6 +67,7 @@ export async function POST(request: Request) {
       const status = mapTwilioStatus(twilioStatus);
       if (status) {
         await updateCallStatus(callSid, status, duration);
+        incrementCounter("twilio.voice.status.ok", { status: twilioStatus.toLowerCase() });
       }
     }
 

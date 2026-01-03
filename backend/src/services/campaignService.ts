@@ -24,7 +24,8 @@ export class CampaignService {
     const campaign = await prisma.campaign.create({
       data: {
         name,
-        status: 'PROCESSING'
+        status: 'PROCESSING',
+        updatedAt: new Date()
       }
     });
 

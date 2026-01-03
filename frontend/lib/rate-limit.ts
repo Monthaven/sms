@@ -94,8 +94,14 @@ function checkRateLimitMemory(
 // Vercel KV REST API (Production / Multi-Instance)
 // ============================================================================
 
-const KV_API_URL = process.env.KV_REST_API_URL;
-const KV_API_TOKEN = process.env.KV_REST_API_TOKEN;
+// Support Vercel KV naming or Upstash Redis REST naming
+const KV_API_URL =
+  process.env.KV_REST_API_URL ||
+  process.env.UPSTASH_REDIS_REST_URL ||
+  process.env.REDIS_URL; // REDIS_URL only works if it's the Upstash REST URL
+const KV_API_TOKEN =
+  process.env.KV_REST_API_TOKEN ||
+  process.env.UPSTASH_REDIS_REST_TOKEN;
 const kvEnabled = !!(KV_API_URL && KV_API_TOKEN);
 
 /**
@@ -204,13 +210,13 @@ export function checkRateLimitSync(
 
 /**
  * Legacy compatibility export
- * @deprecated Use checkRateLimitAsync instead
+ * @deprecated Use checkRateLimitAsync instead (async)
  */
-export function checkRateLimit(
+export async function checkRateLimit(
   identifier: string,
   config: RateLimitConfig
-): RateLimitResult {
-  return checkRateLimitMemory(identifier, config);
+): Promise<RateLimitResult> {
+  return checkRateLimitAsync(identifier, config);
 }
 
 // ============================================================================

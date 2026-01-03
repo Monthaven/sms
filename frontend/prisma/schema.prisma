@@ -323,6 +323,17 @@ model WebhookLog {
   createdAt    DateTime  @default(now())
 }
 
+model MetricsEvent {
+  id        String   @id @default(cuid())
+  name      String
+  type      String   @default("counter")
+  value     Float?
+  labels    Json?
+  createdAt DateTime @default(now())
+
+  @@index([name, createdAt])
+}
+
 model Sequence {
   id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name            String

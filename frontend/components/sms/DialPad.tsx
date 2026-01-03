@@ -33,6 +33,11 @@ interface DialPadProps {
   contactName?: string | null;
 }
 
+interface VoiceHealth {
+  ok: boolean;
+  issues?: string[];
+}
+
 function sanitizedManualDisplay(value: string) {
   return value.replace(/[^\d+]/g, "");
 }
@@ -49,6 +54,8 @@ export function DialPad({ leadId, contactName }: DialPadProps) {
   const [isMuted, setIsMuted] = useState(false);
   const [isOnHold, setIsOnHold] = useState(false);
   const [manualNumber, setManualNumber] = useState("");
+  const [health, setHealth] = useState<VoiceHealth | null>(null);
+  const [healthLoading, setHealthLoading] = useState(true);
   
   // Caller ID state
   const [callerIds, setCallerIds] = useState<CallerId[]>([]);
@@ -60,6 +67,23 @@ export function DialPad({ leadId, contactName }: DialPadProps) {
   const devRef = useRef<Device | null>(null);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const checkVoiceHealth = useCallback(async () => {
+    setHealthLoading(true);
+    try {
+      const res = await fetch("/api/twilio/voice/health", { cache: "no-store" });
+      if (!res.ok) {
+        setHealth({ ok: false, issues: ["Voice health check failed"] });
+      } else {
+        const data = await res.json();
+        setHealth(data);
+      }
+    } catch {
+      setHealth({ ok: false, issues: ["Unable to reach voice health check"] });
+    } finally {
+      setHealthLoading(false);
+    }
+  }, []);
 
   const endCall = useCallback(() => {
     if (activeCall) {
@@ -132,6 +156,11 @@ export function DialPad({ leadId, contactName }: DialPadProps) {
     fetchCallerIds();
   }, []);
 
+  // Initial voice health check
+  useEffect(() => {
+    checkVoiceHealth();
+  }, [checkVoiceHealth]);
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -185,6 +214,10 @@ export function DialPad({ leadId, contactName }: DialPadProps) {
     const useManual = sanitizedManual.length > 0;
     if (useManual && sanitizedManual.length < 7) {
       setError("Enter a valid destination number");
+      return;
+    }
+    if (!healthLoading && health && !health.ok) {
+      setError(health.issues?.[0] || "Voice calling is not ready. Please check Twilio setup.");
       return;
     }
     if (!device) {
@@ -261,7 +294,7 @@ export function DialPad({ leadId, contactName }: DialPadProps) {
       setError(err instanceof Error ? err.message : "Call failed");
       setStatus("failed");
     }
-  }, [device, leadId, endCall, manualNumber, selectedCallerId, callerIds.length]);
+  }, [device, leadId, endCall, manualNumber, selectedCallerId, callerIds.length, health, healthLoading]);
 
   const formatDuration = (s: number) => {
     const mins = Math.floor(s / 60);
@@ -277,6 +310,9 @@ export function DialPad({ leadId, contactName }: DialPadProps) {
     ended: "text-slate-500",
     failed: "text-red-400",
   };
+
+  const callButtonDisabled =
+    (!device && status !== "failed") || (!healthLoading && health !== null && !health.ok);
 
   return (
     <div className="glass-panel rounded-2xl p-8 max-w-md mx-auto space-y-6">
@@ -316,6 +352,26 @@ export function DialPad({ leadId, contactName }: DialPadProps) {
           </div>
         )}
       </div>
+
+      {/* Voice health warnings */}
+      {!healthLoading && health && !health.ok && (
+        <div className="text-sm text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-lg py-2 px-4">
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-medium">Voice setup needs attention</span>
+            <button
+              onClick={checkVoiceHealth}
+              className="text-[11px] px-2 py-1 rounded-md border border-amber-400/50 text-amber-200 hover:bg-amber-400/10 transition-colors"
+            >
+              Retry
+            </button>
+          </div>
+          <ul className="mt-1 space-y-1 list-disc list-inside text-amber-200/80">
+            {(health.issues || ["Voice configuration incomplete"]).slice(0, 3).map((msg) => (
+              <li key={msg}>{msg}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Error Message */}
       {error && (
@@ -390,12 +446,12 @@ export function DialPad({ leadId, contactName }: DialPadProps) {
         {status === "idle" || status === "failed" || status === "ended" ? (
           <button
             onClick={startCall}
-            disabled={!device && status !== "failed"}
+            disabled={callButtonDisabled}
             className={clsx(
               "w-16 h-16 rounded-full flex items-center justify-center transition-all duration-200",
               "bg-green-500 hover:bg-green-400 hover:scale-105",
               "shadow-lg shadow-green-500/30",
-              (!device && status !== "failed") && "opacity-50 cursor-not-allowed"
+              callButtonDisabled && "opacity-50 cursor-not-allowed hover:scale-100"
             )}
             title="Start call"
           >

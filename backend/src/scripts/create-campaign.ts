@@ -21,7 +21,7 @@ async function main() {
 
   try {
     const campaign = await prisma.campaign.create({
-      data: { name, status: 'DRAFT' }
+      data: { name, status: 'DRAFT', updatedAt: new Date() }
     });
     console.log(`\n✅ Campaign Created!`);
     console.log(`🆔 ID: ${campaign.id}`);

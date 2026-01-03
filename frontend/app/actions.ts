@@ -12,7 +12,7 @@ import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { cookies, headers } from "next/headers";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, signSession } from "@/lib/auth";
 import { verifyPassword, generateSecureToken } from "@/lib/password";
 import { logger } from "@/lib/logger";
 
@@ -123,24 +123,33 @@ export async function loginAction(
     const cookieStore = await cookies();
     const isProduction = process.env.NODE_ENV === 'production';
     
+    const signature = signSession(user.id, sessionToken);
+
     cookieStore.set('mae_user', user.id, { 
       httpOnly: true, 
       secure: isProduction,
-      sameSite: 'lax',
+      sameSite: 'strict',
       path: '/', 
       maxAge: 60 * 60 * 24 // 24 hours
     });
     cookieStore.set('mae_role', user.role, { 
       httpOnly: true, 
       secure: isProduction,
-      sameSite: 'lax',
+      sameSite: 'strict',
       path: '/', 
       maxAge: 60 * 60 * 24 
     });
     cookieStore.set('mae_session', sessionToken, {
       httpOnly: true,
       secure: isProduction,
-      sameSite: 'lax',
+      sameSite: 'strict',
+      path: '/',
+      maxAge: 60 * 60 * 24
+    });
+    cookieStore.set('mae_sig', signature, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'strict',
       path: '/',
       maxAge: 60 * 60 * 24
     });
@@ -148,6 +157,9 @@ export async function loginAction(
     log.info("Login successful", { userId: user.id, role: user.role });
     redirect('/dashboard');
   } catch (error: any) {
+    if (error?.digest === "NEXT_REDIRECT") {
+      throw error;
+    }
     log.error("Login error", {}, error);
     return { error: 'An error occurred. Please try again.' };
   }

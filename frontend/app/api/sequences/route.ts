@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: { message: "Unauthorized" } }, { status: 401 });
   }
 
-  const rateLimit = checkRateLimit(`sequences:${clientIP}`, RATE_LIMITS.API_GENERAL);
+  const rateLimit = await checkRateLimit(`sequences:${clientIP}`, RATE_LIMITS.API_GENERAL);
   if (!rateLimit.success) {
     return NextResponse.json(
       { error: "Too many requests" },
@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: { message: "Unauthorized" } }, { status: 401 });
   }
 
-  const rateLimit = checkRateLimit(`sequences_create:${clientIP}`, RATE_LIMITS.API_GENERAL);
+  const rateLimit = await checkRateLimit(`sequences_create:${clientIP}`, RATE_LIMITS.API_GENERAL);
   if (!rateLimit.success) {
     return NextResponse.json(
       { error: "Too many requests" },

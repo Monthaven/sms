@@ -16,6 +16,17 @@ const securityHeaders = {
 };
 
 const PUBLIC_PATHS = ["/signin", "/api/webhooks", "/api/health", "/api/twilio", "/api/cron", "/api/notifications"];
+const isProd = process.env.NODE_ENV === "production";
+
+const csp = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob:",
+  "font-src 'self' data:",
+  "connect-src 'self' https: http: ws: wss:",
+  "frame-ancestors 'none'",
+].join("; ");
 
 function isPublic(pathname: string) {
   return (
@@ -35,6 +46,28 @@ export function middleware(request: NextRequest) {
 
   const response = NextResponse.next();
   Object.entries(securityHeaders).forEach(([key, value]) => response.headers.set(key, value));
+  if (isProd) {
+    response.headers.set("Content-Security-Policy", csp);
+    response.headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
+  }
+
+  // CSRF protection via origin/referrer check for mutating API calls (exclude third-party webhooks)
+  const mutating = ["POST", "PUT", "PATCH", "DELETE"].includes(request.method);
+  const isWebhook = pathname.startsWith("/api/webhooks") || pathname.startsWith("/api/twilio/voice");
+  if (mutating && !isWebhook && !isPublic(pathname)) {
+    const origin = request.headers.get("origin") || "";
+    const referer = request.headers.get("referer") || "";
+    const allowedOrigin = request.nextUrl.origin;
+    if (
+      origin &&
+      origin !== allowedOrigin
+    ) {
+      return NextResponse.json({ error: "CSRF validation failed" }, { status: 403 });
+    }
+    if (!origin && referer && !referer.startsWith(allowedOrigin)) {
+      return NextResponse.json({ error: "CSRF validation failed" }, { status: 403 });
+    }
+  }
 
   // Allow public paths and static
   if (isPublic(pathname)) {

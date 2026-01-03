@@ -30,7 +30,7 @@ export async function POST(
   
   try {
     const clientIP = getClientIP(request);
-    const rateLimit = checkRateLimit(`automation_exec:${id}:${clientIP}`, RATE_LIMITS.api);
+    const rateLimit = await checkRateLimit(`automation_exec:${id}:${clientIP}`, RATE_LIMITS.api);
     if (!rateLimit.success) {
       return NextResponse.json(
         { error: 'Too many requests' },

@@ -10,6 +10,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { checkRateLimit, getClientIP, RATE_LIMITS, rateLimitHeaders } from "@/lib/rate-limit";
 import { smsSendRequestSchema, validateRequest } from "@/lib/validation-schemas";
 import { logger } from "@/lib/logger";
+import { incrementCounter } from "@/lib/metrics";
 
 export async function POST(request: NextRequest) {
   const clientIP = getClientIP(request);
@@ -22,7 +23,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Rate limiting
-  const rateLimit = checkRateLimit(`sms_send:${clientIP}`, RATE_LIMITS.SMS_SEND);
+  const rateLimit = await checkRateLimit(`sms_send:${clientIP}`, RATE_LIMITS.SMS_SEND);
   if (!rateLimit.success) {
     log.warn("Rate limit exceeded", { remaining: rateLimit.remaining });
     return NextResponse.json(
@@ -55,6 +56,7 @@ export async function POST(request: NextRequest) {
 
     if (!result.success) {
       log.error("SMS send failed", { error: result.error });
+      incrementCounter("sms.send.fail", { provider, reason: result.error });
       return NextResponse.json(
         { error: result.error },
         { status: 500, headers: rateLimitHeaders(rateLimit) }
@@ -62,6 +64,8 @@ export async function POST(request: NextRequest) {
     }
 
     log.info("SMS sent successfully", { provider: result.provider, externalId: result.externalId });
+    incrementCounter("sms.send.success", { provider: result.provider });
+
     return NextResponse.json(
       {
         success: true,

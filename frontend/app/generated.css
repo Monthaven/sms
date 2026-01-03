@@ -1591,6 +1591,14 @@ body {
   resize: none;
 }
 
+.list-inside {
+  list-style-position: inside;
+}
+
+.list-disc {
+  list-style-type: disc;
+}
+
 .appearance-none {
   -webkit-appearance: none;
      -moz-appearance: none;
@@ -1922,6 +1930,10 @@ body {
 
 .border-amber-400\/40 {
   border-color: rgb(251 191 36 / 0.4);
+}
+
+.border-amber-400\/50 {
+  border-color: rgb(251 191 36 / 0.5);
 }
 
 .border-amber-500\/20 {
@@ -3394,6 +3406,10 @@ body {
   color: rgb(253 230 138 / var(--tw-text-opacity, 1));
 }
 
+.text-amber-200\/80 {
+  color: rgb(253 230 138 / 0.8);
+}
+
 .text-amber-300 {
   --tw-text-opacity: 1;
   color: rgb(252 211 77 / var(--tw-text-opacity, 1));
@@ -4232,6 +4248,12 @@ body {
 
 .focus-within\:ring-blue-500\/20:focus-within {
   --tw-ring-color: rgb(59 130 246 / 0.2);
+}
+
+.hover\:scale-100:hover {
+  --tw-scale-x: 1;
+  --tw-scale-y: 1;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
 }
 
 .hover\:scale-105:hover {

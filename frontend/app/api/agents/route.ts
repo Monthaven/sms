@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
   
   // Rate limiting
   const clientIP = getClientIP(req);
-  const rateLimit = checkRateLimit(clientIP, RATE_LIMITS.API_GENERAL);
+  const rateLimit = await checkRateLimit(clientIP, RATE_LIMITS.API_GENERAL);
   
   if (!rateLimit.success) {
     log.warn("Rate limit exceeded", { clientIP });

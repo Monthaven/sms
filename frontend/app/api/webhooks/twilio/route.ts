@@ -9,6 +9,7 @@ import { LeadStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { normalizePhone } from "@/lib/utils";
 import { logger, generateRequestId } from "@/lib/logger";
+import { sendPushToUser } from "@/lib/push-notifications";
 import { validateTwilioWebhook, formDataToParams } from "@/lib/twilio-webhook";
 import { notifications } from "@/lib/notifications";
 
@@ -16,6 +17,50 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const INBOUND_CAMPAIGN_ID = process.env.INBOUND_CAMPAIGN_ID;
+
+async function resolveInboundCampaignId(log: ReturnType<typeof logger.child>): Promise<string> {
+  if (INBOUND_CAMPAIGN_ID) {
+    const exists = await prisma.campaign.findUnique({
+      where: { id: INBOUND_CAMPAIGN_ID },
+      select: { id: true },
+    });
+    if (exists?.id) {
+      return exists.id;
+    }
+    const created = await prisma.campaign.create({
+      data: {
+        id: INBOUND_CAMPAIGN_ID,
+        name: "Inbound Calls",
+        status: "ACTIVE",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      select: { id: true },
+    });
+    log.warn("Configured INBOUND_CAMPAIGN_ID missing; created fallback campaign", {
+      inboundCampaignId: INBOUND_CAMPAIGN_ID,
+    });
+    return created.id;
+  }
+
+  const fallbackName = "Inbound Calls";
+  const fallback = await prisma.campaign.findFirst({
+    where: { name: fallbackName },
+    select: { id: true },
+  });
+  if (fallback?.id) return fallback.id;
+
+  const created = await prisma.campaign.create({
+    data: {
+      name: fallbackName,
+      status: "ACTIVE",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+    select: { id: true },
+  });
+  return created.id;
+}
 
 async function ensureContactAndLead(phone: string, log: ReturnType<typeof logger.child>) {
   const contact =
@@ -35,12 +80,10 @@ async function ensureContactAndLead(phone: string, log: ReturnType<typeof logger
   let lead = leadCandidate;
 
   if (!lead) {
-    if (!INBOUND_CAMPAIGN_ID) {
-      throw new Error("Missing INBOUND_CAMPAIGN_ID env for inbound auto-intake");
-    }
+    const campaignId = await resolveInboundCampaignId(log);
     lead = await prisma.lead.create({
       data: {
-        campaignId: INBOUND_CAMPAIGN_ID,
+        campaignId,
         contactId: contact.id,
         status: LeadStatus.RESP_HOT,
       },
@@ -149,6 +192,13 @@ export async function POST(request: Request) {
         preview,
         leadId
       );
+
+      // Fire push notification
+      await sendPushToUser(leadWithAgent.assignedToId, {
+        title: `New SMS from ${contactName}`,
+        body: preview,
+        data: { type: "NEW_MESSAGE", contactId, leadId },
+      });
     }
 
     log.info("Twilio webhook processed successfully", { contactId, leadId });
