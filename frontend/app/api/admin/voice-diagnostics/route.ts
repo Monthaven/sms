@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
       statusCallback: `${baseUrl}/api/twilio/voice/dial-status?leadId=test-admin`,
       statusCallbackEvent: ["initiated", "ringing", "answered", "completed"],
       statusCallbackMethod: "POST",
-      record: "false",
+      record: false,
     });
 
     log.info("Placed Twilio outbound test call", { callSid: call.sid, to: TEST_NUMBER });
