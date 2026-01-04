@@ -5,7 +5,6 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import twilio from "twilio";
-import { parseFormData } from "@/lib/twilio-parser";
 import { validateTwilioWebhook, formDataToParams } from "@/lib/twilio-webhook";
 
 const VoiceResponse = twilio.twiml.VoiceResponse;
@@ -15,13 +14,13 @@ export async function POST(req: NextRequest) {
   try {
     const form = await req.formData();
     const params = formDataToParams(form);
+    const data = params;
 
     const signatureValidation = validateTwilioWebhook(req, params);
     if (!signatureValidation.valid) {
       return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
 
-    const data = await parseFormData(req);
     const response = new VoiceResponse();
 
     // Get the phone number to dial from the request params

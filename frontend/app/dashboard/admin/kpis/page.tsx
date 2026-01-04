@@ -66,6 +66,33 @@ type KPIData = {
   }>;
 };
 
+const defaultKpis: KPIData = {
+  callsMade: 0,
+  callsAnswered: 0,
+  avgCallDuration: 0,
+  hotLeads: 0,
+  callbacks: 0,
+  conversionRate: 0,
+  agentStats: [],
+  dailyStats: [],
+  dispositions: [],
+};
+
+function normalizeKpis(payload: Partial<KPIData> | null | undefined): KPIData {
+  if (!payload) return defaultKpis;
+  return {
+    callsMade: payload.callsMade ?? 0,
+    callsAnswered: payload.callsAnswered ?? 0,
+    avgCallDuration: payload.avgCallDuration ?? 0,
+    hotLeads: payload.hotLeads ?? 0,
+    callbacks: payload.callbacks ?? 0,
+    conversionRate: payload.conversionRate ?? 0,
+    agentStats: payload.agentStats ?? [],
+    dailyStats: payload.dailyStats ?? [],
+    dispositions: payload.dispositions ?? [],
+  };
+}
+
 async function fetchKPIs(): Promise<KPIData> {
   const res = await fetch("/api/admin/kpis");
   if (!res.ok) {
@@ -102,7 +129,8 @@ async function fetchKPIs(): Promise<KPIData> {
       ],
     };
   }
-  return res.json();
+  const json = await res.json();
+  return normalizeKpis(json);
 }
 
 function formatDuration(seconds: number): string {

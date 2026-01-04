@@ -5,7 +5,6 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { parseFormData } from "@/lib/twilio-parser";
 import { validateTwilioWebhook, formDataToParams } from "@/lib/twilio-webhook";
 import { logger } from "@/lib/logger";
 
@@ -14,13 +13,12 @@ export async function POST(req: NextRequest) {
   try {
     const form = await req.formData();
     const params = formDataToParams(form);
+    const data = params;
 
     const signatureValidation = validateTwilioWebhook(req, params);
     if (!signatureValidation.valid) {
       return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
-    
-    const data = await parseFormData(req);
     
     const {
       CallSid,
