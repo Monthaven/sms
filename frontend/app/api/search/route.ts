@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
           firstName: true,
           lastName: true,
           phoneE164: true,
-          leads: { select: { id: true }, take: 1 },
+          Lead: { select: { id: true }, take: 1 },
         },
       }),
       prisma.property.findMany({
@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
           id: true,
           addressLine1: true,
           city: true,
-          leads: { select: { id: true }, take: 1 },
+          Lead: { select: { id: true }, take: 1 },
         },
       }),
     ]);
@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
     for (const c of contacts) {
       results.push({
         type: 'contact',
-        leadId: c.leads[0]?.id ?? null,
+        leadId: c.Lead[0]?.id ?? null,
         id: c.id,
         display: `${c.firstName || ''} ${c.lastName || ''}`.trim(),
         phone: c.phoneE164,
@@ -99,7 +99,7 @@ export async function GET(request: NextRequest) {
     for (const p of properties) {
       results.push({
         type: 'property',
-        leadId: p.leads[0]?.id ?? null,
+        leadId: p.Lead[0]?.id ?? null,
         id: p.id,
         display: `${p.addressLine1}, ${p.city}`,
       });

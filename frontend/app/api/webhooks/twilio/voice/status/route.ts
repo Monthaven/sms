@@ -13,6 +13,7 @@ import { updateCallStatus, type CallStatus } from "@/lib/calls";
 import { logger } from "@/lib/logger";
 import { validateTwilioWebhook, formDataToParams } from "@/lib/twilio-webhook";
 import { incrementCounter } from "@/lib/metrics";
+import { randomUUID } from "crypto";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -50,6 +51,7 @@ export async function POST(request: Request) {
     // Log the webhook
     await prisma.webhookLog.create({
       data: {
+        id: randomUUID(),
         provider: "TWILIO",
         direction: "INBOUND",
         status: payload.CallStatus ?? "UNKNOWN",

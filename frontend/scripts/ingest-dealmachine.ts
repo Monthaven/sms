@@ -14,6 +14,7 @@ import { parse } from "csv-parse/sync";
 import { readFileSync } from "fs";
 import { normalizePhone, classifyPhoneType } from "../lib/phone-utils";
 import { scoreContact, selectPrimaryContacts } from "../lib/scoring";
+import { randomUUID } from "crypto";
 
 const prisma = new PrismaClient();
 
@@ -70,6 +71,7 @@ async function ingest(csvPath: string) {
         },
       },
       create: {
+        id: randomUUID(),
         addressLine1,
         city,
         state,
@@ -81,6 +83,7 @@ async function ingest(csvPath: string) {
         owner_1_name: row.owner_1_name || null,
         owner_2_name: row.owner_2_name || null,
         mailing_address: null,
+        updatedAt: new Date(),
       },
       update: {
         owner_1_name: row.owner_1_name || null,
@@ -88,6 +91,7 @@ async function ingest(csvPath: string) {
         zip: row.zip?.trim() || null,
         units: toInt(row.units),
         year_built: toInt(row.year_built),
+        updatedAt: new Date(),
       },
     });
     propertiesCreated++;
@@ -124,14 +128,17 @@ async function ingest(csvPath: string) {
     await prisma.contact.upsert({
       where: { phoneE164: primaryPhone },
       create: {
+        id: randomUUID(),
         ...contactData,
         ...scoring,
         owner_match: scoring.decision_maker || scoring.dm_score >= 50,
+        updatedAt: new Date(),
       },
       update: {
         ...contactData,
         ...scoring,
         owner_match: scoring.decision_maker || scoring.dm_score >= 50,
+        updatedAt: new Date(),
       },
     });
     contactsCreated++;

@@ -7,6 +7,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { randomUUID } from "crypto";
 
 export async function GET() {
   const currentUser = await getCurrentUser();
@@ -25,13 +26,18 @@ export async function GET() {
       contractSignedAt: true,
       createdAt: true,
       _count: {
-        select: { assignedLeads: true },
+        select: { Lead: true },
       },
     },
     orderBy: { createdAt: "desc" },
   });
 
-  return NextResponse.json(users);
+  const normalized = users.map((user) => ({
+    ...user,
+    _count: { assignedLeads: user._count?.Lead ?? 0 },
+  }));
+
+  return NextResponse.json(normalized);
 }
 
 export async function POST(req: Request) {
@@ -55,10 +61,12 @@ export async function POST(req: Request) {
 
   const user = await prisma.user.create({
     data: {
+      id: randomUUID(),
       email,
       name: name || null,
       role: role || "AGENT",
       sections: sections || ["sms"],
+      updatedAt: new Date(),
     },
   });
 

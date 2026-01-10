@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { publishEvent, events } from "@/lib/events";
 import { logger, generateRequestId } from "@/lib/logger";
+import { randomUUID } from "crypto";
 
 export async function POST(req: NextRequest) {
   // Verify cron secret
@@ -32,10 +33,10 @@ export async function POST(req: NextRequest) {
         status: { in: ["QUEUED_FOR_CALL", "CONVERSATION_ACTIVE"] },
       },
       include: {
-        contact: {
+        Contact: {
           select: { firstName: true, lastName: true, phoneE164: true },
         },
-        assignedTo: {
+        User: {
           select: { id: true, name: true },
         },
       },
@@ -49,11 +50,12 @@ export async function POST(req: NextRequest) {
       // Create notification
       await db.notification.create({
         data: {
+          id: randomUUID(),
           userId: lead.assignedToId,
           type: "CALLBACK_DUE",
           priority: "HIGH",
           title: "Callback Due Soon",
-          body: `Callback for ${lead.contact?.firstName || "Contact"} ${lead.contact?.lastName || ""} in ${Math.round((lead.callbackAt!.getTime() - now.getTime()) / 60000)} minutes`,
+          body: `Callback for ${lead.Contact?.firstName || "Contact"} ${lead.Contact?.lastName || ""} in ${Math.round((lead.callbackAt!.getTime() - now.getTime()) / 60000)} minutes`,
           actionUrl: `/sms/dial/${lead.id}`,
           actionLabel: "Call Now",
           relatedType: "Lead",
@@ -64,8 +66,8 @@ export async function POST(req: NextRequest) {
       // Send real-time event
       publishEvent(lead.assignedToId, events.callbackDue({
         leadId: lead.id,
-        contactName: `${lead.contact?.firstName || ""} ${lead.contact?.lastName || ""}`.trim(),
-        phone: lead.contact?.phoneE164 || "",
+        contactName: `${lead.Contact?.firstName || ""} ${lead.Contact?.lastName || ""}`.trim(),
+        phone: lead.Contact?.phoneE164 || "",
         scheduledAt: lead.callbackAt!.toISOString(),
       }));
 

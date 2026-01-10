@@ -5,10 +5,11 @@
  */
 
 import { NextResponse } from "next/server";
-import { Direction, LeadStatus } from "@prisma/client";
+import { Direction, LeadStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { normalizePhone } from "@/lib/utils";
 import { logger, generateRequestId } from "@/lib/logger";
+import { randomUUID } from "crypto";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -74,18 +75,23 @@ type Payload = {
 const INBOUND_CAMPAIGN_ID = process.env.INBOUND_CAMPAIGN_ID;
 
 async function ensureContactAndLead(phone: string) {
-  const contact =
-    (await prisma.contact.findUnique({
-      where: { phoneE164: phone },
-      include: { leads: { orderBy: { createdAt: "desc" }, take: 1 } },
-    })) ||
-    (await prisma.contact.create({
-      data: { phoneE164: phone, source: "INBOUND" },
-    }));
+  type ContactWithLead = Prisma.ContactGetPayload<{ include: { Lead: true } }>;
+
+  let contact: ContactWithLead | null = await prisma.contact.findUnique({
+    where: { phoneE164: phone },
+    include: { Lead: { orderBy: { createdAt: "desc" }, take: 1 } },
+  });
+
+  if (!contact) {
+    contact = await prisma.contact.create({
+      data: { id: randomUUID(), phoneE164: phone, source: "INBOUND", updatedAt: new Date() },
+      include: { Lead: true },
+    });
+  }
 
   const leadCandidate =
-    "leads" in contact && Array.isArray((contact as any).leads)
-      ? (contact as any).leads[0] || null
+    "Lead" in contact && Array.isArray((contact as any).Lead)
+      ? (contact as any).Lead[0] || null
       : null;
 
   let lead = leadCandidate;
@@ -96,9 +102,11 @@ async function ensureContactAndLead(phone: string) {
     }
     lead = await prisma.lead.create({
       data: {
+        id: randomUUID(),
         campaignId: INBOUND_CAMPAIGN_ID,
         contactId: contact.id,
         status: LeadStatus.RESP_HOT,
+        updatedAt: new Date(),
       },
     });
   }
@@ -175,6 +183,7 @@ async function handle(req: Request) {
     try {
       await prisma.webhookLog.create({
         data: {
+          id: randomUUID(),
           provider: "EZTEXTING",
           direction: Direction.INBOUND,
           payload: body,
@@ -224,6 +233,7 @@ async function handle(req: Request) {
 
       await prisma.interaction.create({
         data: {
+          id: randomUUID(),
           contactId,
           channel: "EZTEXTING",
           direction: "INBOUND",

@@ -12,6 +12,7 @@
 import { PrismaClient } from "@prisma/client";
 import { normalizePhone, classifyPhoneType } from "../lib/phone-utils";
 import { scoreContact } from "../lib/scoring";
+import { randomUUID } from "crypto";
 
 const prisma = new PrismaClient();
 
@@ -101,6 +102,7 @@ async function extractContacts() {
 
       await prisma.contact.create({
         data: {
+          id: randomUUID(),
           ...contactData,
           phoneE164: primaryPhone,
           phoneType: contactData.phone_1_type || contactData.phone_2_type || contactData.phone_3_type,
@@ -109,6 +111,7 @@ async function extractContacts() {
           is_primary: false,
           decision_maker: scoring.decision_maker,
           owner_match: scoring.decision_maker || scoring.dm_score >= 50,
+          updatedAt: new Date(),
         },
       });
       created++;

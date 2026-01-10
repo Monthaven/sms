@@ -9,6 +9,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getOptimalSendTime } from "@/lib/quiet-hours";
 import { logger, generateRequestId } from "@/lib/logger";
 import { z } from "zod";
+import { randomUUID } from "crypto";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -53,7 +54,7 @@ export async function GET(req: NextRequest) {
   const scheduled = await prisma.scheduledMessage.findMany({
     where: whereCondition,
     include: {
-      contact: {
+      Contact: {
         select: {
           id: true,
           firstName: true,
@@ -61,7 +62,7 @@ export async function GET(req: NextRequest) {
           phoneE164: true,
         },
       },
-      user: {
+      User: {
         select: {
           name: true,
         },
@@ -71,7 +72,13 @@ export async function GET(req: NextRequest) {
     take: 100,
   });
 
-  return NextResponse.json({ scheduled });
+  const mapped = scheduled.map(({ Contact, User, ...rest }) => ({
+    ...rest,
+    contact: Contact,
+    user: User,
+  }));
+
+  return NextResponse.json({ scheduled: mapped });
 }
 
 /**
@@ -139,6 +146,7 @@ export async function POST(req: NextRequest) {
 
     const scheduled = await prisma.scheduledMessage.create({
       data: {
+        id: randomUUID(),
         contactId,
         leadId: leadId || null,
         userId: user.id,
@@ -148,7 +156,7 @@ export async function POST(req: NextRequest) {
         status: "PENDING",
       },
       include: {
-        contact: {
+        Contact: {
           select: {
             firstName: true,
             lastName: true,
@@ -165,8 +173,13 @@ export async function POST(req: NextRequest) {
       adjustedForQuietHours: finalScheduledTime.getTime() !== new Date(scheduledFor).getTime(),
     });
 
+    const { Contact, ...rest } = scheduled;
+
     return NextResponse.json({ 
-      scheduled,
+      scheduled: {
+        ...rest,
+        contact: Contact,
+      },
       adjustedTime: finalScheduledTime.toISOString() !== scheduledFor,
       originalTime: scheduledFor,
       finalTime: finalScheduledTime.toISOString(),

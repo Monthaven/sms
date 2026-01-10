@@ -31,6 +31,8 @@ import {
   GitBranch,
   Zap,
   LucideIcon,
+  Building2,
+  ExternalLink,
 } from "lucide-react";
 import clsx from "clsx";
 import React, { useState } from "react";
@@ -44,6 +46,7 @@ interface NavItem {
   href: string;
   icon: LucideIcon;
   roles?: Role[];
+  external?: boolean;
 }
 
 interface NavGroup {
@@ -64,6 +67,13 @@ const navItems: NavGroup[] = [
       { name: "Campaigns", href: "/dashboard/campaigns", icon: Megaphone },
       { name: "Sequences", href: "/sequences", icon: GitBranch },
       { name: "Intelligence", href: "/dashboard/intelligence", icon: BrainCircuit },
+    ],
+  },
+  {
+    group: "Deals & Intel",
+    items: [
+      { name: "OM Gallery", href: "https://om.monthavencapital.com/om", icon: Building2, external: true },
+      { name: "Deal Pipeline", href: "https://om.monthavencapital.com/deals", icon: Activity, external: true },
     ],
   },
   {
@@ -170,19 +180,17 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
                 {group.items
                   .filter((item) => !item.roles || item.roles.includes(role))
                   .map((item) => {
-                    const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
-                    return (
-                      <Link
-                        key={item.name}
-                        href={item.href}
-                        className={clsx(
-                          "flex items-center py-2.5 text-sm font-medium rounded-xl transition-all duration-200 group relative",
-                          collapsed ? "justify-center px-2" : "px-4",
-                          isActive
-                            ? "text-blue-400 bg-blue-500/10 border border-blue-500/20"
-                            : "text-slate-400 hover:text-white hover:bg-slate-800/50"
-                        )}
-                      >
+                    const isActive = !item.external && (pathname === item.href || pathname?.startsWith(item.href + "/"));
+                    const linkClasses = clsx(
+                      "flex items-center py-2.5 text-sm font-medium rounded-xl transition-all duration-200 group relative",
+                      collapsed ? "justify-center px-2" : "px-4",
+                      isActive
+                        ? "text-blue-400 bg-blue-500/10 border border-blue-500/20"
+                        : "text-slate-400 hover:text-white hover:bg-slate-800/50"
+                    );
+                    
+                    const linkContent = (
+                      <>
                         {!collapsed && isActive && (
                           <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-blue-500 rounded-r-full shadow-[0_0_10px_#3b82f6]" />
                         )}
@@ -190,7 +198,37 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
                           size={18}
                           className={clsx(collapsed ? "" : "mr-3", isActive ? "text-blue-400" : "group-hover:text-white")}
                         />
-                        {!collapsed && item.name}
+                        {!collapsed && (
+                          <span className="flex items-center gap-2">
+                            {item.name}
+                            {item.external && <ExternalLink size={12} className="text-slate-500" />}
+                          </span>
+                        )}
+                      </>
+                    );
+                    
+                    // Use <a> for external links, <Link> for internal
+                    if (item.external) {
+                      return (
+                        <a
+                          key={item.name}
+                          href={item.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={linkClasses}
+                        >
+                          {linkContent}
+                        </a>
+                      );
+                    }
+                    
+                    return (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        className={linkClasses}
+                      >
+                        {linkContent}
                       </Link>
                     );
                   })}

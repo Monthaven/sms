@@ -20,14 +20,17 @@ export async function GET(
   const { id } = await params;
   const user = await prisma.user.findUnique({
     where: { id },
-    include: { _count: { select: { assignedLeads: true } } },
+    include: { _count: { select: { Lead: true } } },
   });
 
   if (!user) {
     return NextResponse.json({ error: { message: "User not found" } }, { status: 404 });
   }
 
-  return NextResponse.json(user);
+  return NextResponse.json({
+    ...user,
+    _count: { assignedLeads: user._count?.Lead ?? 0 },
+  });
 }
 
 export async function PATCH(

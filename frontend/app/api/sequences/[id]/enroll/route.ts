@@ -24,13 +24,18 @@ export async function GET() {
   try {
     const sequences = await prisma.sequence.findMany({
       include: {
-        steps: { orderBy: { stepNumber: "asc" } },
+        SequenceStep: { orderBy: { stepNumber: "asc" } },
         _count: { select: { SequenceContact: true } },
       },
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json(sequences);
+    const formattedSequences = sequences.map(({ SequenceStep, ...rest }) => ({
+      ...rest,
+      steps: SequenceStep,
+    }));
+
+    return NextResponse.json(formattedSequences);
   } catch (error) {
     const requestId = generateRequestId();
     logger.error("Failed to fetch sequences", { requestId }, error as Error);

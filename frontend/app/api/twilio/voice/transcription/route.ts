@@ -8,6 +8,7 @@ import { prisma } from "@/lib/db";
 import { validateTwilioWebhook, formDataToParams } from "@/lib/twilio-webhook";
 import { logger, generateRequestId } from "@/lib/logger";
 import { classifyIntent } from "@/lib/intent-classifier";
+import { randomUUID } from "crypto";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -52,8 +53,8 @@ export async function POST(req: NextRequest) {
         ],
       },
       include: {
-        contact: true,
-        lead: true,
+        Contact: true,
+        Lead: true,
       },
     });
 
@@ -61,6 +62,9 @@ export async function POST(req: NextRequest) {
       log.warn("Call not found for transcription", { recordingSid, callSid });
       return NextResponse.json({ error: "Call not found" }, { status: 404 });
     }
+
+    const contact = call.Contact;
+    const lead = call.Lead;
 
     // Classify intent from transcription
     const intentResult = classifyIntent(transcriptionText);
@@ -75,9 +79,9 @@ export async function POST(req: NextRequest) {
     });
 
     // If contact exists, update their intent
-    if (call.contact) {
+    if (contact) {
       await prisma.contact.update({
-        where: { id: call.contact.id },
+        where: { id: contact.id },
         data: {
           intent: intentResult.intent,
           intentSource: "VOICEMAIL_TRANSCRIPTION",
@@ -86,7 +90,7 @@ export async function POST(req: NextRequest) {
     }
 
     // If HOT intent, create high-priority notification
-    if (intentResult.intent === "HOT" && call.lead) {
+    if (intentResult.intent === "HOT" && lead) {
       const onlineManagers = await prisma.user.findMany({
         where: {
           role: { in: ["MANAGER", "ADMIN"] },
@@ -95,29 +99,30 @@ export async function POST(req: NextRequest) {
         select: { id: true },
       });
 
-      const callerName = call.contact
-        ? `${call.contact.firstName || ""} ${call.contact.lastName || ""}`.trim() || call.fromNumber
+      const callerName = contact
+        ? `${contact.firstName || ""} ${contact.lastName || ""}`.trim() || call.fromNumber
         : call.fromNumber;
 
       for (const manager of onlineManagers) {
         await prisma.notification.create({
           data: {
+            id: randomUUID(),
             userId: manager.id,
             type: "LEAD_HOT",
             priority: "CRITICAL",
             title: `🔥 Hot Voicemail: ${callerName}`,
             body: transcriptionText.substring(0, 100) + (transcriptionText.length > 100 ? "..." : ""),
-            actionUrl: `/dashboard/chat/${call.lead.id}`,
+            actionUrl: `/dashboard/chat/${lead.id}`,
             actionLabel: "View Lead",
             relatedType: "Lead",
-            relatedId: call.lead.id,
+            relatedId: lead.id,
           },
         });
       }
 
       // Update lead status to HOT
       await prisma.lead.update({
-        where: { id: call.lead.id },
+        where: { id: lead.id },
         data: { status: "RESP_HOT" },
       });
     }

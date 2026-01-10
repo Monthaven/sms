@@ -57,14 +57,14 @@ export async function GET(req: Request) {
       id: true,
       callbackAt: true,
       status: true,
-      contact: {
+      Contact: {
         select: {
           firstName: true,
           lastName: true,
           phoneE164: true,
         },
       },
-      property: {
+      Property: {
         select: {
           address: true,
           city: true,
@@ -84,11 +84,11 @@ export async function GET(req: Request) {
     lead: {
       id: lead.id,
       status: lead.status,
-      contact: lead.contact ? {
-        name: `${lead.contact.firstName || ''} ${lead.contact.lastName || ''}`.trim() || "Unknown",
-        phone: lead.contact.phoneE164,
+      contact: lead.Contact ? {
+        name: `${lead.Contact.firstName || ''} ${lead.Contact.lastName || ''}`.trim() || "Unknown",
+        phone: lead.Contact.phoneE164,
       } : null,
-      property: lead.property,
+      property: lead.Property,
     },
   }));
 

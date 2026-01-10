@@ -19,7 +19,7 @@
  */
 
 import { NextResponse } from "next/server";
-import { LeadStatus, UserRole } from "@prisma/client";
+import { LeadStatus, UserRole, Prisma } from "@prisma/client";
 import twilio from "twilio";
 import { prisma } from "@/lib/db";
 import { normalizePhone } from "@/lib/utils";
@@ -28,6 +28,7 @@ import { validateTwilioWebhook, formDataToParams } from "@/lib/twilio-webhook";
 import { notifications } from "@/lib/notifications";
 import { sendPushToUser } from "@/lib/push-notifications";
 import { incrementCounter } from "@/lib/metrics";
+import { randomUUID } from "crypto";
 
 const VoiceResponse = twilio.twiml.VoiceResponse;
 
@@ -82,6 +83,7 @@ async function resolveInboundCampaignId(log: any): Promise<string> {
 
   const created = await prisma.campaign.create({
     data: {
+      id: randomUUID(),
       name: fallbackName,
       status: "ACTIVE",
       createdAt: new Date(),
@@ -96,14 +98,18 @@ async function resolveInboundCampaignId(log: any): Promise<string> {
  * Find or create contact and lead for inbound caller
  */
 async function ensureContactAndLead(phone: string) {
+  type ContactWithLead = Prisma.ContactGetPayload<{
+    include: { Lead: { include: { User: true } } };
+  }>;
+
   // Look up existing contact with leads and assigned agent
-  let contact = await prisma.contact.findUnique({
+  let contact: ContactWithLead | null = await prisma.contact.findUnique({
     where: { phoneE164: phone },
     include: { 
-      leads: { 
+      Lead: { 
         orderBy: { createdAt: "desc" }, 
         take: 1,
-        include: { assignedTo: true }
+        include: { User: true }
       } 
     },
   });
@@ -112,40 +118,44 @@ async function ensureContactAndLead(phone: string) {
   if (!contact) {
     contact = await prisma.contact.create({
       data: { 
+        id: randomUUID(),
         phoneE164: phone, 
         source: "INBOUND_CALL",
         firstName: "Unknown",
         lastName: "Caller",
+        updatedAt: new Date(),
       },
       include: { 
-        leads: {
-          include: { assignedTo: true }
+        Lead: {
+          include: { User: true }
         }
       },
     });
   }
 
   // Get existing lead or create new one
-  const existingLead = contact.leads?.[0];
-  let lead = existingLead;
+  const existingLead = contact.Lead?.[0];
+  let lead: ContactWithLead["Lead"][number] | null = existingLead || null;
 
   if (!lead) {
     const campaignId = await resolveInboundCampaignId(logger.child({ module: "inbound-call" }));
     lead = await prisma.lead.create({
       data: {
+        id: randomUUID(),
         campaignId,
         contactId: contact.id,
         status: LeadStatus.RESP_HOT,
         notes: "Created from inbound call",
+        updatedAt: new Date(),
       },
-      include: { assignedTo: true },
-    });
+      include: { User: true },
+    }) as ContactWithLead["Lead"][number];
   }
 
   return { 
     contact, 
-    lead,
-    assignedAgent: lead.assignedTo || null,
+    lead: lead as ContactWithLead["Lead"][number],
+    assignedAgent: lead?.User || null,
     callerName: [contact.firstName, contact.lastName].filter(Boolean).join(" ") || phone,
   };
 }
@@ -323,6 +333,7 @@ export async function POST(request: Request) {
     try {
       await prisma.webhookLog.create({
         data: {
+          id: randomUUID(),
           provider: "TWILIO",
           direction: "INBOUND",
           status: "RECEIVED",
@@ -357,6 +368,7 @@ export async function POST(request: Request) {
     try {
       callRecord = await prisma.call.create({
         data: {
+          id: randomUUID(),
           leadId: lead.id,
           contactId: contact.id,
           userId: agent?.id || (await getDefaultUserId()),
@@ -375,6 +387,7 @@ export async function POST(request: Request) {
     try {
       await prisma.interaction.create({
         data: {
+          id: randomUUID(),
           contactId: contact.id,
           channel: "TWILIO",
           direction: "INBOUND",

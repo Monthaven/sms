@@ -1,35 +1,33 @@
 /**
  * PROPRIETARY AND CONFIDENTIAL
  *
- * Sign-in page (moved from root). Uses the existing loginAction.
+ * SMS Sign-In - Stack Auth Integration
+ * Redirects to centralized auth portal at auth.monthavencapital.com
  */
 "use client";
 
-import React from "react";
-import Link from "next/link";
-import { Lock, ChevronRight, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import React, { useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Lock, Loader2 } from "lucide-react";
 import Card from "@/components/ui/Card";
-import { useFormStatus } from "react-dom";
-import { loginAction } from "../actions";
 
-interface LoginState {
-  error?: string;
-}
+export default function SignInPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const next = searchParams.get("next") || "/dashboard";
 
-const initialState: LoginState = { error: "" };
+  useEffect(() => {
+    // Redirect to centralized auth portal
+    const authUrl = new URL("https://app.monthavencapital.com/signin");
+    authUrl.searchParams.set("next", `https://sms.monthavencapital.com${next}`);
 
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button disabled={pending} className="w-full mt-2" icon={!pending ? <ChevronRight size={16} /> : undefined}>
-      {pending ? <Loader2 className="animate-spin" size={18} /> : "Authenticate"}
-    </Button>
-  );
-}
+    // Small delay to show loading state
+    const timer = setTimeout(() => {
+      window.location.href = authUrl.toString();
+    }, 500);
 
-export default function LoginPage() {
-  const [state, formAction] = React.useActionState(loginAction, initialState);
+    return () => clearTimeout(timer);
+  }, [next]);
 
   return (
     <div className="h-screen w-full flex items-center justify-center bg-[#050b14] relative overflow-hidden">
@@ -42,54 +40,20 @@ export default function LoginPage() {
             <div className="w-12 h-12 mx-auto bg-gradient-to-tr from-blue-600 to-cyan-400 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20 mb-4">
               <Lock className="text-white" size={24} />
             </div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">Monthaven</h1>
-            <p className="text-slate-400 text-sm mt-2">Secure Access Gateway</p>
+            <h1 className="text-2xl font-bold text-white tracking-tight">Monthaven SMS</h1>
+            <p className="text-slate-400 text-sm mt-2">Redirecting to Sign-In...</p>
           </div>
 
-          <form action={formAction} className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Agent Email</label>
-              <input
-                name="email"
-                type="email"
-                required
-                placeholder="Enter your email"
-                className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition-all"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Passkey</label>
-              <input
-                name="passkey"
-                type="password"
-                required
-                placeholder="Enter passkey"
-                className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition-all"
-              />
-            </div>
-
-            {state?.error && (
-              <div className="text-rose-400 text-sm bg-rose-500/10 border border-rose-500/30 rounded-lg px-3 py-2">
-                {state.error}
-              </div>
-            )}
-
-            <SubmitButton />
-            
-            <div className="text-center">
-              <Link 
-                href="/forgot-password" 
-                className="text-sm text-slate-400 hover:text-blue-400 transition-colors"
-              >
-                Forgot your password?
-              </Link>
-            </div>
-          </form>
+          <div className="flex justify-center py-8">
+            <Loader2 className="animate-spin text-blue-400" size={32} />
+          </div>
 
           <div className="mt-6 text-center">
             <p className="text-[10px] text-slate-500 font-mono">
-              SYSTEM STATUS: <span className="text-emerald-500">OPERATIONAL</span>
+              UNIFIED SSO • <span className="text-emerald-500">ACTIVE</span>
+            </p>
+            <p className="text-[10px] text-slate-500 font-mono mt-1">
+              app.monthavencapital.com
             </p>
           </div>
         </Card>

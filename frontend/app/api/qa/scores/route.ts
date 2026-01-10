@@ -8,6 +8,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { logger, generateRequestId } from "@/lib/logger";
 import { z } from "zod";
+import { randomUUID } from "crypto";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -37,7 +38,7 @@ export async function GET(req: NextRequest) {
   const whereCondition: any = {};
 
   if (agentId) {
-    whereCondition.call = {
+    whereCondition.Call = {
       userId: agentId,
     };
   }
@@ -51,22 +52,22 @@ export async function GET(req: NextRequest) {
   const scores = await prisma.qualityScore.findMany({
     where: whereCondition,
     include: {
-      call: {
+      Call: {
         select: {
           id: true,
           duration: true,
           direction: true,
           recordingUrl: true,
           startedAt: true,
-          user: {
+          User: {
             select: { id: true, name: true },
           },
-          contact: {
+          Contact: {
             select: { firstName: true, lastName: true },
           },
         },
       },
-      scorer: {
+      User: {
         select: { name: true },
       },
     },
@@ -135,22 +136,23 @@ export async function POST(req: NextRequest) {
       }, { status: 409 });
     }
 
-    const qualityScore = await prisma.qualityScore.create({
-      data: {
-        callId,
-        scoredBy: user.id,
-        overall: score,
-        greeting: criteria?.greeting || 0,
-        discovery: criteria?.discovery || 0,
+  const qualityScore = await prisma.qualityScore.create({
+    data: {
+      id: randomUUID(),
+      callId,
+      scoredBy: user.id,
+      overall: score,
+      greeting: criteria?.greeting || 0,
+      discovery: criteria?.discovery || 0,
         objections: criteria?.objections || 0,
         closing: criteria?.closing || 0,
         compliance: criteria?.compliance || 0,
         notes: notes || null,
       },
       include: {
-        call: {
+        Call: {
           select: {
-            user: { select: { name: true } },
+            User: { select: { name: true } },
           },
         },
       },
@@ -166,6 +168,7 @@ export async function POST(req: NextRequest) {
     // Create notification for the agent
     await prisma.notification.create({
       data: {
+        id: randomUUID(),
         userId: call.userId,
         type: "MANAGER_ALERT",
         title: "Call Quality Score",

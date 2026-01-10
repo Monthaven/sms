@@ -24,7 +24,7 @@ export async function getLeadQueue(userId: string, filters: QueueFilters = {}) {
   const where: any = {
     OR: [{ assignedToId: null }, { assignedToId: userId }, { lockExpiresAt: { lt: new Date() } }],
     status: { in: ["NEW", "QUEUED_FOR_CALL"] },
-    contact: {
+    Contact: {
       doNotContact: false,
       OR: [
     { intent: null },
@@ -34,15 +34,15 @@ export async function getLeadQueue(userId: string, filters: QueueFilters = {}) {
   };
 
   if (priority !== "ALL") {
-    where.contact.priority = priority;
+    where.Contact.priority = priority;
   }
 
   const orderBy =
     sort === "callback"
-      ? [{ callbackAt: "asc" as const }, { contact: { score: "desc" as const } }]
+      ? [{ callbackAt: "asc" as const }, { Contact: { score: "desc" as const } }]
       : sort === "recent"
       ? [{ createdAt: "desc" as const }]
-      : [{ contact: { priority: "desc" as const } }, { contact: { score: "desc" as const } }];
+      : [{ Contact: { priority: "desc" as const } }, { Contact: { score: "desc" as const } }];
 
   const [leads, total] = await Promise.all([
     prisma.lead.findMany({
@@ -51,8 +51,8 @@ export async function getLeadQueue(userId: string, filters: QueueFilters = {}) {
       take: limit,
       skip: offset,
       include: {
-        contact: true,
-        property: true,
+        Contact: true,
+        Property: true,
       },
     }),
     prisma.lead.count({ where }),
@@ -82,8 +82,8 @@ export async function claimLead(leadId: string, userId: string) {
       lockExpiresAt,
     },
     include: {
-      contact: true,
-      property: true,
+      Contact: true,
+      Property: true,
     },
   });
 }

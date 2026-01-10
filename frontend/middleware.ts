@@ -2,10 +2,13 @@
  * PROPRIETARY — Always Improving LLC
  * Copyright © 2025. All Rights Reserved.
  * No license granted. Access under Shareholders' Agreement §8.3.
+ *
+ * SMS Frontend Middleware - Stack Auth Integration
  */
 
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { jwtVerify, createRemoteJWKSet } from "jose";
 
 const securityHeaders = {
   "X-Content-Type-Options": "nosniff",
@@ -38,11 +41,49 @@ function isPublic(pathname: string) {
   );
 }
 
-export function middleware(request: NextRequest) {
+// JWKS resolver for Stack Auth JWT verification
+let jwks: ReturnType<typeof createRemoteJWKSet> | null = null;
+
+function resolveJwks() {
+  if (!jwks) {
+    const jwksUrl = process.env.STACK_AUTH_JWKS_URL ?? process.env.STACK_JWKS_URL;
+    if (!jwksUrl) {
+      throw new Error("Missing STACK_AUTH_JWKS_URL");
+    }
+    jwks = createRemoteJWKSet(new URL(jwksUrl));
+  }
+  return jwks;
+}
+
+async function verifyStackSession(token: string) {
+  try {
+    const { payload } = await jwtVerify(token, resolveJwks(), {
+      algorithms: ["RS256"],
+    });
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Extract role from Stack JWT claims (from Stack Teams)
+ * Maps team names to SMS role enum values
+ */
+function getRoleFromClaims(claims: any): string {
+  const teams = (claims.teams as any[]) || [];
+  const teamNames = teams.map((t) => t.name.toLowerCase());
+
+  // Priority order for role assignment
+  if (teamNames.includes("admin")) return "ADMIN";
+  if (teamNames.includes("manager")) return "MANAGER";
+  if (teamNames.includes("caller") || teamNames.includes("agent")) return "AGENT";
+
+  return "AGENT"; // Default role
+}
+
+export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
-  const hasSession = Boolean(request.cookies.get("mae_user")?.value);
-  const role = request.cookies.get("mae_role")?.value || "AGENT";
-  const membership = request.cookies.get("mae_membership")?.value || request.cookies.get("mae_status")?.value || "accepted";
 
   const response = NextResponse.next();
   Object.entries(securityHeaders).forEach(([key, value]) => response.headers.set(key, value));
@@ -58,10 +99,7 @@ export function middleware(request: NextRequest) {
     const origin = request.headers.get("origin") || "";
     const referer = request.headers.get("referer") || "";
     const allowedOrigin = request.nextUrl.origin;
-    if (
-      origin &&
-      origin !== allowedOrigin
-    ) {
+    if (origin && origin !== allowedOrigin) {
       return NextResponse.json({ error: "CSRF validation failed" }, { status: 403 });
     }
     if (!origin && referer && !referer.startsWith(allowedOrigin)) {
@@ -69,35 +107,45 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  // Allow public paths and static
+  // Allow public paths and static assets
   if (isPublic(pathname)) {
     return response;
   }
 
-  // Legacy OM access: allow if intel_session or stack-access is present for /om paths
-  if (pathname.startsWith("/om")) {
-    const hasOmAccess = request.cookies.get("intel_session") || request.cookies.get("stack-access");
-    if (hasOmAccess) {
-      return response;
-    }
+  // Verify Stack Auth session
+  const sessionToken = request.cookies.get("stack_session")?.value;
+
+  if (!sessionToken) {
+    // Redirect to centralized auth portal
+    const authUrl = new URL("https://app.monthavencapital.com/signin");
+    authUrl.searchParams.set("next", `https://sms.monthavencapital.com${pathname}`);
+    return NextResponse.redirect(authUrl);
   }
 
-  // Require session for everything else
-  if (!hasSession) {
-    return NextResponse.redirect(new URL("/signin?next=" + encodeURIComponent(pathname), request.url));
+  const claims = await verifyStackSession(sessionToken);
+
+  if (!claims) {
+    // Invalid session - redirect to auth portal
+    const authUrl = new URL("https://app.monthavencapital.com/signin");
+    authUrl.searchParams.set("next", `https://sms.monthavencapital.com${pathname}`);
+    return NextResponse.redirect(authUrl);
   }
 
-  // Membership gate
+  // Extract role from Stack Teams
+  const role = getRoleFromClaims(claims);
+  const membership = (claims.membership_status as string) || "accepted";
+
+  // Membership gate (pending users redirected to approval page)
   if (membership === "pending" && pathname !== "/awaiting-approval") {
     return NextResponse.redirect(new URL("/awaiting-approval", request.url));
   }
 
-  // Admin guard
+  // Admin guard - non-admins cannot access /dashboard/admin
   if (pathname.startsWith("/dashboard/admin") && role !== "ADMIN") {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  // Manager guard
+  // Manager guard - only MANAGER and ADMIN can access /dashboard/manager
   if (pathname.startsWith("/dashboard/manager") && !["MANAGER", "ADMIN"].includes(role)) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }

@@ -7,6 +7,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { logger, generateRequestId } from "@/lib/logger";
+import { randomUUID } from "crypto";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,6 +21,7 @@ export async function POST(request: Request) {
 
     await prisma.webhookLog.create({
       data: {
+        id: randomUUID(),
         provider: "EMAIL_INBOUND",
         direction: "INBOUND",
         status: "RECEIVED",

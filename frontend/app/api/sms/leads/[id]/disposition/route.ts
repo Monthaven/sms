@@ -9,6 +9,7 @@ import { LeadStatus, UserRole } from "@prisma/client";
 import { getCurrentUser } from "@/lib/auth";
 import { dispositionSchema } from "@/lib/validations";
 import { prisma } from "@/lib/db";
+import { randomUUID } from "crypto";
 
 const STATUS_MAP: Record<string, string> = {
   HOT_LEAD: "RESP_HOT",
@@ -88,6 +89,7 @@ export async function POST(req: Request, context: RouteContext) {
 
   await prisma.auditLog.create({
     data: {
+      id: randomUUID(),
       userId: user.id,
       action: "DISPOSITION",
       entityType: "Lead",

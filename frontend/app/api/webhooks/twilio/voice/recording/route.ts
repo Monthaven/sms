@@ -14,6 +14,7 @@ import { prisma } from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { formDataToParams } from "@/lib/twilio-webhook";
 import { notifications } from "@/lib/notifications";
+import { randomUUID } from "crypto";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -56,13 +57,14 @@ export async function POST(request: Request) {
     if (leadId) {
       const lead = await prisma.lead.findUnique({
         where: { id: leadId },
-        include: { assignedTo: true },
+        include: { User: true },
       });
 
       if (lead) {
         // Add interaction for the voicemail
         await prisma.interaction.create({
           data: {
+            id: randomUUID(),
             contactId: lead.contactId,
             channel: "TWILIO",
             direction: "INBOUND",
@@ -72,8 +74,8 @@ export async function POST(request: Request) {
         });
 
         // Notify assigned agent
-        if (lead.assignedTo) {
-          await notifications.send(`user:${lead.assignedTo.id}`, {
+        if (lead.User) {
+          await notifications.send(`user:${lead.User.id}`, {
             type: "new_message",
             title: "New Voicemail",
             message: `${recordingDuration} second voicemail from lead`,

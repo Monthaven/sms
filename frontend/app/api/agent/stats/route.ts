@@ -148,9 +148,9 @@ export async function GET(req: Request) {
     orderBy: { startedAt: "desc" },
     take: 10,
     include: {
-      lead: {
+      Lead: {
         include: {
-          contact: { select: { firstName: true, lastName: true } },
+          Contact: { select: { firstName: true, lastName: true } },
         },
       },
     },
@@ -170,7 +170,9 @@ export async function GET(req: Request) {
     dailyActivity,
     recentCalls: recentCalls.map((c) => ({
       id: c.id,
-      contactName: c.lead?.contact ? `${c.lead.contact.firstName || ''} ${c.lead.contact.lastName || ''}`.trim() || "Unknown" : "Unknown",
+      contactName: c.Lead?.Contact
+        ? `${c.Lead.Contact.firstName || ''} ${c.Lead.Contact.lastName || ''}`.trim() || "Unknown"
+        : "Unknown",
       outcome: c.disposition || "UNKNOWN",
       duration: c.duration || 0,
       createdAt: c.startedAt.toISOString(),

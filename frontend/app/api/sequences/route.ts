@@ -32,14 +32,19 @@ export async function GET(request: NextRequest) {
   try {
     const sequences = await prisma.sequence.findMany({
       include: {
-        steps: { orderBy: { stepNumber: "asc" } },
+        SequenceStep: { orderBy: { stepNumber: "asc" } },
         _count: { select: { SequenceContact: true } },
       },
       orderBy: { createdAt: "desc" },
     });
 
     log.debug("Sequences fetched", { count: sequences.length });
-    return NextResponse.json(sequences, { headers: rateLimitHeaders(rateLimit) });
+    const formatted = sequences.map(({ SequenceStep, ...rest }) => ({
+      ...rest,
+      steps: SequenceStep,
+    }));
+
+    return NextResponse.json(formatted, { headers: rateLimitHeaders(rateLimit) });
   } catch (error: any) {
     log.error("Failed to fetch sequences", {}, error);
     return NextResponse.json(

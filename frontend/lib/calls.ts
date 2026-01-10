@@ -11,6 +11,7 @@
 import twilio from "twilio";
 import { prisma } from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { randomUUID } from "crypto";
 
 // ============================================================================
 // Types
@@ -131,23 +132,26 @@ export async function initiateCall({
     // Get lead and contact
     const lead = await prisma.lead.findUnique({
       where: { id: leadId },
-      include: { contact: true },
+      include: { Contact: true },
     });
 
-    if (!lead || !lead.contact?.phoneE164) {
+    const contact = lead?.Contact;
+
+    if (!lead || !contact?.phoneE164) {
       return { success: false, error: "Lead or phone not found" };
     }
 
-    if (lead.contact.doNotContact) {
+    if (contact.doNotContact) {
       return { success: false, error: "Contact is marked do-not-contact" };
     }
 
-    const to = lead.contact.phoneE164;
-    const contactName = lead.contact.firstName ?? lead.contact.full_name ?? "Unknown";
+    const to = contact.phoneE164;
+    const contactName = contact.firstName ?? contact.full_name ?? "Unknown";
 
     // Create call record in database
     const call = await prisma.call.create({
       data: {
+        id: randomUUID(),
         leadId,
         contactId: lead.contactId,
         userId,
@@ -263,6 +267,7 @@ export async function initiateManualCall({
     // Create call record in database
     const call = await prisma.call.create({
       data: {
+        id: randomUUID(),
         leadId: leadId || null,
         contactId,
         userId,
@@ -357,6 +362,7 @@ export async function logCallOutcome({
 
       const call = await prisma.call.create({
         data: {
+          id: randomUUID(),
           leadId,
           contactId: lead?.contactId,
           userId,
@@ -397,6 +403,7 @@ export async function logCallOutcome({
     // Create audit log
     await prisma.leadAudit.create({
       data: {
+        id: randomUUID(),
         leadId,
         userId,
         action: "CALL_OUTCOME",

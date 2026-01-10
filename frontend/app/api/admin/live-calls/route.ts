@@ -22,16 +22,17 @@ export async function GET() {
         endedAt: null,
       },
       include: {
-        user: {
+        User: {
           select: { id: true, name: true, email: true },
         },
-        contact: {
+        Contact: {
           select: { id: true, firstName: true, lastName: true, phoneE164: true },
         },
-        lead: {
-          select: { id: true, status: true },
-          include: {
-            property: {
+        Lead: {
+          select: {
+            id: true,
+            status: true,
+            Property: {
               select: { addressLine1: true, city: true, state: true },
             },
           },
@@ -42,10 +43,17 @@ export async function GET() {
 
     // Calculate duration for each call
     const now = new Date();
-    const callsWithDuration = activeCalls.map((call) => ({
-      ...call,
-      currentDuration: Math.floor((now.getTime() - call.startedAt.getTime()) / 1000),
-    }));
+    const callsWithDuration = activeCalls.map((call) => {
+      const { User, Contact, Lead, ...rest } = call;
+      const { Property, ...leadRest } = Lead ?? {};
+      return {
+        ...rest,
+        user: User,
+        contact: Contact,
+        lead: Lead ? { ...leadRest, property: Property } : null,
+        currentDuration: Math.floor((now.getTime() - call.startedAt.getTime()) / 1000),
+      };
+    });
 
     return NextResponse.json({
       calls: callsWithDuration,

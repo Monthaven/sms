@@ -8,6 +8,7 @@ import { prisma } from "@/lib/db";
 import { sendSMS } from "@/lib/sms";
 import { checkQuietHours } from "@/lib/quiet-hours";
 import { logger, generateRequestId } from "@/lib/logger";
+import { randomUUID } from "crypto";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -47,7 +48,7 @@ export async function GET(req: NextRequest) {
         },
       },
       include: {
-        contact: {
+        Contact: {
           select: {
             id: true,
             phoneE164: true,
@@ -55,12 +56,12 @@ export async function GET(req: NextRequest) {
             phoneValid: true,
           },
         },
-        lead: {
+        Lead: {
           select: {
             campaignId: true,
           },
         },
-        user: {
+        User: {
           select: {
             id: true,
             name: true,
@@ -79,7 +80,7 @@ export async function GET(req: NextRequest) {
       stats.processed++;
 
       // Skip if contact opted out (doNotContact flag)
-      if (message.contact.doNotContact) {
+      if (message.Contact.doNotContact) {
         await prisma.scheduledMessage.update({
           where: { id: message.id },
           data: { 
@@ -92,7 +93,7 @@ export async function GET(req: NextRequest) {
       }
 
       // Skip if phone invalid
-      if (!message.contact.phoneValid) {
+      if (!message.Contact.phoneValid) {
         await prisma.scheduledMessage.update({
           where: { id: message.id },
           data: { 
@@ -107,7 +108,7 @@ export async function GET(req: NextRequest) {
       // Check DNC list
       const isDnc = await prisma.dncEntry.findFirst({
         where: {
-          phone: message.contact.phoneE164,
+          phone: message.Contact.phoneE164,
         },
       });
 
@@ -146,7 +147,7 @@ export async function GET(req: NextRequest) {
       // Attempt to send
       try {
         const result = await sendSMS({
-          to: message.contact.phoneE164,
+          to: message.Contact.phoneE164,
           message: message.body,
           provider: "twilio",
           mediaUrls: message.mediaUrls.length > 0 ? message.mediaUrls : undefined,
@@ -169,15 +170,15 @@ export async function GET(req: NextRequest) {
         // Create message record
         await prisma.message.create({
           data: {
-            id: crypto.randomUUID(),
-            phone: message.contact.phoneE164,
+            id: randomUUID(),
+            phone: message.Contact.phoneE164,
             direction: "outbound",
             body: message.body,
             status: "sent",
             provider: "twilio",
             external_id: result.externalId,
-            campaign_id: message.lead?.campaignId || null,
-            contactId: message.contact.id,
+            campaign_id: message.Lead?.campaignId || null,
+            contactId: message.Contact.id,
             updatedAt: new Date(),
           },
         });
@@ -185,7 +186,7 @@ export async function GET(req: NextRequest) {
         stats.sent++;
         log.info("Scheduled message sent", { 
           messageId: message.id, 
-          contactId: message.contact.id,
+          contactId: message.Contact.id,
         });
 
       } catch (sendError: any) {

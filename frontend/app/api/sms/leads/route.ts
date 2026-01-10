@@ -27,7 +27,7 @@ export async function GET(req: Request) {
   const offset = parseInt(url.searchParams.get("offset") || "0", 10);
 
   const where: any = {
-    contact: {
+    Contact: {
       doNotContact: false,
     },
   };
@@ -53,10 +53,10 @@ export async function GET(req: Request) {
       skip: offset,
       orderBy: [
         { callbackAt: "asc" },
-        { contact: { score: "desc" } },
+        { Contact: { score: "desc" } },
       ],
       include: {
-        contact: {
+        Contact: {
           select: {
             id: true,
             firstName: true,
@@ -67,7 +67,7 @@ export async function GET(req: Request) {
             intent: true,
           },
         },
-        property: {
+        Property: {
           select: {
             id: true,
             address: true,
@@ -87,19 +87,19 @@ export async function GET(req: Request) {
       id: lead.id,
       status: lead.status,
       callbackAt: lead.callbackAt?.toISOString() || null,
-      contact: lead.contact ? {
-        id: lead.contact.id,
-        name: `${lead.contact.firstName || ""} ${lead.contact.lastName || ""}`.trim() || "Unknown",
-        phone: lead.contact.phoneE164,
-        score: lead.contact.score,
-        priority: lead.contact.priority,
-        intent: lead.contact.intent,
+      contact: lead.Contact ? {
+        id: lead.Contact.id,
+        name: `${lead.Contact.firstName || ""} ${lead.Contact.lastName || ""}`.trim() || "Unknown",
+        phone: lead.Contact.phoneE164,
+        score: lead.Contact.score,
+        priority: lead.Contact.priority,
+        intent: lead.Contact.intent,
       } : null,
-      property: lead.property ? {
-        id: lead.property.id,
-        address: lead.property.address || lead.property.addressLine1,
-        city: lead.property.city,
-        state: lead.property.state,
+      property: lead.Property ? {
+        id: lead.Property.id,
+        address: lead.Property.address || lead.Property.addressLine1,
+        city: lead.Property.city,
+        state: lead.Property.state,
       } : null,
     })),
     meta: { total, limit, offset },

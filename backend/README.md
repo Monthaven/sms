@@ -82,3 +82,10 @@ Supporting services live in `src/services/` and `src/utils/` (`phone.ts`, `smsLo
 - **FK errors (P2003) on ingest:** Ensure campaign exists or omit `campaignId` so leads stay unassigned.
 - **Missing creds:** Scripts that send via EzTexting require either `EZTEXTING_USER/PASS` or `EZTEXTING_API_KEY`.
 - **Schema drift:** Always run `npm run db:sync` after migrations to keep the storefront aligned.
+
+## Documentation consolidation
+- This README is the canonical backend doc. Prior Markdown files are summarized here:
+  - **README-backend.md:** Infra notes for spinning up temporary Postgres for migration dry-runs (docker recipe, prisma commands).
+  - **DEV_NOTES.md:** Initial scaffolding log (local SQLite bootstrap, Prisma fixes, npm package adjustments).
+  - **DEALMACHINE_PULL_PLAN.md:** Design/flow for DealMachine API pull script and mapping into ingest pipeline (logging, mapping, telemetry).
+  - **PR-migration-instructions.md:** Safe flow to recreate Prisma migrations against Postgres with helper scripts and branch workflow.

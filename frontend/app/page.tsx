@@ -104,7 +104,7 @@ export default async function PortalLanding() {
     redirect("/signin");
   }
 
-  const { roles, can, membership, emailDisplay } = getRolesFromCookies(cookieStore);
+  const { roles, can, membership, emailDisplay } = await getRolesFromCookies(cookieStore);
   if (membership === "pending") {
     redirect("/awaiting-approval");
   }

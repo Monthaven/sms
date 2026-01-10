@@ -35,7 +35,7 @@ export async function GET(
   const template = await prisma.smsTemplate.findUnique({
     where: { id },
     include: {
-      creator: { select: { name: true } },
+      User: { select: { name: true } },
     },
   });
 
@@ -48,7 +48,14 @@ export async function GET(
     return NextResponse.json({ error: "Access denied" }, { status: 403 });
   }
 
-  return NextResponse.json({ template });
+  const { User: Creator, ...rest } = template;
+
+  return NextResponse.json({ 
+    template: {
+      ...rest,
+      creator: Creator,
+    },
+  });
 }
 
 /**

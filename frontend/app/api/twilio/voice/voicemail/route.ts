@@ -9,6 +9,7 @@ import { validateTwilioWebhook, formDataToParams } from "@/lib/twilio-webhook";
 import { logger, generateRequestId } from "@/lib/logger";
 import { notifications } from "@/lib/notifications";
 import VoiceResponse from "twilio/lib/twiml/VoiceResponse";
+import { randomUUID } from "crypto";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -47,8 +48,8 @@ export async function POST(req: NextRequest) {
         endedAt: new Date(),
       },
       include: {
-        contact: true,
-        user: true,
+        Contact: true,
+        User: true,
       },
     });
 
@@ -61,14 +62,15 @@ export async function POST(req: NextRequest) {
       select: { id: true },
     });
 
-    const callerName = call.contact
-      ? `${call.contact.firstName || ""} ${call.contact.lastName || ""}`.trim() || from
+    const callerName = call.Contact
+      ? `${call.Contact.firstName || ""} ${call.Contact.lastName || ""}`.trim() || from
       : from;
 
     // Create notifications for all online agents
     for (const agent of onlineAgents) {
       await prisma.notification.create({
         data: {
+          id: randomUUID(),
           userId: agent.id,
           type: "VOICEMAIL",
           priority: "HIGH",

@@ -280,12 +280,12 @@ async function getTopPerformers(
         email: true,
         _count: {
           select: {
-            calls: {
+            Call: {
               where: {
                 startedAt: { gte: start, lte: end },
               },
             },
-            interactions: {
+            Interaction: {
               where: {
                 direction: 'OUTBOUND',
                 createdAt: { gte: start, lte: end },
@@ -293,7 +293,7 @@ async function getTopPerformers(
             },
           },
         },
-        assignedLeads: {
+        Lead: {
           where: {
             status: { in: ['CONVERTED', 'RESP_HOT'] },
             updatedAt: { gte: start, lte: end },
@@ -308,8 +308,8 @@ async function getTopPerformers(
       .map(user => ({
         userId: user.id,
         name: user.name || user.email,
-        leadsContacted: (user._count?.calls || 0) + (user._count?.interactions || 0),
-        conversions: user.assignedLeads?.length || 0,
+        leadsContacted: (user._count?.Call || 0) + (user._count?.Interaction || 0),
+        conversions: user.Lead?.length || 0,
       }))
       .filter(p => p.leadsContacted > 0 || p.conversions > 0)
       .sort((a, b) => (b.conversions * 10 + b.leadsContacted) - (a.conversions * 10 + a.leadsContacted))

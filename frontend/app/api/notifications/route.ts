@@ -37,10 +37,10 @@ export async function GET(req: NextRequest) {
         updatedAt: { gte: twoHoursAgo },
       },
       include: {
-        contact: {
+        Contact: {
           select: { id: true, firstName: true, lastName: true, phoneE164: true, score: true },
         },
-        property: true,
+        Property: true,
       },
       orderBy: { updatedAt: "desc" },
       take: 5,
@@ -53,13 +53,13 @@ export async function GET(req: NextRequest) {
         createdAt: { gte: oneHourAgo },
       },
       include: {
-        contact: {
+        Contact: {
           select: {
             id: true,
             firstName: true,
             lastName: true,
             phoneE164: true,
-            leads: {
+            Lead: {
               take: 1,
               orderBy: { updatedAt: "desc" },
               select: { id: true },
@@ -75,20 +75,20 @@ export async function GET(req: NextRequest) {
       ...hotLeads.map((lead) => ({
         id: `hot-${lead.id}`,
         type: "hot_lead" as const,
-        title: `🔥 Hot lead: ${lead.contact?.firstName || ""} ${lead.contact?.lastName || ""}`.trim(),
-        body: `${lead.property?.addressLine1 || "Property"} - Score: ${lead.contact?.score || "N/A"}`,
+        title: `🔥 Hot lead: ${lead.Contact?.firstName || ""} ${lead.Contact?.lastName || ""}`.trim(),
+        body: `${lead.Property?.addressLine1 || "Property"} - Score: ${lead.Contact?.score || "N/A"}`,
         href: `/dashboard/chat/${lead.id}`,
         time: lead.updatedAt,
       })),
       ...recentResponses.map((interaction) => ({
         id: `response-${interaction.id}`,
         type: "new_response" as const,
-        title: `New Response: ${interaction.contact?.firstName || ""} ${interaction.contact?.lastName || ""}`.trim(),
+        title: `New Response: ${interaction.Contact?.firstName || ""} ${interaction.Contact?.lastName || ""}`.trim(),
         body:
           interaction.body?.substring(0, 80) +
             (interaction.body && interaction.body.length > 80 ? "..." : "") ||
           "New message received",
-        href: `/dashboard/chat/${interaction.contact?.leads?.[0]?.id || interaction.contactId}`,
+        href: `/dashboard/chat/${interaction.Contact?.Lead?.[0]?.id || interaction.contactId}`,
         time: interaction.createdAt,
       })),
     ]

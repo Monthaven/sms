@@ -5,13 +5,14 @@
  */
 
 import { NextResponse } from "next/server";
-import { LeadStatus } from "@prisma/client";
+import { LeadStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { normalizePhone } from "@/lib/utils";
 import { logger, generateRequestId } from "@/lib/logger";
 import { sendPushToUser } from "@/lib/push-notifications";
 import { validateTwilioWebhook, formDataToParams } from "@/lib/twilio-webhook";
 import { notifications } from "@/lib/notifications";
+import { randomUUID } from "crypto";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -52,6 +53,7 @@ async function resolveInboundCampaignId(log: ReturnType<typeof logger.child>): P
 
   const created = await prisma.campaign.create({
     data: {
+      id: randomUUID(),
       name: fallbackName,
       status: "ACTIVE",
       createdAt: new Date(),
@@ -63,19 +65,22 @@ async function resolveInboundCampaignId(log: ReturnType<typeof logger.child>): P
 }
 
 async function ensureContactAndLead(phone: string, log: ReturnType<typeof logger.child>) {
-  const contact =
-    (await prisma.contact.findUnique({
-      where: { phoneE164: phone },
-      include: { leads: { orderBy: { createdAt: "desc" }, take: 1 } },
-    })) ||
-    (await prisma.contact.create({
-      data: { phoneE164: phone, source: "INBOUND" },
-    }));
+  type ContactWithLead = Prisma.ContactGetPayload<{ include: { Lead: true } }>;
 
-  const leadCandidate =
-    "leads" in contact && Array.isArray((contact as any).leads)
-      ? (contact as any).leads[0] || null
-      : null;
+  let contact: ContactWithLead | null =
+    await prisma.contact.findUnique({
+      where: { phoneE164: phone },
+      include: { Lead: { orderBy: { createdAt: "desc" }, take: 1 } },
+    });
+
+  if (!contact) {
+    contact = await prisma.contact.create({
+      data: { id: randomUUID(), phoneE164: phone, source: "INBOUND", updatedAt: new Date() },
+      include: { Lead: true },
+    });
+  }
+
+  const leadCandidate = contact.Lead?.[0] || null;
 
   let lead = leadCandidate;
 
@@ -83,9 +88,11 @@ async function ensureContactAndLead(phone: string, log: ReturnType<typeof logger
     const campaignId = await resolveInboundCampaignId(log);
     lead = await prisma.lead.create({
       data: {
+        id: randomUUID(),
         campaignId,
         contactId: contact.id,
         status: LeadStatus.RESP_HOT,
+        updatedAt: new Date(),
       },
     });
     log.info("Created new lead for inbound contact", { contactId: contact.id, leadId: lead.id });
@@ -136,12 +143,13 @@ export async function POST(request: Request) {
       }
     }
 
-    // Write webhook log
-    await prisma.webhookLog.create({
-      data: {
-        provider: "TWILIO",
-        direction: "INBOUND",
-        status: "RECEIVED",
+  // Write webhook log
+  await prisma.webhookLog.create({
+    data: {
+      id: randomUUID(),
+      provider: "TWILIO",
+      direction: "INBOUND",
+      status: "RECEIVED",
         statusCode: 200,
         payload: params,
       },
@@ -149,12 +157,13 @@ export async function POST(request: Request) {
 
     const { contactId, leadId } = await ensureContactAndLead(from, log);
 
-    // Insert interaction
-    await prisma.interaction.create({
-      data: {
-        contactId,
-        channel: "TWILIO",
-        direction: "INBOUND",
+  // Insert interaction
+  await prisma.interaction.create({
+    data: {
+      id: randomUUID(),
+      contactId,
+      channel: "TWILIO",
+      direction: "INBOUND",
         body: body || "(no body)",
         externalId: sid,
       },

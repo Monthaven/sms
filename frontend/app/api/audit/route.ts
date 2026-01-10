@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
       db.auditLog.findMany({
         where,
         include: {
-          user: {
+          User: {
             select: { id: true, name: true, email: true },
           },
         },
@@ -53,8 +53,13 @@ export async function GET(req: NextRequest) {
       db.auditLog.count({ where }),
     ]);
 
+    const normalizedLogs = logs.map((log) => {
+      const { User, ...rest } = log;
+      return { ...rest, user: User };
+    });
+
     return NextResponse.json({
-      logs,
+      logs: normalizedLogs,
       total,
       limit,
       offset,

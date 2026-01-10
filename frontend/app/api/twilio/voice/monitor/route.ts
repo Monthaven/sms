@@ -9,6 +9,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getTwilioClient } from "@/lib/twilio-client";
 import { logger, generateRequestId } from "@/lib/logger";
 import VoiceResponse from "twilio/lib/twiml/VoiceResponse";
+import { randomUUID } from "crypto";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -48,7 +49,7 @@ export async function POST(req: NextRequest) {
     // Get current call
     const call = await prisma.call.findUnique({
       where: { twilioCallSid: callSid },
-      include: { user: true },
+      include: { User: true },
     });
 
     if (!call) {
@@ -129,6 +130,7 @@ export async function POST(req: NextRequest) {
     if (mode !== "listen") {
       await prisma.notification.create({
         data: {
+          id: randomUUID(),
           userId: call.userId,
           type: "MANAGER_ALERT",
           priority: "LOW",

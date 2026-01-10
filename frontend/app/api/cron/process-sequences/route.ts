@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { sendSMS, type SMSProvider } from "@/lib/sms";
 import { logger, generateRequestId } from "@/lib/logger";
+import { randomUUID } from "crypto";
 
 // Default SMS provider for sequence messages - can be overridden per sequence
 const DEFAULT_SMS_PROVIDER: SMSProvider = (process.env.DEFAULT_SMS_PROVIDER as SMSProvider) || "twilio";
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest) {
       include: {
         Sequence: { 
           include: { 
-            steps: { orderBy: { stepNumber: "asc" } } 
+            SequenceStep: { orderBy: { stepNumber: "asc" } } 
           } 
         },
       },
@@ -82,7 +83,7 @@ export async function POST(req: NextRequest) {
 
         // Get current step (steps are 1-indexed, current_step tracks last completed)
         const currentStepNum = (sc.current_step ?? 0) + 1;
-        const step = sc.Sequence.steps.find(
+        const step = sc.Sequence.SequenceStep.find(
           (s) => s.stepNumber === currentStepNum
         );
 
@@ -122,6 +123,7 @@ export async function POST(req: NextRequest) {
           // Log interaction with the channel used
           await prisma.interaction.create({
             data: {
+              id: randomUUID(),
               contactId: sc.contact_id,
               channel: provider.toUpperCase() as "TWILIO" | "EZTEXTING",
               direction: "OUTBOUND",
@@ -135,7 +137,7 @@ export async function POST(req: NextRequest) {
 
         // Calculate next send time
         const nextStepNum = currentStepNum + 1;
-        const nextStep = sc.Sequence.steps.find(
+        const nextStep = sc.Sequence.SequenceStep.find(
           (s) => s.stepNumber === nextStepNum
         );
         

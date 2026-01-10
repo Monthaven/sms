@@ -8,6 +8,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { logger, generateRequestId } from "@/lib/logger";
 import { z } from "zod";
+import { randomUUID } from "crypto";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -65,7 +66,7 @@ export async function GET(req: NextRequest) {
         usageCount: true,
         createdBy: true,
         createdAt: true,
-        creator: {
+        User: {
           select: {
             name: true,
           },
@@ -74,17 +75,22 @@ export async function GET(req: NextRequest) {
     });
 
     // Group by category
-    const grouped = templates.reduce((acc, template) => {
+    const formatted = templates.map(({ User, ...rest }) => ({
+      ...rest,
+      creator: User,
+    }));
+
+    const grouped = formatted.reduce((acc, template) => {
       const cat = template.category || "Uncategorized";
       if (!acc[cat]) acc[cat] = [];
       acc[cat].push(template);
       return acc;
-    }, {} as Record<string, typeof templates>);
+    }, {} as Record<string, typeof formatted>);
 
     return NextResponse.json({
-      templates,
+      templates: formatted,
       grouped,
-      total: templates.length,
+      total: formatted.length,
     });
   } catch (error: any) {
     log.error("Failed to fetch templates", { error: error.message });
@@ -119,10 +125,12 @@ export async function POST(req: NextRequest) {
 
     const template = await prisma.smsTemplate.create({
       data: {
+        id: randomUUID(),
         name,
         body: content,
         category: category || null,
         createdBy: user.id,
+        updatedAt: new Date(),
       },
     });
 

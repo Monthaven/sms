@@ -45,12 +45,12 @@ export async function GET(req: NextRequest) {
       shiftEnd: true,
       _count: {
         select: {
-          calls: {
+          Call: {
             where: {
               startedAt: { gte: todayStart },
             },
           },
-          scheduledMessages: {
+          ScheduledMessage: {
             where: {
               createdAt: { gte: todayStart },
             },
@@ -77,10 +77,10 @@ export async function GET(req: NextRequest) {
       startedAt: true,
       holdStartedAt: true,
       monitoredBy: true,
-      user: {
+      User: {
         select: { id: true, name: true },
       },
-      contact: {
+      Contact: {
         select: { 
           id: true, 
           firstName: true, 
@@ -142,12 +142,14 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     agents: agents.map(a => ({
       ...a,
-      callsToday: a._count.calls,
-      messagesToday: a._count.scheduledMessages,
+      callsToday: a._count.Call,
+      messagesToday: a._count.ScheduledMessage,
       _count: undefined,
     })),
     activeCalls: activeCalls.map(c => ({
       ...c,
+      user: c.User,
+      contact: c.Contact,
       durationSeconds: c.startedAt 
         ? Math.floor((now.getTime() - new Date(c.startedAt).getTime()) / 1000)
         : 0,

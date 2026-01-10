@@ -68,7 +68,7 @@ export async function GET(
         where: { contactId: lead.contactId },
         orderBy: { createdAt: "desc" },
         include: {
-          user: {
+          User: {
             select: { id: true, name: true },
           },
         },
@@ -78,7 +78,7 @@ export async function GET(
         where: { leadId },
         orderBy: { startedAt: "desc" },
         include: {
-          user: {
+          User: {
             select: { id: true, name: true },
           },
         },
@@ -91,7 +91,7 @@ export async function GET(
         },
         orderBy: { updatedAt: "desc" },
         include: {
-          user: {
+          User: {
             select: { id: true, name: true },
           },
         },
@@ -110,7 +110,7 @@ export async function GET(
         direction: interaction.direction as "INBOUND" | "OUTBOUND",
         body: interaction.body,
         userId: interaction.userId ?? undefined,
-        userName: interaction.user?.name ?? undefined,
+        userName: interaction.User?.name ?? undefined,
       });
     }
 
@@ -127,7 +127,7 @@ export async function GET(
         recordingUrl: call.recordingUrl ?? undefined,
         body: call.notes ?? undefined,
         userId: call.userId,
-        userName: call.user?.name ?? undefined,
+        userName: call.User?.name ?? undefined,
       });
     }
 
@@ -146,7 +146,7 @@ export async function GET(
         timestamp: audit.updatedAt.toISOString(),
         body: audit.details ?? undefined,
         userId: audit.userId ?? undefined,
-        userName: audit.user?.name ?? undefined,
+        userName: audit.User?.name ?? undefined,
         metadata: {
           action: audit.action,
         },

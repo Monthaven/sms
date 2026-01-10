@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
     const leads = await prisma.lead.findMany({
       where: statuses && statuses.length > 0 ? { status: { in: statuses } } : undefined,
       include: {
-        contact: {
+        Contact: {
           select: {
             id: true,
             firstName: true,
@@ -59,20 +59,35 @@ export async function GET(request: NextRequest) {
             phoneType: true,
             email: true,
             score: true,
-            interactions: {
+            Interaction: {
               orderBy: { createdAt: "asc" },
               take: 50,
             },
           },
         },
-        property: true,
+        Property: true,
       },
       orderBy: { updatedAt: "desc" },
       take: limit,
     });
 
-    log.debug("Leads fetched", { count: leads.length, statuses });
-    return NextResponse.json(leads, { headers: rateLimitHeaders(rateLimit) });
+    const normalized = leads.map((lead) => {
+      const { Contact, Property, ...rest } = lead;
+      return {
+        ...rest,
+        contact: Contact
+          ? {
+              ...Contact,
+              interactions: Contact.Interaction,
+              Interaction: undefined,
+            }
+          : null,
+        property: Property,
+      };
+    });
+
+    log.debug("Leads fetched", { count: normalized.length, statuses });
+    return NextResponse.json(normalized, { headers: rateLimitHeaders(rateLimit) });
   } catch (error: any) {
     log.error("Failed to fetch leads", {}, error);
     return NextResponse.json(

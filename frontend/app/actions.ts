@@ -12,176 +12,17 @@ import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { cookies, headers } from "next/headers";
-import { getCurrentUser, signSession } from "@/lib/auth";
-import { verifyPassword, generateSecureToken } from "@/lib/password";
+import { getCurrentUser } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 
-// --- AUTHENTICATION ---
-
-type LoginState = {
-  error?: string;
-};
-
-/**
- * Secure login action with password verification
- * Uses PBKDF2 hashing for password verification (compatible with Edge runtime)
- */
-export async function loginAction(
-  prevState: LoginState,
-  formData: FormData
-) {
-  const email = (formData.get('email') as string)?.toLowerCase().trim();
-  const password = formData.get('password') as string;
-  const passkey = (formData.get('passkey') as string | null) ?? "";
-  const requiredSecret = process.env.LOGIN_SECRET;
-  
-  const log = logger.child({ action: "login", email });
-
-  // Validate inputs
-  if (!email) {
-    log.warn("Login failed - missing email");
-    return { error: 'Email is required.' };
-  }
-
-  // Check system passkey if required (additional security layer)
-  if (requiredSecret && passkey !== requiredSecret) {
-    log.warn("Login failed - invalid passkey");
-    return { error: 'Invalid passkey.' };
-  }
-
-  try {
-    // Find user by email with password hash for verification
-    const user = await prisma.user.findUnique({
-      where: { email },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        passwordHash: true,
-        lockedUntil: true,
-        loginAttempts: true,
-      }
-    });
-
-    if (!user) {
-      log.warn("Login failed - user not found");
-      // Use generic message to prevent user enumeration
-      return { error: 'Invalid credentials.' };
-    }
-
-    // Check if account is locked
-    if (user.lockedUntil && user.lockedUntil > new Date()) {
-      log.warn("Login failed - account locked", { lockedUntil: user.lockedUntil });
-      return { error: 'Account is temporarily locked. Please try again later.' };
-    }
-
-    // Password verification (if user has a password set)
-    if (user.passwordHash) {
-      if (!password) {
-        log.warn("Login failed - password required but not provided");
-        return { error: 'Password is required.' };
-      }
-      
-      const isValidPassword = await verifyPassword(password, user.passwordHash);
-      if (!isValidPassword) {
-        // Increment login attempts
-        const newAttempts = (user.loginAttempts || 0) + 1;
-        const lockAccount = newAttempts >= 5;
-        
-        await prisma.user.update({
-          where: { id: user.id },
-          data: {
-            loginAttempts: newAttempts,
-            lockedUntil: lockAccount ? new Date(Date.now() + 15 * 60 * 1000) : null, // 15 min lockout
-          }
-        });
-        
-        log.warn("Login failed - invalid password", { attempts: newAttempts, locked: lockAccount });
-        return { error: 'Invalid credentials.' };
-      }
-      
-      // Reset login attempts on successful login
-      if (user.loginAttempts > 0) {
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { loginAttempts: 0, lockedUntil: null }
-        });
-      }
-    }
-
-    // Update last login timestamp
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { lastLoginAt: new Date() }
-    });
-
-    // Generate secure session token
-    const sessionToken = generateSecureToken(32);
-    
-    // Set secure session cookies
-    const cookieStore = await cookies();
-    const isProduction = process.env.NODE_ENV === 'production';
-    
-    const signature = signSession(user.id, sessionToken);
-
-    cookieStore.set('mae_user', user.id, { 
-      httpOnly: true, 
-      secure: isProduction,
-      sameSite: 'strict',
-      path: '/', 
-      maxAge: 60 * 60 * 24 // 24 hours
-    });
-    cookieStore.set('mae_role', user.role, { 
-      httpOnly: true, 
-      secure: isProduction,
-      sameSite: 'strict',
-      path: '/', 
-      maxAge: 60 * 60 * 24 
-    });
-    cookieStore.set('mae_session', sessionToken, {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: 'strict',
-      path: '/',
-      maxAge: 60 * 60 * 24
-    });
-    cookieStore.set('mae_sig', signature, {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: 'strict',
-      path: '/',
-      maxAge: 60 * 60 * 24
-    });
-    
-    log.info("Login successful", { userId: user.id, role: user.role });
-    redirect('/dashboard');
-  } catch (error: any) {
-    if (error?.digest === "NEXT_REDIRECT") {
-      throw error;
-    }
-    log.error("Login error", {}, error);
-    return { error: 'An error occurred. Please try again.' };
-  }
-}
-
-export async function logoutAction() {
-  const cookieStore = await cookies();
-  cookieStore.delete('mae_user');
-  cookieStore.delete('mae_role');
-  cookieStore.delete('mae_session');
-  redirect('/');
-}
-
-// Note: Set LOGIN_SECRET in your env to require a shared passkey for login.
-
 // --- DASHBOARD DATA ---
+// Authentication now handled by Stack Auth (see /signin page and middleware)
 
 export async function getLeadDetails(leadId: string) {
   const lead = await prisma.lead.findUnique({
     where: { id: leadId },
     include: {
-      contact: {
+      Contact: {
         select: {
           id: true,
           firstName: true,
@@ -194,7 +35,7 @@ export async function getLeadDetails(leadId: string) {
           // ownerMatch intentionally excluded to avoid Prisma type conversion errors
         },
       },
-      property: true,
+      Property: true,
     },
   })
   if (!lead) return null
@@ -204,7 +45,8 @@ export async function getLeadDetails(leadId: string) {
     orderBy: { createdAt: 'asc' }
   })
 
-  return { ...lead, interactions }
+  const { Contact, Property, ...rest } = lead
+  return { ...rest, contact: Contact, property: Property, interactions }
 }
 
 type ReplyState = {
@@ -233,7 +75,7 @@ export async function sendReplyAction(
   const lead = await prisma.lead.findUnique({
     where: { id: leadId },
     include: {
-      contact: {
+      Contact: {
         select: {
           id: true,
           phoneE164: true,
@@ -246,7 +88,7 @@ export async function sendReplyAction(
     return { error: "Lead not found." };
   }
 
-  if (!lead.contact.phoneE164) {
+  if (!lead.Contact.phoneE164) {
     return { error: "Contact has no phone number." };
   }
 
@@ -255,7 +97,7 @@ export async function sendReplyAction(
   
   const smsResult = await sendSMS({
     leadId,
-    to: lead.contact.phoneE164,
+    to: lead.Contact.phoneE164,
     message: cleanMessage,
     provider: provider as "twilio" | "eztexting",
   });
@@ -292,11 +134,11 @@ export async function updateLeadStatus(
       if (!user) {
         return { error: "Authentication required to assign lead." };
       }
-      updateData.assignedTo = { connect: { id: user.id } };
+      updateData.User = { connect: { id: user.id } };
     } else if (options?.assignTo) {
-      updateData.assignedTo = { connect: { id: options.assignTo } };
+      updateData.User = { connect: { id: options.assignTo } };
     } else if (options?.assignTo === null) {
-      updateData.assignedTo = { disconnect: true };
+      updateData.User = { disconnect: true };
     }
 
     await prisma.lead.update({
@@ -349,7 +191,7 @@ export async function assignLeadAction(
     await prisma.lead.update({
       where: { id: leadId },
       data: {
-        assignedTo: { connect: { id: agentId } },
+        User: { connect: { id: agentId } },
         ...(options?.note ? { notes: updatedNotes } : {}),
       },
     });
@@ -483,7 +325,7 @@ export async function getDashboardStats() {
       take: 5,
       orderBy: { createdAt: 'desc' },
       include: {
-        contact: {
+        Contact: {
           select: {
             id: true,
             firstName: true,

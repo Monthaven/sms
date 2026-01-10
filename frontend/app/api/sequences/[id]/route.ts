@@ -30,7 +30,7 @@ export async function GET(
     const sequence = await prisma.sequence.findUnique({
       where: { id },
       include: {
-        steps: { orderBy: { stepNumber: "asc" } },
+        SequenceStep: { orderBy: { stepNumber: "asc" } },
         SequenceContact: {
           include: {
             // Include contact data if available
@@ -48,7 +48,12 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(sequence);
+    const { SequenceStep, ...rest } = sequence;
+
+    return NextResponse.json({
+      ...rest,
+      steps: SequenceStep,
+    });
   } catch (error: any) {
     const requestId = generateRequestId();
     logger.error("Failed to fetch sequence", { requestId, sequenceId: id }, error);
@@ -86,12 +91,17 @@ export async function PUT(
         ...(status !== undefined && { status }),
       },
       include: {
-        steps: { orderBy: { stepNumber: "asc" } },
+        SequenceStep: { orderBy: { stepNumber: "asc" } },
         _count: { select: { SequenceContact: true } },
       },
     });
 
-    return NextResponse.json(sequence);
+    const { SequenceStep, ...rest } = sequence;
+
+    return NextResponse.json({
+      ...rest,
+      steps: SequenceStep,
+    });
   } catch (error: any) {
     const requestId = generateRequestId();
     logger.error("Failed to update sequence", { requestId, sequenceId: id }, error);

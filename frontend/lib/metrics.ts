@@ -18,8 +18,10 @@ function cleanLabels(labels?: Labels): Record<string, any> | undefined {
 
 async function recordMetric(name: string, type: "counter" | "gauge" | "timer", value?: number, labels?: Labels) {
   if (!METRICS_ENABLED) return;
+  const client = prisma as any;
+  if (!client.metricsEvent) return;
   try {
-    await prisma.metricsEvent.create({
+    await client.metricsEvent.create({
       data: {
         name,
         type,

@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
     const logs = await db.auditLog.findMany({
       where,
       include: {
-        user: {
+        User: {
           select: { name: true, email: true },
         },
       },
@@ -40,15 +40,18 @@ export async function GET(req: NextRequest) {
 
     // Convert to CSV
     const headers = ["Date", "User", "Email", "Action", "Entity Type", "Entity ID", "IP Address"];
-    const rows = logs.map((log) => [
-      log.createdAt.toISOString(),
-      log.user?.name || "Unknown",
-      log.user?.email || "",
-      log.action,
-      log.entityType || "",
-      log.entityId || "",
-      log.ipAddress || "",
-    ]);
+    const rows = logs.map((log) => {
+      const user = log.User;
+      return [
+        log.createdAt.toISOString(),
+        user?.name || "Unknown",
+        user?.email || "",
+        log.action,
+        log.entityType || "",
+        log.entityId || "",
+        log.ipAddress || "",
+      ];
+    });
 
     const csv = [
       headers.join(","),

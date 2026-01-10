@@ -48,7 +48,7 @@ export async function POST(
   const lead = await prisma.lead.findUnique({
     where: { id: leadId },
     include: {
-      contact: { select: { id: true, phoneE164: true } },
+      Contact: { select: { id: true, phoneE164: true } },
     },
   });
 
@@ -56,14 +56,14 @@ export async function POST(
     return NextResponse.json({ error: { message: "Lead not found" } }, { status: 404 });
   }
 
-  if (!lead.contact?.phoneE164) {
+  if (!lead.Contact?.phoneE164) {
     return NextResponse.json({ error: { message: "No phone number for this lead" } }, { status: 400 });
   }
 
   // Send via unified SMS utility (supports Twilio and EzTexting)
   const smsResult = await sendSMS({
     leadId,
-    to: lead.contact.phoneE164,
+    to: lead.Contact.phoneE164,
     message: messageBody,
     provider: provider as SMSProvider,
   });
@@ -80,13 +80,13 @@ export async function POST(
   const message = await prisma.message.create({
     data: {
       id: randomUUID(),
-      phone: lead.contact.phoneE164,
+      phone: lead.Contact.phoneE164,
       direction: "OUTBOUND",
       body: messageBody,
       status: "SENT",
       provider: provider,
       external_id: smsResult.externalId,
-      contactId: lead.contact.id,
+      contactId: lead.Contact.id,
       updatedAt: new Date(),
     },
   });

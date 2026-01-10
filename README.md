@@ -769,3 +769,11 @@ npx prisma db push     # Push schema (no migration)
 ---
 
 **Built with care by Always Improving LLC**
+
+---
+
+## Documentation consolidation
+
+This README is the canonical root doc. Prior standalone files are folded here:
+- **CRM Manifesto:** Strategy and 30-year horizon for the gated, real-estate-first OS; see architecture/roadmap for the distilled view (full text available via git history).
+- **file_SYSTEM:** Earlier repo/system housekeeping is superseded by the layout and operations details in this README.

@@ -8,6 +8,7 @@ import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { z } from "zod";
 import { logger, generateRequestId } from "@/lib/logger";
+import { randomUUID } from "crypto";
 
 const createScoreSchema = z.object({
   callId: z.string(),
@@ -37,7 +38,7 @@ export async function GET(req: NextRequest) {
     const where: Record<string, unknown> = {};
 
     if (userId) {
-      where.call = { userId };
+      where.Call = { userId };
     }
 
     if (startDate || endDate) {
@@ -50,7 +51,7 @@ export async function GET(req: NextRequest) {
       db.qualityScore.findMany({
         where,
         include: {
-          call: {
+          Call: {
             select: {
               id: true,
               twilioCallSid: true,
@@ -58,15 +59,15 @@ export async function GET(req: NextRequest) {
               duration: true,
               startedAt: true,
               recordingUrl: true,
-              user: {
+              User: {
                 select: { id: true, name: true },
               },
-              contact: {
+              Contact: {
                 select: { firstName: true, lastName: true, phoneE164: true },
               },
             },
           },
-          scorer: {
+          User: {
             select: { id: true, name: true },
           },
         },
@@ -77,8 +78,19 @@ export async function GET(req: NextRequest) {
       db.qualityScore.count({ where }),
     ]);
 
+    const normalizedScores = scores.map((score) => {
+      const { Call, User, ...rest } = score;
+      const { User: callUser, Contact, ...callRest } = Call ?? {};
+
+      return {
+        ...rest,
+        call: Call ? { ...callRest, user: callUser, contact: Contact } : null,
+        scorer: User,
+      };
+    });
+
     return NextResponse.json({
-      scores,
+      scores: normalizedScores,
       total,
       limit,
       offset,
@@ -131,6 +143,7 @@ export async function POST(req: NextRequest) {
     // Create the score
     const score = await db.qualityScore.create({
       data: {
+        id: randomUUID(),
         callId,
         scoredBy: currentUser.id,
         greeting,
@@ -143,18 +156,19 @@ export async function POST(req: NextRequest) {
         coachingPoints: coachingPoints || [],
       },
       include: {
-        call: {
+        Call: {
           select: { userId: true },
         },
       },
     });
 
     // Create notification for the agent
-    if (score.call.userId) {
+    if (score.Call?.userId) {
       await db.notification.create({
         data: {
-          userId: score.call.userId,
-          type: "SYSTEM",
+          id: randomUUID(),
+          userId: score.Call.userId,
+          type: "MANAGER_ALERT",
           priority: "NORMAL",
           title: "Call Quality Score Received",
           body: `Your call has been scored: ${overall}/10`,
@@ -165,7 +179,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    return NextResponse.json(score, { status: 201 });
+    return NextResponse.json({ ...score, call: score.Call }, { status: 201 });
   } catch (error) {
     const requestId = generateRequestId();
     logger.error("Create score error", { requestId }, error as Error);

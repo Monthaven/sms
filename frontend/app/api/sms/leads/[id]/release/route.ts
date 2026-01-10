@@ -8,6 +8,7 @@ import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { publishEvent, events } from "@/lib/events";
 import { logger, generateRequestId } from "@/lib/logger";
+import { randomUUID } from "crypto";
 
 export async function POST(
   req: NextRequest,
@@ -24,7 +25,7 @@ export async function POST(
     // Find the lead
     const lead = await db.lead.findUnique({
       where: { id },
-      include: { contact: true },
+      include: { Contact: true },
     });
 
     if (!lead) {
@@ -50,6 +51,7 @@ export async function POST(
     // Log the release
     await db.leadAudit.create({
       data: {
+        id: randomUUID(),
         leadId: id,
         userId: currentUser.id,
         action: "RELEASED",

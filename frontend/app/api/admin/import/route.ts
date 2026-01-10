@@ -9,6 +9,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { normalizePhone } from "@/lib/phone-utils";
 import { logger } from "@/lib/logger";
+import { randomUUID } from "crypto";
 
 type ColumnMapping = {
   csvColumn: string;
@@ -124,6 +125,7 @@ export async function POST(req: Request) {
         if (address) {
           const property = await prisma.property.create({
             data: {
+              id: randomUUID(),
               addressLine1: address,
               address: address,
               city: getValue("city") || null,
@@ -131,6 +133,7 @@ export async function POST(req: Request) {
               postalCode: getValue("zip") || getValue("postalCode") || "",
               zip: getValue("zip") || null,
               units: parseInt(getValue("units") || "1", 10) || 1,
+              updatedAt: new Date(),
             },
           });
           propertyId = property.id;
@@ -139,13 +142,19 @@ export async function POST(req: Request) {
         // Create contact with proper field names
         const contact = await prisma.contact.create({
           data: {
+            id: randomUUID(),
             firstName: getValue("firstName") || getValue("name")?.split(" ")[0] || null,
             lastName: getValue("lastName") || getValue("name")?.split(" ").slice(1).join(" ") || null,
             phoneE164: normalizedPhone,
             email: getValue("email"),
             score: 50, // Default score
             priority: "MEDIUM",
-            ...(propertyId && { propertyId }),
+            updatedAt: new Date(),
+            ...(propertyId && {
+              Property_Contact_propertyIdToProperty: {
+                connect: { id: propertyId },
+              },
+            }),
           },
         });
 
@@ -158,9 +167,11 @@ export async function POST(req: Request) {
 
         await prisma.lead.create({
           data: {
+            id: randomUUID(),
             contactId: contact.id,
             campaignId: defaultCampaign.id,
             ...(propertyId && { propertyId }),
+            updatedAt: new Date(),
             status: "NEW",
           },
         });

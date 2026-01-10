@@ -11,6 +11,7 @@ import { checkRateLimit, getClientIP, RATE_LIMITS, rateLimitHeaders } from "@/li
 import { withRetry } from "@/lib/retry";
 import { logger } from "@/lib/logger";
 import { z } from "zod";
+import { randomUUID } from "crypto";
 
 // Email request validation
 const emailRequestSchema = z.object({
@@ -187,6 +188,7 @@ export async function POST(request: NextRequest) {
           // Log as audit entry (EMAIL channel could be added to Interaction model)
           await prisma.leadAudit.create({
             data: {
+              id: randomUUID(),
               leadId: leadId,
               action: "EMAIL_SENT",
               details: `Email sent to ${to}: ${subject} (ID: ${result.messageId})`,

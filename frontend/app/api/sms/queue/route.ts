@@ -50,22 +50,22 @@ export async function GET(req: Request) {
     },
     contact: maskContact(
       {
-        name: lead.contact?.firstName ?? lead.contact?.full_name ?? "",
-        phone: lead.contact?.phoneE164 ?? null,
-        email: lead.contact?.email ?? null,
-        score: lead.contact?.score ?? 0,
-        priority: lead.contact?.priority ?? "LOW",
-        intent: lead.contact?.intent ?? null,
+        name: lead.Contact?.firstName ?? lead.Contact?.full_name ?? "",
+        phone: lead.Contact?.phoneE164 ?? null,
+        email: lead.Contact?.email ?? null,
+        score: lead.Contact?.score ?? 0,
+        priority: lead.Contact?.priority ?? "LOW",
+        intent: lead.Contact?.intent ?? null,
       },
       shouldMask
     ),
-    property: lead.property
+    property: lead.Property
       ? {
-        address: lead.property.addressLine1 ?? lead.property.address ?? "",
-        city: lead.property.city ?? "",
-        state: lead.property.state ?? "",
-        units: lead.property.units ?? 0,
-        value: lead.property.rawDetails ? Number((lead.property.rawDetails as any).value || 0) : 0,
+        address: lead.Property.addressLine1 ?? lead.Property.address ?? "",
+        city: lead.Property.city ?? "",
+        state: lead.Property.state ?? "",
+        units: lead.Property.units ?? 0,
+        value: lead.Property.rawDetails ? Number((lead.Property.rawDetails as any).value || 0) : 0,
       }
       : null,
   }));

@@ -39,6 +39,19 @@ If schema changes land in `backend`, run root `npm run db:sync` first to sync `p
 - App URLs & IDs: `NEXT_PUBLIC_APP_URL`, `INBOUND_CAMPAIGN_ID`.  
 See `.env.example` for the full annotated list.
 
+## Frontend criteria (quick reference)
+- Auth/front-door: centralized portal routes for signin/signup/request-access and NDA gating; RBAC tiles; middleware-enforced roles.
+- Voice/SMS: inbound flow rings browser + forwardNumber with voicemail fallback and notifications; outbound via Twilio Device + `/api/twilio/voice/outbound-connect`; signature validation toggle via `VALIDATE_TWILIO_SIGNATURE`.
+- Design language: glass/neon “command console” aesthetic, consistent card styling, strong sidebar grouping/active states, Tailwind tokens instead of ad-hoc CSS.
+- QA/compliance: consent/DNC enforcement, webhook signature validation, rate limits on public APIs, recording/voicemail callbacks wired with audit trails.
+
+## Documentation consolidation
+- This README is the canonical storefront doc. Prior Markdown files are summarized here:
+  - **FRONTDOOR_STRUCTURE.md:** Auth portal blueprint (Stack auth, RBAC router, NDA/request-access flows).
+  - **INBOUND_CALLS.md:** Inbound voice playbook (Twilio Client + forward number, voicemail fallback, notifications, auto lead/contact creation).
+  - **UI_UX_OVERHAUL_PLAN.md:** Command-console UI/UX modernization (glass/neon tokens, hierarchy, sidebar/menu improvements).
+  - **FIXES_APPLIED.md:** Historical fix log (e.g., voicemail drop, Twilio client singleton, dialer updates); retain via git history for audit.
+
 ## Architecture and data flow
 - App Router: routing under `app/`; shared providers wired in `app/layout.tsx` and `components/ReactQueryProvider.tsx`.
 - Data: Prisma client from `lib/db.ts`; domain helpers in `lib/*` (calls, sms, notifications, telemetry, sequences, quiet-hours, DNC, masking).

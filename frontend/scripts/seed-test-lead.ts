@@ -5,6 +5,7 @@
  */
 
 import { PrismaClient } from '@prisma/client'
+import { randomUUID } from 'crypto'
 
 const prisma = new PrismaClient()
 
@@ -34,6 +35,7 @@ async function main() {
       },
     },
     create: {
+      id: randomUUID(),
       addressLine1: '1847 Westchester Dr',
       city: 'High Point',
       state: 'NC',
@@ -41,6 +43,7 @@ async function main() {
       units: 8,
       year_built: 1985,
       owner_1_name: 'Test Owner LLC',
+      updatedAt: new Date(),
     },
     update: {},
   })
@@ -50,6 +53,7 @@ async function main() {
   const contact = await prisma.contact.upsert({
     where: { phoneE164: '+13363109065' },
     create: {
+      id: randomUUID(),
       phoneE164: '+13363109065',
       phone_1: '3363109065',
       phone_1_type: 'WIRELESS',
@@ -71,6 +75,7 @@ async function main() {
       dm_tier: 'A',
       is_primary: true,
       propertyId: property.id,
+      updatedAt: new Date(),
     },
     update: {},
   })
@@ -86,11 +91,13 @@ async function main() {
       },
     },
     create: {
+      id: randomUUID(),
       campaignId: campaign.id,
       contactId: contact.id,
       propertyId: property.id,
       status: 'NEW',
       sentimentScore: 0,
+      updatedAt: new Date(),
     },
     update: {},
   })

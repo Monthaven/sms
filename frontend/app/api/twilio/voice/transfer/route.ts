@@ -10,6 +10,7 @@ import { getTwilioClient } from "@/lib/twilio-client";
 import { logger, generateRequestId } from "@/lib/logger";
 import { notifications } from "@/lib/notifications";
 import VoiceResponse from "twilio/lib/twiml/VoiceResponse";
+import { randomUUID } from "crypto";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -59,7 +60,7 @@ export async function POST(req: NextRequest) {
     // Get current call
     const call = await prisma.call.findUnique({
       where: { twilioCallSid: callSid },
-      include: { contact: true, lead: true },
+      include: { Contact: true, Lead: true },
     });
 
     if (!call) {
@@ -67,6 +68,7 @@ export async function POST(req: NextRequest) {
     }
 
     const client = getTwilioClient();
+    const caller = call.Contact;
 
     if (type === "cold") {
       // Cold transfer: Immediately route to new agent
@@ -121,8 +123,8 @@ export async function POST(req: NextRequest) {
       });
 
       // Notify target agent
-      const callerName = call.contact
-        ? `${call.contact.firstName || ""} ${call.contact.lastName || ""}`.trim()
+      const callerName = caller
+        ? `${caller.firstName || ""} ${caller.lastName || ""}`.trim()
         : call.fromNumber;
 
       await notifications.incomingCall(targetUserId, `Transfer from ${user.name}: ${callerName}`, callSid);
@@ -138,12 +140,13 @@ export async function POST(req: NextRequest) {
       // Create notification for transfer request
       await prisma.notification.create({
         data: {
+          id: randomUUID(),
           userId: targetUserId,
           type: "TRANSFER_REQUEST",
           priority: "HIGH",
           title: `Transfer Request from ${user.name}`,
-          body: call.contact
-            ? `Call with ${call.contact.firstName} ${call.contact.lastName}`.trim()
+          body: caller
+            ? `Call with ${caller.firstName} ${caller.lastName}`.trim()
             : `Call from ${call.fromNumber}`,
           actionUrl: `/api/twilio/voice/transfer/accept?conference=${conferenceName}&callSid=${callSid}`,
           actionLabel: "Accept Transfer",

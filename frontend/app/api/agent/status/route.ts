@@ -8,6 +8,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { logger, generateRequestId } from "@/lib/logger";
 import { z } from "zod";
+import { randomUUID } from "crypto";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -106,6 +107,7 @@ export async function PUT(req: NextRequest) {
     // Log status change for reporting
     await prisma.agentStatusLog.create({
       data: {
+        id: randomUUID(),
         userId: user.id,
         status,
         reason: breakReason || (previousDuration ? `Duration: ${previousDuration}s` : null),

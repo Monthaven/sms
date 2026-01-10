@@ -5,6 +5,7 @@
 
 import { env } from '../env';
 import { logger } from '../logger';
+import type { DealMachineLead } from './dealMachineTypes';
 
 interface DealMachinePhone {
   number: string;
@@ -158,5 +159,102 @@ export class DealMachineClient {
       cursor = nextCursor;
     }
     this.log.info('DealMachine pull complete', { yielded });
+  }
+
+  /**
+   * Fetch a single page of leads from DealMachine API
+   * @param after Cursor for pagination
+   * @param limit Number of leads to fetch per page (default: 100)
+   * @returns Page of leads with next cursor
+   */
+  private async pageLeads(after?: string, limit?: number): Promise<{ leads: DealMachineLead[]; nextCursor?: string }> {
+    const pageSize = limit ?? env.DEALMACHINE_PAGE_SIZE ?? 100;
+
+    const body = await this.withRetry(
+      () =>
+        this.request('/public/v1/leads', {
+          limit: pageSize,
+          after: after,
+        }),
+      'listLeads'
+    );
+
+    // Handle various response formats
+    const leads: DealMachineLead[] = Array.isArray(body.leads)
+      ? body.leads
+      : Array.isArray(body.data)
+      ? body.data
+      : [];
+
+    const nextCursor = body.after || body.nextCursor || body.next_cursor || body.cursor;
+    return { leads, nextCursor };
+  }
+
+  /**
+   * Iterate through all leads from DealMachine API
+   * Yields leads one at a time with automatic pagination
+   * Implements rate limiting: 300-500ms pause between pages
+   *
+   * @param params.since Only fetch leads updated after this ISO date
+   * @param params.limit Maximum number of leads to fetch (for testing)
+   * @yields DealMachineLead objects one at a time
+   *
+   * @example
+   * const client = new DealMachineClient();
+   * for await (const lead of client.iterateLeads({ limit: 100 })) {
+   *   console.log(lead.property_address_line1);
+   * }
+   */
+  async *iterateLeads(params: { since?: string; limit?: number } = {}): AsyncGenerator<DealMachineLead> {
+    if (!env.DEALMACHINE_API_KEY) {
+      throw new Error('DEALMACHINE_API_KEY is required to pull from DealMachine');
+    }
+
+    let cursor: string | undefined = undefined;
+    let yielded = 0;
+    const limit = params.limit ?? Infinity;
+
+    while (yielded < limit) {
+      // Fetch page of leads
+      const { leads, nextCursor } = await this.pageLeads(cursor);
+
+      if (!leads.length) break;
+
+      // Yield each lead
+      for (const lead of leads) {
+        if (yielded >= limit) break;
+        yielded += 1;
+        yield lead;
+      }
+
+      if (!nextCursor) break;
+      cursor = nextCursor;
+
+      // Rate limiting: pause 300-500ms between pages (10 req/sec = 100ms min, but we're conservative)
+      const pauseMs = 300 + Math.random() * 200; // 300-500ms
+      await new Promise((resolve) => setTimeout(resolve, pauseMs));
+    }
+
+    this.log.info('DealMachine leads pull complete', { yielded });
+  }
+
+  /**
+   * Fetch all leads from DealMachine API and return as array
+   * Useful for smaller datasets or when you need all leads at once
+   *
+   * @param limit Optional limit on number of leads to fetch
+   * @returns Array of all leads
+   *
+   * @example
+   * const client = new DealMachineClient();
+   * const leads = await client.fetchAllLeads(100);
+   * console.log(`Fetched ${leads.length} leads`);
+   */
+  async fetchAllLeads(limit?: number): Promise<DealMachineLead[]> {
+    const leads: DealMachineLead[] = [];
+    for await (const lead of this.iterateLeads({ limit })) {
+      leads.push(lead);
+    }
+    return leads;
   }
 }

@@ -9,6 +9,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { logger, generateRequestId } from "@/lib/logger";
 import { z } from "zod";
 import { normalizePhone } from "@/lib/utils";
+import { randomUUID } from "crypto";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -113,6 +114,7 @@ export async function POST(req: NextRequest) {
       if (newPhones.length > 0) {
         await prisma.dncEntry.createMany({
           data: newPhones.map(phone => ({
+            id: randomUUID(),
             phone,
             source,
             notes: reason || null,
@@ -175,6 +177,7 @@ export async function POST(req: NextRequest) {
 
     const entry = await prisma.dncEntry.create({
       data: {
+        id: randomUUID(),
         phone: normalizedPhone,
         source,
         notes: reason || null,

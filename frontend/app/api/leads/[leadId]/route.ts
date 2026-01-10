@@ -22,7 +22,7 @@ export async function GET(
   const lead = await prisma.lead.findUnique({
     where: { id: leadId },
     include: {
-      contact: {
+      Contact: {
         select: {
           id: true,
           firstName: true,
@@ -34,7 +34,7 @@ export async function GET(
           intent: true,
         },
       },
-      property: {
+      Property: {
         select: {
           id: true,
           address: true,
@@ -46,7 +46,7 @@ export async function GET(
           units: true,
         },
       },
-      calls: {
+      Call: {
         orderBy: { startedAt: "desc" },
         take: 20,
         select: {
@@ -55,7 +55,7 @@ export async function GET(
           disposition: true,
           notes: true,
           startedAt: true,
-          user: {
+          User: {
             select: { name: true },
           },
         },
@@ -68,8 +68,8 @@ export async function GET(
   }
 
   // Get messages via contact (since Message connects to Contact, not Lead)
-  const messages = lead.contact ? await prisma.message.findMany({
-    where: { contactId: lead.contact.id },
+  const messages = lead.Contact ? await prisma.message.findMany({
+    where: { contactId: lead.Contact.id },
     orderBy: { createdAt: "desc" },
     take: 50,
     select: {
@@ -86,22 +86,22 @@ export async function GET(
     status: lead.status,
     callbackAt: lead.callbackAt?.toISOString() || null,
     createdAt: lead.createdAt.toISOString(),
-    contact: lead.contact ? {
-      id: lead.contact.id,
-      name: `${lead.contact.firstName || ''} ${lead.contact.lastName || ''}`.trim() || "Unknown",
-      phone: lead.contact.phoneE164,
-      email: lead.contact.email,
-      score: lead.contact.score,
-      priority: lead.contact.priority,
-      intent: lead.contact.intent,
+    contact: lead.Contact ? {
+      id: lead.Contact.id,
+      name: `${lead.Contact.firstName || ''} ${lead.Contact.lastName || ''}`.trim() || "Unknown",
+      phone: lead.Contact.phoneE164,
+      email: lead.Contact.email,
+      score: lead.Contact.score,
+      priority: lead.Contact.priority,
+      intent: lead.Contact.intent,
     } : null,
-    property: lead.property ? {
-      id: lead.property.id,
-      address: lead.property.address || lead.property.addressLine1,
-      city: lead.property.city,
-      state: lead.property.state,
-      zip: lead.property.zip || lead.property.postalCode,
-      units: lead.property.units,
+    property: lead.Property ? {
+      id: lead.Property.id,
+      address: lead.Property.address || lead.Property.addressLine1,
+      city: lead.Property.city,
+      state: lead.Property.state,
+      zip: lead.Property.zip || lead.Property.postalCode,
+      units: lead.Property.units,
     } : null,
     messages: messages.map((m) => ({
       id: m.id,
@@ -110,13 +110,13 @@ export async function GET(
       createdAt: m.createdAt.toISOString(),
       status: m.status,
     })),
-    calls: lead.calls.map((c) => ({
+    calls: lead.Call.map((c) => ({
       id: c.id,
       duration: c.duration || 0,
       outcome: c.disposition,
       notes: c.notes,
       createdAt: c.startedAt.toISOString(),
-      user: c.user,
+      user: c.User,
     })),
   });
 }

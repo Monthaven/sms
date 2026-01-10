@@ -9,6 +9,7 @@ import twilio from "twilio";
 import { withRetry, RETRY_CONFIGS } from "@/lib/retry";
 import { logger } from "@/lib/logger";
 import { LeadStatus } from "@prisma/client";
+import { randomUUID } from "crypto";
 
 // Initialize Twilio client lazily (singleton)
 let _twilioClient: ReturnType<typeof twilio> | null = null;
@@ -90,6 +91,7 @@ async function resolveInboundCampaignId(): Promise<string> {
 
   const created = await prisma.campaign.create({
     data: {
+      id: randomUUID(),
       name: fallbackName,
       status: "ACTIVE",
       createdAt: new Date(),
@@ -104,11 +106,11 @@ async function ensureLeadForPhone(phone: string): Promise<{ leadId: string; cont
   const phoneE164 = normalizePhone(phone);
   const contact = await prisma.contact.findUnique({
     where: { phoneE164 },
-    include: { leads: { orderBy: { createdAt: "desc" }, take: 1 } },
+    include: { Lead: { orderBy: { createdAt: "desc" }, take: 1 } },
   });
 
-  if (contact?.leads?.[0]) {
-    return { leadId: contact.leads[0].id, contactId: contact.id };
+  if (contact?.Lead?.[0]) {
+    return { leadId: contact.Lead[0].id, contactId: contact.id };
   }
 
   // Create contact + lead if missing
@@ -116,21 +118,26 @@ async function ensureLeadForPhone(phone: string): Promise<{ leadId: string; cont
     ? contact
     : await prisma.contact.create({
         data: {
+          id: randomUUID(),
           phoneE164,
           firstName: "Unknown",
           lastName: "Contact",
           source: "OUTBOUND_SMS",
+          updatedAt: new Date(),
         },
+        include: { Lead: true },
       });
 
   try {
     const campaignId = await resolveInboundCampaignId();
     const lead = await prisma.lead.create({
       data: {
+        id: randomUUID(),
         campaignId,
         contactId: createdContact.id,
         status: LeadStatus.RESP_HOT,
         notes: "Created from outbound SMS",
+        updatedAt: new Date(),
       },
       select: { id: true },
     });
@@ -313,6 +320,7 @@ export async function sendSMS(params: SendSMSParams): Promise<SendSMSResult> {
     if (contactId) {
       await prisma.interaction.create({
         data: {
+          id: randomUUID(),
           contactId,
           channel: channel,
           direction: "OUTBOUND",

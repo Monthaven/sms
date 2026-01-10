@@ -5,6 +5,7 @@
 
 import { db } from "./db";
 import { Prisma } from "@prisma/client";
+import { randomUUID } from "crypto";
 
 export interface AuditLogEntry {
   action: string;
@@ -23,6 +24,7 @@ export async function logAudit(entry: AuditLogEntry): Promise<void> {
   try {
     await db.auditLog.create({
       data: {
+        id: randomUUID(),
         action: entry.action,
         entityType: entry.entityType,
         entityId: entry.entityId,
@@ -68,7 +70,7 @@ export async function getAuditLogs(filters: {
     db.auditLog.findMany({
       where,
       include: {
-        user: {
+        User: {
           select: { id: true, name: true, email: true },
         },
       },

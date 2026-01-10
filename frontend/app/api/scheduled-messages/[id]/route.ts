@@ -34,7 +34,7 @@ export async function GET(
   const scheduled = await prisma.scheduledMessage.findUnique({
     where: { id },
     include: {
-      contact: {
+      Contact: {
         select: {
           id: true,
           firstName: true,
@@ -43,7 +43,7 @@ export async function GET(
           timezone: true,
         },
       },
-      user: {
+      User: {
         select: { name: true },
       },
     },
@@ -58,7 +58,15 @@ export async function GET(
     return NextResponse.json({ error: "Access denied" }, { status: 403 });
   }
 
-  return NextResponse.json({ scheduled });
+  const { Contact, User, ...rest } = scheduled;
+
+  return NextResponse.json({ 
+    scheduled: {
+      ...rest,
+      contact: Contact,
+      user: User,
+    },
+  });
 }
 
 /**

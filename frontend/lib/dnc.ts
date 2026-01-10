@@ -5,6 +5,7 @@
 
 import { db } from "./db";
 import { normalizePhone } from "./phone-utils";
+import { randomUUID } from "crypto";
 
 export interface DncCheckResult {
   blocked: boolean;
@@ -95,6 +96,7 @@ export async function addToDnc(
     await db.dncEntry.upsert({
       where: { phone: normalized },
       create: {
+        id: randomUUID(),
         phone: normalized,
         source,
         notes,
@@ -182,6 +184,7 @@ export async function importDncList(
       await db.dncEntry.upsert({
         where: { phone: normalized },
         create: {
+          id: randomUUID(),
           phone: normalized,
           source,
           addedBy,
