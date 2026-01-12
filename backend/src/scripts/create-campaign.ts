@@ -7,13 +7,19 @@
 import { prisma } from '../db';
 import * as readline from 'readline';
 
-const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-
 async function main() {
   console.log("\n🏗️  MAE CAMPAIGN CREATOR");
-  
-  const name = await new Promise<string>(r => rl.question('Campaign Name (e.g. "Nashville-Buyers-Nov"): ', r));
-  
+
+  const args = process.argv.slice(2);
+  let name = args[0];
+
+  // If a name was not provided as an argument, fall back to interactive prompt
+  let rl: readline.Interface | undefined;
+  if (!name) {
+    rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+    name = await new Promise<string>(r => rl!.question('Campaign Name (e.g. "Nashville-Buyers-Nov"): ', r));
+  }
+
   if (!name) {
     console.error("❌ Name required.");
     process.exit(1);
@@ -30,7 +36,7 @@ async function main() {
     console.error("❌ Error:", err);
   } finally {
     await prisma.$disconnect();
-    rl.close();
+    rl?.close();
   }
 }
 
